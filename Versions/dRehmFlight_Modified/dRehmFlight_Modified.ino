@@ -67,8 +67,8 @@ static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to mat
 #include <PWMServo.h> //Commanding any extra actuators, installed with teensyduino installer
 #include <SD.h>       //SD card logging
 #include <string>
-//#include <ArduinoEigenDense.h>
-//include "pidController.h"
+#include <ArduinoEigenDense.h>
+#include "pidController.h"
 const int chipSelect = BUILTIN_SDCARD;
 
 #if defined USE_SBUS_RX
@@ -236,15 +236,15 @@ float Ki_yaw = 0.05;
 //Yaw D-gain (be careful when increasing too high, motors will begin to overheat!)
 float Kd_yaw = 0.00015;       
 
-// const Matrix3f P_gains {{Kp_pitch_angle, 0, 0},
-// 												{0, Kp_yaw, 0},
-// 												{0, 0, Kp_roll_angle}};
-// const Matrix3f I_gains {{Ki_pitch_angle, 0, 0},
-// 												{0, Ki_yaw, 0},
-// 												{0, 0, Ki_roll_angle}};
-// const Matrix3f D_gains {{Kd_pitch_angle, 0, 0},
-// 												{0, Kd_yaw, 0},
-// 												{0, 0, Kd_roll_angle}};
+const Matrix3f P_gains {{Kp_pitch_angle, 0, 0},
+												{0, Kp_yaw, 0},
+												{0, 0, Kp_roll_angle}};
+const Matrix3f I_gains {{Ki_pitch_angle, 0, 0},
+												{0, Ki_yaw, 0},
+												{0, 0, Ki_roll_angle}};
+const Matrix3f D_gains {{-Kd_pitch_angle, 0, 0},
+												{0, Kd_yaw, 0},
+												{0, 0, -Kd_roll_angle}};
 
 int alphaCounts_min = 157; 	// Analog int of maximum x-axis analog signal
 int alphaCounts_max = 1022;  	// Analog int of minimum x-axis analog signal
@@ -417,9 +417,9 @@ String fileName;
 
 File dataFile;
 
-// Vector3f desState(0,0,0);
-// Vector3f currState(0,0,0);
-// Vector3f pidOutputVals(0,0,0);
+Vector3f desState(0,0,0);
+Vector3f currState(0,0,0);
+Vector3f pidOutputVals(0,0,0);
 
 bool SD_is_present = 0;
 
@@ -473,8 +473,6 @@ void setup() {
   }
 	else {
     Serial.println("Card failed, or not present");
-    // don't do anything more:
-    return;
 	}
 
   //Initialize radio communication (defined in header file)
@@ -564,13 +562,13 @@ void loop() {
   //printMagData();       
 	// Prints roll, pitch, and yaw angles in degrees from Madgwick filter (expected: degrees, 0 when
 	// level)
-  printRollPitchYaw();  
+  //printRollPitchYaw();  
 	// Combines printRollPitchYaw() with printDesiredState() and prints in tab separted values in the
 	// order specified in the function.
   //printRollPitchYawAndDesired(); 
 	// Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1
 	// to 1)
-  //printPIDoutput();     
+  printPIDoutput();     
 	// Prints the values being written to the motors (expected: 120 to 250)
   //printMotorCommands(); 
 	// Prints the values being written to the servos (expected: 0 to 180)
@@ -631,15 +629,22 @@ void loop() {
 	}
   
   //PID Controller - SELECT ONE:
-		controlANGLE();
+//		controlANGLE();
   //controlANGLE2(); //Stabilize on angle setpoint using cascaded method. Rate controller must be tuned well first!
   //controlRATE(); //Stabilize on rate setpoint
 
 	// Linear algebra PID function
-	//desState << pitch_des, yaw_des, roll_des;
-	//currState << pitch_IMU, yaw_IMU, roll_IMU;
-	//pidOutputVals = pidOutput(desState, currState, P_gains, I_gains, D_gains, dt, channel_1_pwm <
-	//	1060);
+	desState[0] = pitch_des; 
+	desState[1] = yaw_des; 
+	desState[2] = roll_des;
+	currState[0] = pitch_IMU; 
+	currState[1] = yaw_IMU; 
+	currState[2] = roll_IMU;
+	pidOutputVals = pidOutput(desState, currState, P_gains, I_gains, D_gains, dt, channel_1_pwm <
+		1060, GyroX, GyroY, GyroZ);
+	pitch_PID = pidOutputVals[0];
+	yaw_PID = pidOutputVals[1];
+	roll_PID = pidOutputVals[2];
 
 
   //Actuator mixing and scaling to PWM values
@@ -1285,6 +1290,7 @@ void controlANGLE() {
   //Update yaw variables
   error_yaw_prev = error_yaw;
   integral_yaw_prev = integral_yaw;
+
 }
 
 
@@ -1986,13 +1992,13 @@ void printPIDoutput() {
     Serial.print(F(" pitch_PID: "));
     Serial.print(pitch_PID);
     Serial.print(F(" yaw_PID: "));
-    Serial.println(yaw_PID);
-    // Serial.print(F("roll_PID_new: "));
-    // Serial.print(pidOutputVals[2]);
-    // Serial.print(F(" pitch_PID_new: "));
-    // Serial.print(pidOutputVals[0]);
-    // Serial.print(F(" yaw_PID_new: "));
-    // Serial.println(pidOutputVals[1]);
+    Serial.print(yaw_PID);
+    Serial.print(F(" roll_PID_new: "));
+    Serial.print(pidOutputVals[2]);
+    Serial.print(F(" pitch_PID_new: "));
+    Serial.print(pidOutputVals[0]);
+    Serial.print(F(" yaw_PID_new: "));
+    Serial.println(pidOutputVals[1]);
   }
 }
 
