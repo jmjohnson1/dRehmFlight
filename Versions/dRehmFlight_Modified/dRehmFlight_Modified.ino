@@ -455,7 +455,7 @@ void setup() {
 	else {
     Serial.println("Card failed, or not present");
     // don't do anything more:
-    return;
+    //return;
 	}
 
   //Initialize radio communication (defined in header file)
@@ -578,18 +578,18 @@ void loop() {
 	}
 
 	//Save attitude to SD card
-	String dataString = "";
+	// String dataString = "";
 
-	dataString = F("roll: ")+String(roll_IMU)+F(" pitch: ")+String(pitch_IMU)+F(" yaw: ")+String(yaw_IMU);
-	dataFile = SD.open(fileName.c_str(), FILE_WRITE);
-	if (dataFile) {
-		dataFile.println(dataString);
-		dataFile.close();
-	}  
-	// if the file isn't open, pop up an error:
-	else {
-	Serial.println("error opening datalog.txt");
-	}
+	// dataString = F("roll: ")+String(roll_IMU)+F(" pitch: ")+String(pitch_IMU)+F(" yaw: ")+String(yaw_IMU);
+	// dataFile = SD.open(fileName.c_str(), FILE_WRITE);
+	// if (dataFile) {
+	// 	dataFile.println(dataString);
+	// 	dataFile.close();
+	// }  
+	// // if the file isn't open, pop up an error:
+	// else {
+	// Serial.println("error opening datalog.txt");
+	// }
 
   //Get vehicle state
   getIMUdata(); //Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
