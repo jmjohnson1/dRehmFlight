@@ -61,13 +61,12 @@ static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to mat
 
 
 //REQUIRED LIBRARIES (included with download in main sketch folder)
-
 #include <Wire.h>     //I2c communication
 #include <SPI.h>      //SPI communication
 #include <PWMServo.h> //Commanding any extra actuators, installed with teensyduino installer
 #include <SD.h>       //SD card logging
 #include <string>
-#include <ArduinoEigenDense.h>
+#include <ArduinoEigen.h>
 #include "pidController.h"
 const int chipSelect = BUILTIN_SDCARD;
 
