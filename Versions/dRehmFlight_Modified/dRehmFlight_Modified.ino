@@ -410,8 +410,8 @@ float sineTime = 0.0f; 		// Counter used to determine time in the sine functions
 bool sweepFlag = 0;     
 
 // SD Card settings
-String filePrefix = "datalog";
-String fileExtension = ".txt";
+String filePrefix = "flight_data";
+String fileExtension = ".csv";
 String fileName;
 
 File dataFile;
@@ -469,9 +469,14 @@ void setup() {
 			fileName = filePrefix + String(fileIncrement) + fileExtension;
 		}
 		dataFile = SD.open(fileName.c_str(), FILE_WRITE);
+    String csvHeader = "roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command";
+		dataFile.println(csvHeader);
+		Serial.println(csvHeader);
+		dataFile.close();
   }
 	else {
     Serial.println("Card failed, or not present");
+		SD_is_present = 0;
 	}
 
   //Initialize radio communication (defined in header file)
@@ -575,7 +580,7 @@ void loop() {
 	// Prints the time between loops in microseconds (expected: microseconds between loop iterations)
   //printLoopRate();      
 	// Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
-	printRIPAngles();
+	//printRIPAngles();
 
 	// Check for whether or not the iris should be open
 	if (channel_6_pwm < 1500) {
@@ -595,26 +600,19 @@ void loop() {
 		sineTime = 0;
 	}
 
-	//Save attitude to SD card
+	//Save to SD card
+	if (SD_is_present && current_time - print_counter > 10000) {
+    
+    print_counter = micros();
+    String dataString;
 
-	if (SD_is_present) {
-    String dataString = "";
-
-    dataString = String(alpha) 
-								+ " " 
-								+ String(roll_IMU) 
-								+ " " 
-								+ String(alpha + roll_IMU) 
-								+ " "
-								+ String(beta) 
-								+ " " 
-								+ String(pitch_IMU) 
-								+ " " 
-								+ String(beta + pitch_IMU);
+    dataString = getDataString();
     dataFile = SD.open(fileName.c_str(), FILE_WRITE);
     if (dataFile) {
       dataFile.println(dataString);
       dataFile.close();
+
+			Serial.println(dataString);
     }
     // if the file isn't open, pop up an error:
     else {
@@ -2132,6 +2130,68 @@ void printRIPAngles() {
 	Serial.print(" ");
 	//Serial.print(" Beta + Pitch: ");
 	Serial.println(beta + pitch_IMU);
+}
+
+String getDataString() {
+	String csvDataString;
+	csvDataString = String(roll_IMU)
+									+ ","
+									+ String(pitch_IMU)
+									+ ","
+									+ String(yaw_IMU)
+									+ ","
+									+ String(alpha)
+									+ ","
+									+ String(beta)
+									+ ","
+									+ String(roll_des)
+									+ ","
+									+ String(pitch_des)
+									+ ","
+									+ String(yaw_des)
+									+ ","
+									+ String(thro_des)
+									+ ","
+									+ String(roll_PID)
+									+ ","
+									+ String(pitch_PID)
+									+ ","
+									+ String(yaw_PID)
+									+ ","
+									+ String(channel_1_pwm)
+									+ ","
+									+ String(channel_2_pwm)
+									+ ","
+									+ String(channel_3_pwm)
+									+ ","
+									+ String(channel_4_pwm)
+									+ ","
+									+ String(channel_5_pwm)
+									+ ","
+									+ String(channel_6_pwm)
+									+ ","
+									+ String(channel_7_pwm)
+									+ ","
+									+ String(GyroX)
+									+ ","
+									+ String(GyroY)
+									+ ","
+									+ String(GyroZ)
+									+ ","
+									+ String(AccX)
+									+ ","
+									+ String(AccY)
+									+ ","
+									+ String(AccZ)
+									+ ","
+									+ String(s1_command_scaled)
+									+ ","
+									+ String(s2_command_scaled)
+									+ ","
+									+ String(s3_command_scaled)
+									+ ","
+									+ String(s4_command_scaled);
+	return csvDataString;
 }
 
 //=========================================================================================//
