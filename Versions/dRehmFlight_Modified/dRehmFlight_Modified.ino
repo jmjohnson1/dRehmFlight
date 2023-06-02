@@ -568,13 +568,15 @@ void loop() {
   //printRollPitchYawAndDesired(); 
 	// Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1
 	// to 1)
-  printPIDoutput();     
+  //printPIDoutput();     
 	// Prints the values being written to the motors (expected: 120 to 250)
   //printMotorCommands(); 
 	// Prints the values being written to the servos (expected: 0 to 180)
   //printServoCommands(); 
 	// Prints the time between loops in microseconds (expected: microseconds between loop iterations)
   //printLoopRate();      
+	// Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
+	printRIPAngles();
 
 	// Check for whether or not the iris should be open
 	if (channel_6_pwm < 1500) {
@@ -598,7 +600,17 @@ void loop() {
 	if (SD_is_present) {
     String dataString = "";
 
-    dataString = F("roll: ") + String(roll_IMU) + F(" pitch: ") + String(pitch_IMU) + F(" yaw: ") + String(yaw_IMU);
+    dataString = String(alpha) 
+								+ " " 
+								+ String(roll_IMU) 
+								+ " " 
+								+ String(alpha + roll_IMU) 
+								+ " "
+								+ String(beta) 
+								+ " " 
+								+ String(pitch_IMU) 
+								+ " " 
+								+ String(beta + pitch_IMU);
     dataFile = SD.open(fileName.c_str(), FILE_WRITE);
     if (dataFile) {
       dataFile.println(dataString);
@@ -2099,6 +2111,26 @@ void calibrateJoystick() {
 		Serial.print("betaCounts_min = ");
 		Serial.println(betaCounts_min);
 	}
+}
+
+void printRIPAngles() {
+	//Serial.print("Alpha: ");
+	Serial.print(alpha);
+	Serial.print(" ");
+	//Serial.print(" Roll: ");
+	Serial.print(roll_IMU);
+	Serial.print(" ");
+	//Serial.print(" Alpha + Roll: ");
+	Serial.print(alpha + roll_IMU);
+	Serial.print(" ");
+	//Serial.print(" Beta: ");
+	Serial.print(beta);
+	Serial.print(" ");
+	//Serial.print(" Pitch: ");
+	Serial.print(pitch_IMU);
+	Serial.print(" ");
+	//Serial.print(" Beta + Pitch: ");
+	Serial.println(beta + pitch_IMU);
 }
 
 //=========================================================================================//
