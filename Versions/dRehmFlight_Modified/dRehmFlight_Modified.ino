@@ -67,6 +67,8 @@ static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to mat
 #include <PWMServo.h> //Commanding any extra actuators, installed with teensyduino installer
 #include <SD.h>       //SD card logging
 #include <string>
+#include <ArduinoEigenDense.h>
+#include "pidController.h"
 const int chipSelect = BUILTIN_SDCARD;
 
 #if defined USE_SBUS_RX
@@ -233,6 +235,16 @@ float Kp_yaw = 0.3;
 float Ki_yaw = 0.05;          
 //Yaw D-gain (be careful when increasing too high, motors will begin to overheat!)
 float Kd_yaw = 0.00015;       
+
+const Matrix3f P_gains {{Kp_pitch_angle, 0, 0},
+												{0, Kp_yaw, 0},
+												{0, 0, Kp_roll_angle}};
+const Matrix3f I_gains {{Ki_pitch_angle, 0, 0},
+												{0, Ki_yaw, 0},
+												{0, 0, Ki_roll_angle}};
+const Matrix3f D_gains {{-Kd_pitch_angle, 0, 0},
+												{0, Kd_yaw, 0},
+												{0, 0, -Kd_roll_angle}};
 
 int alphaCounts_min = 157; 	// Analog int of maximum x-axis analog signal
 int alphaCounts_max = 1022;  	// Analog int of minimum x-axis analog signal
@@ -405,6 +417,12 @@ String fileName;
 
 File dataFile;
 
+Vector3f desState(0,0,0);
+Vector3f currState(0,0,0);
+Vector3f pidOutputVals(0,0,0);
+
+bool SD_is_present = 0;
+
 //========================================================================================================================//
 //                                                      VOID SETUP                                                        //                           
 //========================================================================================================================//
@@ -442,6 +460,7 @@ void setup() {
   // see if the card is present and can be initialized:
   if (SD.begin(chipSelect)) {
 		Serial.println("card initialized.");
+		SD_is_present = 1;
 		int fileIncrement = 0;
 		fileName = filePrefix + String(fileIncrement) + fileExtension;
 		// Check whether or not the file name exists
@@ -454,8 +473,6 @@ void setup() {
   }
 	else {
     Serial.println("Card failed, or not present");
-    // don't do anything more:
-    //return;
 	}
 
   //Initialize radio communication (defined in header file)
@@ -535,7 +552,7 @@ void loop() {
   //printRadioData();     
 	// Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for
 	// roll, pitch, yaw; 0 to 1 for throttle)
-  printDesiredState();  
+  //printDesiredState();  
 	// Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
   //printGyroData();      
 	// Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1
@@ -558,6 +575,8 @@ void loop() {
   //printServoCommands(); 
 	// Prints the time between loops in microseconds (expected: microseconds between loop iterations)
   //printLoopRate();      
+	// Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
+	printRIPAngles();
 
 	// Check for whether or not the iris should be open
 	if (channel_6_pwm < 1500) {
@@ -578,18 +597,32 @@ void loop() {
 	}
 
 	//Save attitude to SD card
-	// String dataString = "";
 
-	// dataString = F("roll: ")+String(roll_IMU)+F(" pitch: ")+String(pitch_IMU)+F(" yaw: ")+String(yaw_IMU);
-	// dataFile = SD.open(fileName.c_str(), FILE_WRITE);
-	// if (dataFile) {
-	// 	dataFile.println(dataString);
-	// 	dataFile.close();
-	// }  
-	// // if the file isn't open, pop up an error:
-	// else {
-	// Serial.println("error opening datalog.txt");
-	// }
+	if (SD_is_present) {
+    String dataString = "";
+
+    dataString = String(alpha) 
+								+ " " 
+								+ String(roll_IMU) 
+								+ " " 
+								+ String(alpha + roll_IMU) 
+								+ " "
+								+ String(beta) 
+								+ " " 
+								+ String(pitch_IMU) 
+								+ " " 
+								+ String(beta + pitch_IMU);
+    dataFile = SD.open(fileName.c_str(), FILE_WRITE);
+    if (dataFile) {
+      dataFile.println(dataString);
+      dataFile.close();
+    }
+    // if the file isn't open, pop up an error:
+    else {
+      Serial.println("error opening datalog.txt");
+    }
+  }
+
 
   //Get vehicle state
   getIMUdata(); //Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
@@ -610,9 +643,23 @@ void loop() {
 	}
   
   //PID Controller - SELECT ONE:
-		controlANGLE();
+//		controlANGLE();
   //controlANGLE2(); //Stabilize on angle setpoint using cascaded method. Rate controller must be tuned well first!
   //controlRATE(); //Stabilize on rate setpoint
+
+	// Linear algebra PID function
+	desState[0] = pitch_des; 
+	desState[1] = yaw_des; 
+	desState[2] = roll_des;
+	currState[0] = pitch_IMU; 
+	currState[1] = yaw_IMU; 
+	currState[2] = roll_IMU;
+	pidOutputVals = pidOutput(desState, currState, P_gains, I_gains, D_gains, dt, channel_1_pwm <
+		1060, GyroX, GyroY, GyroZ);
+	pitch_PID = pidOutputVals[0];
+	yaw_PID = pidOutputVals[1];
+	roll_PID = pidOutputVals[2];
+
 
   //Actuator mixing and scaling to PWM values
   controlMixer(); //Mixes PID outputs to scaled actuator commands -- custom mixing assignments done here
@@ -1257,6 +1304,7 @@ void controlANGLE() {
   //Update yaw variables
   error_yaw_prev = error_yaw;
   integral_yaw_prev = integral_yaw;
+
 }
 
 
@@ -1958,7 +2006,13 @@ void printPIDoutput() {
     Serial.print(F(" pitch_PID: "));
     Serial.print(pitch_PID);
     Serial.print(F(" yaw_PID: "));
-    Serial.println(yaw_PID);
+    Serial.print(yaw_PID);
+    Serial.print(F(" roll_PID_new: "));
+    Serial.print(pidOutputVals[2]);
+    Serial.print(F(" pitch_PID_new: "));
+    Serial.print(pidOutputVals[0]);
+    Serial.print(F(" yaw_PID_new: "));
+    Serial.println(pidOutputVals[1]);
   }
 }
 
@@ -2059,6 +2113,26 @@ void calibrateJoystick() {
 		Serial.print("betaCounts_min = ");
 		Serial.println(betaCounts_min);
 	}
+}
+
+void printRIPAngles() {
+	//Serial.print("Alpha: ");
+	Serial.print(alpha);
+	Serial.print(" ");
+	//Serial.print(" Roll: ");
+	Serial.print(roll_IMU);
+	Serial.print(" ");
+	//Serial.print(" Alpha + Roll: ");
+	Serial.print(alpha + roll_IMU);
+	Serial.print(" ");
+	//Serial.print(" Beta: ");
+	Serial.print(beta);
+	Serial.print(" ");
+	//Serial.print(" Pitch: ");
+	Serial.print(pitch_IMU);
+	Serial.print(" ");
+	//Serial.print(" Beta + Pitch: ");
+	Serial.println(beta + pitch_IMU);
 }
 
 //=========================================================================================//
