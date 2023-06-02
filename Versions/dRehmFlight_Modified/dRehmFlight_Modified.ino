@@ -597,6 +597,7 @@ void loop() {
 	}
 
 	//Save attitude to SD card
+
 	if (SD_is_present) {
     String dataString = "";
 
@@ -621,6 +622,7 @@ void loop() {
       Serial.println("error opening datalog.txt");
     }
   }
+
 
   //Get vehicle state
   getIMUdata(); //Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
