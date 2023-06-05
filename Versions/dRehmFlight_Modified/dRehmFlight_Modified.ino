@@ -157,8 +157,10 @@ unsigned long channel_2_fs = 1500; //ail
 unsigned long channel_3_fs = 1500; //elev
 unsigned long channel_4_fs = 1500; //rudd
 unsigned long channel_5_fs = 2000; //gear, greater than 1500 = throttle cut
-unsigned long channel_6_fs = 2000; // Iris toggle
+unsigned long channel_6_fs = 1000; // Iris toggle
 unsigned long channel_7_fs = 1000; // Conduct sine sweep
+unsigned long channel_8_fs = 1000; 
+unsigned long channel_9_fs = 1500; 
 
 //Filter parameters - Defaults tuned for 2kHz loop rate; 
 //Do not touch unless you know what you are doing:
@@ -197,11 +199,11 @@ float maxYaw = 160.0;
 
 // ANGLE MODE PID GAINS //
 //Roll P-gain - angle mode 
-float Kp_roll_angle = 0.2;
+float Kp_roll_angle = 0.2*1.5f;
 // Roll I-gain - angle mode
-float Ki_roll_angle = 0.0;
+float Ki_roll_angle = 0.3*1.0f;
 //Roll D-gain - angle mode (has no effect on controlANGLE2)
-float Kd_roll_angle = 0.05;
+float Kd_roll_angle = 0.05*1.5f;
 //Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 float B_loop_roll = 0.9;
 //Pitch P-gain - angle mode
@@ -338,10 +340,11 @@ unsigned long current_time, prev_time;
 unsigned long print_counter, serial_counter;
 unsigned long blink_counter, blink_delay;
 bool blinkAlternate;
+unsigned long print_counterSD = 200000;
 
 //Radio communication:
 unsigned long channel_1_pwm, channel_2_pwm, channel_3_pwm, channel_4_pwm, channel_5_pwm, 
-							channel_6_pwm, channel_7_pwm;
+							channel_6_pwm, channel_7_pwm, channel_8_pwm, channel_9_pwm;
 unsigned long channel_1_pwm_prev, channel_2_pwm_prev, channel_3_pwm_prev, channel_4_pwm_prev;
 
 #if defined USE_SBUS_RX
@@ -438,13 +441,13 @@ void setup() {
   pinMode(m4Pin, OUTPUT);
   pinMode(m5Pin, OUTPUT);
   pinMode(m6Pin, OUTPUT);
-  servo1.attach(servo1Pin, 900, 2100); //Pin, min PWM value, max PWM value
-  servo2.attach(servo2Pin, 900, 2100);
-  servo3.attach(servo3Pin, 900, 2100);
-  servo4.attach(servo4Pin, 900, 2100);
-  servo5.attach(servo5Pin, 900, 2100);
-  servo6.attach(servo6Pin, 900, 2100);
-  servo7.attach(servo7Pin, 900, 2100);
+  servo1.attach(servo1Pin, 1000, 2100); //Pin, min PWM value, max PWM value
+  servo2.attach(servo2Pin, 1000, 2100);
+  servo3.attach(servo3Pin, 1000, 2100);
+  servo4.attach(servo4Pin, 1000, 2100);
+  servo5.attach(servo5Pin, 1000, 2100);
+  servo6.attach(servo6Pin, 1000, 2100);
+  servo7.attach(servo7Pin, 1000, 2100);
 
 	// Attach the iris servo and close it
 	iris.attach(irisPin);
@@ -469,9 +472,9 @@ void setup() {
 			fileName = filePrefix + String(fileIncrement) + fileExtension;
 		}
 		dataFile = SD.open(fileName.c_str(), FILE_WRITE);
-    String csvHeader = "roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command";
+    String csvHeader =
+			"roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command,kp_roll,ki_roll,kd_roll,kp_pitch,ki_pitch,kd_pitch,kp_yaw,ki_yaw,kd_yaw";
 		dataFile.println(csvHeader);
-		Serial.println(csvHeader);
 		dataFile.close();
   }
 	else {
@@ -490,6 +493,8 @@ void setup() {
   channel_5_pwm = channel_5_fs;
   channel_6_pwm = channel_6_fs;
 	channel_7_pwm = channel_7_fs;
+	channel_8_pwm = channel_8_fs;
+	channel_9_pwm = channel_9_fs;
 
   //Initialize IMU communication
   IMUinit();
@@ -581,6 +586,10 @@ void loop() {
   //printLoopRate();      
 	// Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
 	//printRIPAngles();
+	// Prints desired and imu roll state for serial plotter
+	displayRoll();
+	// Prints desired and imu pitch state for serial plotter
+	//displayPitch();
 
 	// Check for whether or not the iris should be open
 	if (channel_6_pwm < 1500) {
@@ -601,9 +610,9 @@ void loop() {
 	}
 
 	//Save to SD card
-	if (SD_is_present && current_time - print_counter > 10000) {
+	if (SD_is_present && current_time - print_counterSD > 10000) {
     
-    print_counter = micros();
+    print_counterSD = micros();
     String dataString;
 
     dataString = getDataString();
@@ -611,8 +620,6 @@ void loop() {
     if (dataFile) {
       dataFile.println(dataString);
       dataFile.close();
-
-			Serial.println(dataString);
     }
     // if the file isn't open, pop up an error:
     else {
@@ -637,6 +644,14 @@ void loop() {
 	if (conductSineSweep) {
 		// Overwrites axisToRotate in getDesState()
   	performSineSweep(axisToRotate);
+	}
+
+	if (channel_8_pwm > 1250 && channel_8_pwm < 1750) {
+		rollStep();
+	}
+
+	if (channel_8_pwm > 1750) {
+		pitchStep();
 	}
   
   //PID Controller - SELECT ONE:
@@ -1214,6 +1229,32 @@ void performSineSweep(int controlledAxis) {
 	}
 }
 
+void rollStep() {
+	float desiredAngle;
+	if (channel_9_pwm < 1250){
+		desiredAngle = 15.0f;
+	}
+	else if (channel_9_pwm > 1750) {
+		desiredAngle = -15.0f;
+	}
+	else {
+		desiredAngle = 0.0f;
+	}
+	roll_des = desiredAngle;
+}
+void pitchStep() {
+	float desiredAngle;
+	if (channel_9_pwm < 1250){
+		desiredAngle = 15.0f;
+	}
+	else if (channel_9_pwm > 1750) {
+		desiredAngle = -15.0f;
+	}
+	else {
+		desiredAngle = 0.0f;
+	}
+	pitch_des = desiredAngle;
+}
 
 void getDesState() {
   //DESCRIPTION: Normalizes desired control values to appropriate values
@@ -1511,6 +1552,8 @@ void getCommands() {
       channel_5_pwm = sbusChannels[4] * scale + bias;
       channel_6_pwm = sbusChannels[5] * scale + bias; 
 			channel_7_pwm = sbusChannels[6] * scale + bias;
+			channel_8_pwm = sbusChannels[7] * scale + bias;
+			channel_9_pwm = sbusChannels[8] * scale + bias;
     }
 
   #elif defined USE_DSM_RX
@@ -2190,9 +2233,46 @@ String getDataString() {
 									+ ","
 									+ String(s3_command_scaled)
 									+ ","
-									+ String(s4_command_scaled);
+									+ String(s4_command_scaled)
+									+ ","
+									+ String(Kp_roll_angle)
+									+ ","
+									+ String(Ki_roll_angle)
+									+ ","
+									+ String(Kd_roll_angle)	
+									+ ","
+									+ String(Kp_pitch_angle)
+									+ ","
+									+ String(Ki_pitch_angle)
+									+ ","
+									+ String(Kd_pitch_angle)	
+									+ ","
+									+ String(Kp_yaw)
+									+ ","
+									+ String(Ki_yaw)
+									+ ","
+									+ String(Kd_yaw);	
 	return csvDataString;
 }
+
+void displayRoll() {
+	if (current_time - print_counter > 10000) {
+		print_counter = micros();
+		Serial.print(roll_des);
+		Serial.print(" ");
+		Serial.println(roll_IMU);
+	}
+}
+
+void displayPitch() {
+	if (current_time - print_counter > 10000) {
+		print_counter = micros();
+		Serial.print(pitch_des);
+		Serial.print(" ");
+		Serial.println(pitch_IMU);
+	}
+}
+
 
 //=========================================================================================//
 

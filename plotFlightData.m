@@ -59,7 +59,8 @@ function plotFlightData(fileName)
 
  
     %%% Plot Desired and Measured States %%%
-    desAndMeas_figure = figure();
+   
+    desAndMeas_figure = figure(1);
     des_plot_roll = plot(roll_des, DisplayName="Desired roll");
     hold on
     des_plot_pitch = plot(pitch_des, DisplayName="Desired pitch");
@@ -67,6 +68,26 @@ function plotFlightData(fileName)
     meas_plot_roll = plot(roll_imu, DisplayName="Measured roll");
     meas_plot_pitch = plot(pitch_imu, DisplayName="Measured pitch");
     meas_plot_yaw = plot(yaw_imu, DisplayName="Measured yaw");
+    hold off
+    legend();
+
+    % Plot motor commands
+    figure(2);
+    plot(s1_command, DisplayName="s1");
+    hold on
+    plot(s2_command, DisplayName="s2");
+    plot(s3_command, DisplayName="s3");
+    plot(s4_command, DisplayName="s4");
+    hold off
+    legend();
+
+    % Plot radio channel data
+    figure(3);
+    plot(radio_ch1, DisplayName="thro")
+    hold on
+    plot(radio_ch2, DisplayName="roll")
+    plot(radio_ch3, DisplayName="pitch")
+    plot(radio_ch4, DisplayName="yaw")
     hold off
     legend();
 

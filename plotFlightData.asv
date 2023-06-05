@@ -60,13 +60,22 @@ function plotFlightData(fileName)
  
     %%% Plot Desired and Measured States %%%
     desAndMeas_figure = figure();
-    des_plot_roll = plot(roll_des, DisplayName="R");
+    des_plot_roll = plot(roll_des, DisplayName="Desired roll");
     hold on
-    des_plot_pitch = plot(pitch_des);
-    des_plot_yaw = plot(yaw_des);
-    meas_plot_roll = plot(roll_imu);
-    meas_plot_pitch = plot(pitch_imu);
-    meas_plot_yaw = plot(yaw_imu);
+    % des_plot_pitch = plot(pitch_des, DisplayName="Desired pitch");
+    % des_plot_yaw = plot(yaw_des, DisplayName="Desired yaw");
+    meas_plot_roll = plot(roll_imu, DisplayName="Measured roll");
+    % meas_plot_pitch = plot(pitch_imu, DisplayName="Measured pitch");
+    % meas_plot_yaw = plot(yaw_imu, DisplayName="Measured yaw");
     hold off
+    legend();
+
+    % figure();
+    % plot(s1_command, DisplayName="s1");
+    % hold on
+    % plot(s2_command, DisplayName="s2");
+    % plot(s3_command, DisplayName="s3");
+    % plot(s4_command, DisplayName="s4");
+    % hold off
 
 end
