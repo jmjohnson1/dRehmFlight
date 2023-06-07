@@ -57,38 +57,100 @@ function plotFlightData(fileName)
     %%%%%%%% END IMPORT %%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+    lw = 1;
+    rng = 1:length(radio_ch1);
  
     %%% Plot Desired and Measured States %%%
+    close all
    
     desAndMeas_figure = figure(1);
-    des_plot_roll = plot(roll_des, DisplayName="Desired roll");
+    
     hold on
-    des_plot_pitch = plot(pitch_des, DisplayName="Desired pitch");
-    des_plot_yaw = plot(yaw_des, DisplayName="Desired yaw");
-    meas_plot_roll = plot(roll_imu, DisplayName="Measured roll");
-    meas_plot_pitch = plot(pitch_imu, DisplayName="Measured pitch");
-    meas_plot_yaw = plot(yaw_imu, DisplayName="Measured yaw");
+    % des_plot_roll = plot(roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
+    % meas_plot_roll = plot(roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
+    des_plot_pitch = plot(pitch_des(rng), DisplayName="Desired pitch", LineWidth=lw);
+    meas_plot_pitch = plot(pitch_imu(rng), DisplayName="Measured pitch", LineWidth=lw);
+    % des_plot_yaw = plot(yaw_des(rng), DisplayName="Desired yaw", LineWidth=lw);
+    % meas_plot_yaw = plot(yaw_imu(rng), DisplayName="Measured yaw", LineWidth=lw);
     hold off
     legend();
+    grid on
+    title("Pitch/Yaw/Roll")
 
     % Plot motor commands
     figure(2);
-    plot(s1_command, DisplayName="s1");
     hold on
-    plot(s2_command, DisplayName="s2");
-    plot(s3_command, DisplayName="s3");
-    plot(s4_command, DisplayName="s4");
+    plot(s1_command(rng), DisplayName="s1", LineWidth=lw);
+    plot(s2_command(rng), DisplayName="s2", LineWidth=lw);
+    plot(s3_command(rng), DisplayName="s3", LineWidth=lw);
+    plot(s4_command(rng), DisplayName="s4", LineWidth=lw);
     hold off
     legend();
+    grid on
+    title("Motor Commands")
 
     % Plot radio channel data
     figure(3);
-    plot(radio_ch1, DisplayName="thro")
     hold on
-    plot(radio_ch2, DisplayName="roll")
-    plot(radio_ch3, DisplayName="pitch")
-    plot(radio_ch4, DisplayName="yaw")
+    plot(radio_ch1(rng), DisplayName="thro", LineWidth=lw)
+    plot(radio_ch2(rng), DisplayName="roll", LineWidth=lw)
+    plot(radio_ch3(rng), DisplayName="pitch", LineWidth=lw)
+    plot(radio_ch4(rng), DisplayName="yaw", LineWidth=lw)
     hold off
     legend();
+    grid on
+    title("Recieved Radio Commands")
+
+    ch1_diff = diff(radio_ch1(rng)) * 100;
+    ch2_diff = diff(radio_ch2(rng)) * 100;
+    ch3_diff = diff(radio_ch3(rng)) * 100;
+    ch4_diff = diff(radio_ch4(rng)) * 100;
+
+    % Plot radio channel derivatives
+    figure(4);
+    hold on
+    plot(ch1_diff, DisplayName="thro", LineWidth=lw)
+    plot(ch2_diff, DisplayName="roll", LineWidth=lw)
+    plot(ch3_diff, DisplayName="pitch", LineWidth=lw)
+    plot(ch4_diff, DisplayName="yaw", LineWidth=lw)
+    hold off
+    legend();
+    grid on
+    title("Derivative of Recieved Radio Commands (dPWM/dt)")
+    
+    
+    ch1_new = checkRadio(radio_ch1(rng));
+    ch2_new = checkRadio(radio_ch2(rng));
+    ch3_new = checkRadio(radio_ch3(rng));
+    ch4_new = checkRadio(radio_ch4(rng));
+
+    % Plot radio channel "filtered"
+    figure(5);
+    hold on
+    plot(ch1_new, DisplayName="thro", LineWidth=lw)
+    plot(ch2_new, DisplayName="roll", LineWidth=lw)
+    plot(ch3_new, DisplayName="pitch", LineWidth=lw)
+    plot(ch4_new, DisplayName="yaw", LineWidth=lw)
+    hold off
+    legend();
+    grid on
+    title("'Filtered' Recieved Radio Commands")
+
+    ch1_diff = diff(ch1_new) * 100;
+    ch2_diff = diff(ch2_new) * 100;
+    ch3_diff = diff(ch3_new) * 100;
+    ch4_diff = diff(ch4_new) * 100;
+
+    % Plot radio channel derivatives after filtering
+    figure(6);
+    hold on
+    plot(ch1_diff, DisplayName="thro", LineWidth=lw)
+    plot(ch2_diff, DisplayName="roll", LineWidth=lw)
+    plot(ch3_diff, DisplayName="pitch", LineWidth=lw)
+    plot(ch4_diff, DisplayName="yaw", LineWidth=lw)
+    hold off
+    legend();
+    grid on
+    title("'Filtered' Derivative of Recieved Radio Commands (dPWM/dt)")
 
 end

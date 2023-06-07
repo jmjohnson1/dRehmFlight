@@ -199,19 +199,25 @@ float maxYaw = 160.0;
 
 // ANGLE MODE PID GAINS //
 //Roll P-gain - angle mode 
-float Kp_roll_angle = 0.2*1.5f;
+
+float pitch_rollScale = 1.5f;
+float Kp_scale = 0.75f;
+float Ki_scale = 0.0f;
+float Kd_scale = 1.0f;
+
+float Kp_roll_angle = 0.2*Kp_scale - 0.05;
 // Roll I-gain - angle mode
-float Ki_roll_angle = 0.3*1.0f;
+float Ki_roll_angle = 0.3*Ki_scale;
 //Roll D-gain - angle mode (has no effect on controlANGLE2)
-float Kd_roll_angle = 0.05*1.5f;
+float Kd_roll_angle = 0.05*Kd_scale;
 //Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 float B_loop_roll = 0.9;
 //Pitch P-gain - angle mode
-float Kp_pitch_angle = 0.2;
+float Kp_pitch_angle = 0.2*Kp_scale;
 //Pitch I-gain - angle mode
-float Ki_pitch_angle = 0.3;
+float Ki_pitch_angle = 0.3*Ki_scale;
 //Pitch D-gain - angle mode (has no effect on controlANGLE2)
-float Kd_pitch_angle = 0.05;
+float Kd_pitch_angle = 0.05*Kd_scale;
 //Pitch damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 float B_loop_pitch = 0.9;
 
