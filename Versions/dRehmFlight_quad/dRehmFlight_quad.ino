@@ -2065,7 +2065,7 @@ void printAccelData() {
   }
 }
 
-void printMagData() {
+void pjintMagData() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
     Serial.print(F("MagX: "));
