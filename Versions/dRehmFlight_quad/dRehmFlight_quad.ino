@@ -2416,6 +2416,13 @@ void getIScale() {
 void rollGainOffset() {
 	float offsetVal;
 	offsetVal = 1.0f + (channel_13_pwm - 1500.0f)/500.0f * 0.05f;
+	P_gainScale(0,0) *= offsetVal;
+	P_gainScale(2,2) *= offsetVal;
+	I_gainScale(0,0) *= offsetVal;
+	I_gainScale(2,2) *= offsetVal;
+	D_gainScale(0,0) *= offsetVal;
+	D_gainScale(2,2) *= offsetVal;
+	
 }
 
 
