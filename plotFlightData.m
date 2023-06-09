@@ -58,7 +58,8 @@ function plotFlightData(fileName)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     lw = 1;
-    rng = 1:length(radio_ch1);
+    %rng = 1:length(radio_ch1);
+    rng = 10000:15900;
  
     %%% Plot Desired and Measured States %%%
     close all
@@ -66,12 +67,12 @@ function plotFlightData(fileName)
     desAndMeas_figure = figure(1);
     
     hold on
-    % des_plot_roll = plot(roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
-    % meas_plot_roll = plot(roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
+    des_plot_roll = plot(roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
+    meas_plot_roll = plot(roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
     des_plot_pitch = plot(pitch_des(rng), DisplayName="Desired pitch", LineWidth=lw);
     meas_plot_pitch = plot(pitch_imu(rng), DisplayName="Measured pitch", LineWidth=lw);
-    % des_plot_yaw = plot(yaw_des(rng), DisplayName="Desired yaw", LineWidth=lw);
-    % meas_plot_yaw = plot(yaw_imu(rng), DisplayName="Measured yaw", LineWidth=lw);
+    des_plot_yaw = plot(yaw_des(rng), DisplayName="Desired yaw", LineWidth=lw);
+    meas_plot_yaw = plot(yaw_imu(rng), DisplayName="Measured yaw", LineWidth=lw);
     hold off
     legend();
     grid on
@@ -101,10 +102,10 @@ function plotFlightData(fileName)
     grid on
     title("Recieved Radio Commands")
 
-    ch1_diff = diff(radio_ch1(rng)) * 100;
-    ch2_diff = diff(radio_ch2(rng)) * 100;
-    ch3_diff = diff(radio_ch3(rng)) * 100;
-    ch4_diff = diff(radio_ch4(rng)) * 100;
+    ch1_diff = diff(radio_ch1(rng));
+    ch2_diff = diff(radio_ch2(rng));
+    ch3_diff = diff(radio_ch3(rng));
+    ch4_diff = diff(radio_ch4(rng));
 
     % Plot radio channel derivatives
     figure(4);
@@ -119,38 +120,38 @@ function plotFlightData(fileName)
     title("Derivative of Recieved Radio Commands (dPWM/dt)")
     
     
-    ch1_new = checkRadio(radio_ch1(rng));
-    ch2_new = checkRadio(radio_ch2(rng));
-    ch3_new = checkRadio(radio_ch3(rng));
-    ch4_new = checkRadio(radio_ch4(rng));
-
-    % Plot radio channel "filtered"
-    figure(5);
-    hold on
-    plot(ch1_new, DisplayName="thro", LineWidth=lw)
-    plot(ch2_new, DisplayName="roll", LineWidth=lw)
-    plot(ch3_new, DisplayName="pitch", LineWidth=lw)
-    plot(ch4_new, DisplayName="yaw", LineWidth=lw)
-    hold off
-    legend();
-    grid on
-    title("'Filtered' Recieved Radio Commands")
-
-    ch1_diff = diff(ch1_new) * 100;
-    ch2_diff = diff(ch2_new) * 100;
-    ch3_diff = diff(ch3_new) * 100;
-    ch4_diff = diff(ch4_new) * 100;
-
-    % Plot radio channel derivatives after filtering
-    figure(6);
-    hold on
-    plot(ch1_diff, DisplayName="thro", LineWidth=lw)
-    plot(ch2_diff, DisplayName="roll", LineWidth=lw)
-    plot(ch3_diff, DisplayName="pitch", LineWidth=lw)
-    plot(ch4_diff, DisplayName="yaw", LineWidth=lw)
-    hold off
-    legend();
-    grid on
-    title("'Filtered' Derivative of Recieved Radio Commands (dPWM/dt)")
+    % ch1_new = checkRadio(radio_ch1(rng));
+    % ch2_new = checkRadio(radio_ch2(rng));
+    % ch3_new = checkRadio(radio_ch3(rng));
+    % ch4_new = checkRadio(radio_ch4(rng));
+    % 
+    % % Plot radio channel "filtered"
+    % figure(5);
+    % hold on
+    % plot(ch1_new, DisplayName="thro", LineWidth=lw)
+    % % plot(ch2_new, DisplayName="roll", LineWidth=lw)
+    % % plot(ch3_new, DisplayName="pitch", LineWidth=lw)
+    % % plot(ch4_new, DisplayName="yaw", LineWidth=lw)
+    % hold off
+    % legend();
+    % grid on
+    % title("'Filtered' Recieved Radio Commands")
+    % 
+    % ch1_diff = diff(ch1_new) * 100;
+    % ch2_diff = diff(ch2_new) * 100;
+    % ch3_diff = diff(ch3_new) * 100;
+    % ch4_diff = diff(ch4_new) * 100;
+    % 
+    % % Plot radio channel derivatives after filtering
+    % figure(6);
+    % hold on
+    % plot(ch1_diff, DisplayName="thro", LineWidth=lw)
+    % % plot(ch2_diff, DisplayName="roll", LineWidth=lw)
+    % % plot(ch3_diff, DisplayName="pitch", LineWidth=lw)
+    % % plot(ch4_diff, DisplayName="yaw", LineWidth=lw)
+    % hold off
+    % legend();
+    % grid on
+    % title("'Filtered' Derivative of Recieved Radio Commands (dPWM/dt)")
 
 end

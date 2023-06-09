@@ -159,8 +159,8 @@ unsigned long channel_4_fs = 1500; //rudd
 unsigned long channel_5_fs = 2000; //gear, greater than 1500 = throttle cut
 unsigned long channel_6_fs = 1000; // Iris toggle
 unsigned long channel_7_fs = 1000; // Conduct sine sweep
-unsigned long channel_8_fs = 1000; 
-unsigned long channel_9_fs = 1500; 
+unsigned long channel_8_fs = 1000; // Perform step in pitch or roll
+unsigned long channel_9_fs = 1500; // Step angle (+15, 0, -15)
 
 //Filter parameters - Defaults tuned for 2kHz loop rate; 
 //Do not touch unless you know what you are doing:
@@ -200,16 +200,15 @@ float maxYaw = 160.0;
 // ANGLE MODE PID GAINS //
 //Roll P-gain - angle mode 
 
-float pitch_rollScale = 1.5f;
 float Kp_scale = 0.75f;
-float Ki_scale = 0.0f;
-float Kd_scale = 1.0f;
+float Ki_scale = 0.1f;
+float Kd_scale = 1.1f;
 
-float Kp_roll_angle = 0.2*Kp_scale - 0.05;
+float Kp_roll_angle = 0.2*Kp_scale*0.95;
 // Roll I-gain - angle mode
-float Ki_roll_angle = 0.3*Ki_scale;
+float Ki_roll_angle = 0.3*Ki_scale*1.01;
 //Roll D-gain - angle mode (has no effect on controlANGLE2)
-float Kd_roll_angle = 0.05*Kd_scale;
+float Kd_roll_angle = 0.05*Kd_scale*1.01;
 //Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 float B_loop_roll = 0.9;
 //Pitch P-gain - angle mode
@@ -253,10 +252,10 @@ const Matrix3f D_gains {{-Kd_pitch_angle, 0, 0},
 												{0, Kd_yaw, 0},
 												{0, 0, -Kd_roll_angle}};
 
-int alphaCounts_min = 157; 	// Analog int of maximum x-axis analog signal
-int alphaCounts_max = 1022;  	// Analog int of minimum x-axis analog signal
-int betaCounts_min = 190; 	// Analog int of maximum y-axis analog signal
-int betaCounts_max = 926;  	// Analog int of minimum y-axis analog signal
+int alphaCounts_min = 148; 	// Analog int of maximum x-axis analog signal
+int alphaCounts_max = 1023;  	// Analog int of minimum x-axis analog signal
+int betaCounts_min = 51; 	// Analog int of maximum y-axis analog signal
+int betaCounts_max = 1023;  	// Analog int of minimum y-axis analog signal
 
 float alpha_min = -30;   // Minimum alpha
 float alpha_max = 30;   // Maximum alpha
@@ -316,8 +315,8 @@ const int servo6Pin = 11;
 const int servo7Pin = 12;
 
 // Joystick pins
-const int joyAlphaPin = 40;
-const int joyBetaPin = 41;
+const int joyAlphaPin = 41;
+const int joyBetaPin = 40;
 
 // Pin and object for iris servo:
 const int irisPin = 24;
@@ -349,9 +348,10 @@ bool blinkAlternate;
 unsigned long print_counterSD = 200000;
 
 //Radio communication:
-unsigned long channel_1_pwm, channel_2_pwm, channel_3_pwm, channel_4_pwm, channel_5_pwm, 
-							channel_6_pwm, channel_7_pwm, channel_8_pwm, channel_9_pwm;
-unsigned long channel_1_pwm_prev, channel_2_pwm_prev, channel_3_pwm_prev, channel_4_pwm_prev;
+int channel_1_pwm, channel_2_pwm, channel_3_pwm, channel_4_pwm, channel_5_pwm, 
+					channel_6_pwm, channel_7_pwm, channel_8_pwm, channel_9_pwm;
+int channel_1_pwm_prev, channel_2_pwm_prev, channel_3_pwm_prev, channel_4_pwm_prev;
+int channel_1_pwm_pre, channel_2_pwm_pre, channel_3_pwm_pre, channel_4_pwm_pre;
 
 #if defined USE_SBUS_RX
   SBUS sbus(Serial5);
@@ -431,6 +431,26 @@ Vector3f pidOutputVals(0,0,0);
 
 bool SD_is_present = 0;
 
+int cutoff_val = 150;
+int d_ch1;
+int d_ch2;
+int d_ch3;
+int d_ch4;
+
+int ch1_CutCounter = 0;
+int ch2_CutCounter = 0;
+int ch3_CutCounter = 0;
+int ch4_CutCounter = 0;
+
+
+
+bool doneWithSetup = 0;
+int servoLoopCounter = 0;
+
+// Number of loops before a sustained large change in values are accepted
+int radioChCutoffTimeout = 10;
+bool failureFlag = 0;
+
 //========================================================================================================================//
 //                                                      VOID SETUP                                                        //                           
 //========================================================================================================================//
@@ -479,7 +499,7 @@ void setup() {
 		}
 		dataFile = SD.open(fileName.c_str(), FILE_WRITE);
     String csvHeader =
-			"roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command,kp_roll,ki_roll,kd_roll,kp_pitch,ki_pitch,kd_pitch,kp_yaw,ki_yaw,kd_yaw";
+			"roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command,kp_roll,ki_roll,kd_roll,kp_pitch,ki_pitch,kd_pitch,kp_yaw,ki_yaw,kd_yaw,failsafeTriggered";
 		dataFile.println(csvHeader);
 		dataFile.close();
   }
@@ -547,6 +567,7 @@ void setup() {
 	//new locations) Generates magentometer error and scale factors to be pasted in user-specified
 	//variables section
   //calibrateMagnetometer();
+	doneWithSetup = 1;
 }
 
 
@@ -591,9 +612,9 @@ void loop() {
 	// Prints the time between loops in microseconds (expected: microseconds between loop iterations)
   //printLoopRate();      
 	// Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
-	//printRIPAngles();
+	printRIPAngles();
 	// Prints desired and imu roll state for serial plotter
-	displayRoll();
+	//displayRoll();
 	// Prints desired and imu pitch state for serial plotter
 	//displayPitch();
 
@@ -1537,24 +1558,24 @@ void getCommands() {
    * The raw radio commands are filtered with a first order low-pass filter to eliminate any really high frequency noise. 
    */
 
-  #if defined USE_PPM_RX || defined USE_PWM_RX
-    channel_1_pwm = getRadioPWM(1);
-    channel_2_pwm = getRadioPWM(2);
-    channel_3_pwm = getRadioPWM(3);
-    channel_4_pwm = getRadioPWM(4);
-    channel_5_pwm = getRadioPWM(5);
-    channel_6_pwm = getRadioPWM(6);
+  //#if defined USE_PPM_RX || defined USE_PWM_RX
+  //  channel_1_pwm = getRadioPWM(1);
+  //  channel_2_pwm = getRadioPWM(2);
+  //  channel_3_pwm = getRadioPWM(3);
+  //  channel_4_pwm = getRadioPWM(4);
+  //  channel_5_pwm = getRadioPWM(5);
+  //  channel_6_pwm = getRadioPWM(6);
     
-  #elif defined USE_SBUS_RX
+  #if defined USE_SBUS_RX
     if (sbus.read(&sbusChannels[0], &sbusFailSafe, &sbusLostFrame))
     {
       //sBus scaling below is for Taranis-Plus and X4R-SB
       float scale = 0.615;  
       float bias  = 895.0; 
-      channel_1_pwm = sbusChannels[0] * scale + bias;
-      channel_2_pwm = sbusChannels[1] * scale + bias;
-      channel_3_pwm = sbusChannels[2] * scale + bias;
-      channel_4_pwm = sbusChannels[3] * scale + bias;
+      channel_1_pwm_pre = sbusChannels[0] * scale + bias;
+      channel_2_pwm_pre = sbusChannels[1] * scale + bias;
+      channel_3_pwm_pre = sbusChannels[2] * scale + bias;
+      channel_4_pwm_pre = sbusChannels[3] * scale + bias;
       channel_5_pwm = sbusChannels[4] * scale + bias;
       channel_6_pwm = sbusChannels[5] * scale + bias; 
 			channel_7_pwm = sbusChannels[6] * scale + bias;
@@ -1562,33 +1583,77 @@ void getCommands() {
 			channel_9_pwm = sbusChannels[8] * scale + bias;
     }
 
-  #elif defined USE_DSM_RX
-    if (DSM.timedOut(micros())) {
-        //Serial.println("*** DSM RX TIMED OUT ***");
-    }
-    else if (DSM.gotNewFrame()) {
-        uint16_t values[num_DSM_channels];
-        DSM.getChannelValues(values, num_DSM_channels);
+  //#elif defined USE_DSM_RX
+  //  if (DSM.timedOut(micros())) {
+  //      //Serial.println("*** DSM RX TIMED OUT ***");
+  //  }
+  //  else if (DSM.gotNewFrame()) {
+  //      uint16_t values[num_DSM_channels];
+  //      DSM.getChannelValues(values, num_DSM_channels);
 
-        channel_1_pwm = values[0];
-        channel_2_pwm = values[1];
-        channel_3_pwm = values[2];
-        channel_4_pwm = values[3];
-        channel_5_pwm = values[4];
-        channel_6_pwm = values[5];
-    }
+  //      channel_1_pwm = values[0];
+  //      channel_2_pwm = values[1];
+  //      channel_3_pwm = values[2];
+  //      channel_4_pwm = values[3];
+  //      channel_5_pwm = values[4];
+  //      channel_6_pwm = values[5];
+  //  }
   #endif
   
   //Low-pass the critical commands and update previous values
   float b = 0.7; //Lower=slower, higher=noiser
-  channel_1_pwm = (1.0 - b)*channel_1_pwm_prev + b*channel_1_pwm;
-  channel_2_pwm = (1.0 - b)*channel_2_pwm_prev + b*channel_2_pwm;
-  channel_3_pwm = (1.0 - b)*channel_3_pwm_prev + b*channel_3_pwm;
-  channel_4_pwm = (1.0 - b)*channel_4_pwm_prev + b*channel_4_pwm;
+  channel_1_pwm_pre = (1.0 - b)*channel_1_pwm_prev + b*channel_1_pwm_pre;
+  channel_2_pwm_pre = (1.0 - b)*channel_2_pwm_prev + b*channel_2_pwm_pre;
+  channel_3_pwm_pre = (1.0 - b)*channel_3_pwm_prev + b*channel_3_pwm_pre;
+  channel_4_pwm_pre = (1.0 - b)*channel_4_pwm_prev + b*channel_4_pwm_pre;
+
+	// Additional cutoff to deal with occasional spikes in recieved radio commands
+	d_ch1 = channel_1_pwm_pre - channel_1_pwm_prev;
+	d_ch2 = channel_2_pwm_pre - channel_2_pwm_prev;
+	d_ch3 = channel_3_pwm_pre - channel_3_pwm_prev;
+	d_ch4 = channel_4_pwm_pre - channel_4_pwm_prev;
+	
+	if (abs(d_ch1) > cutoff_val && ch1_CutCounter < 5 && doneWithSetup) {
+		channel_1_pwm = channel_1_pwm_prev;
+		Serial.println("Radio command spike detected (CH1)");
+		ch1_CutCounter++;
+	} else {
+		channel_1_pwm = channel_1_pwm_pre;
+		ch1_CutCounter = 0;
+	}
+	if (abs(d_ch2) > cutoff_val && ch2_CutCounter < 5 && doneWithSetup) {
+		channel_2_pwm = channel_2_pwm_prev;
+		Serial.println("Radio command spike detected (CH2)");
+		ch2_CutCounter++;
+	} else {
+		channel_2_pwm = channel_2_pwm_pre;
+		ch2_CutCounter = 0;
+	}
+	if (abs(d_ch3) > cutoff_val && ch3_CutCounter < 5 && doneWithSetup) {
+		channel_3_pwm = channel_3_pwm_prev;
+		Serial.println("Radio command spike detected (CH3)");
+		ch3_CutCounter++;
+	} else {
+		channel_3_pwm = channel_3_pwm_pre;
+		ch3_CutCounter = 0;
+	}
+	if (abs(d_ch4) > cutoff_val && ch4_CutCounter < 5 && doneWithSetup) {
+		channel_4_pwm = channel_4_pwm_prev;
+		Serial.println("Radio command spike detected (CH4)");
+		ch4_CutCounter++;
+	} else {
+		channel_4_pwm = channel_4_pwm_pre;
+		ch4_CutCounter = 0;
+	}
+
+	// Update prev values
   channel_1_pwm_prev = channel_1_pwm;
   channel_2_pwm_prev = channel_2_pwm;
   channel_3_pwm_prev = channel_3_pwm;
   channel_4_pwm_prev = channel_4_pwm;
+
+	
+
 }
 
 void failSafe() {
@@ -1600,8 +1665,8 @@ void failSafe() {
    * channel_x_pwm are set to default failsafe values specified in the setup. Comment out this function when troubleshooting 
    * your radio connection in case any extreme values are triggering this function to overwrite the printed variables.
    */
-  unsigned minVal = 800;
-  unsigned maxVal = 2200;
+  int minVal = 800;
+  int maxVal = 2200;
   int check1 = 0;
   int check2 = 0;
   int check3 = 0;
@@ -1625,6 +1690,7 @@ void failSafe() {
     channel_4_pwm = channel_4_fs;
     channel_5_pwm = channel_5_fs;
     channel_6_pwm = channel_6_fs;
+		failureFlag = 1;
   }
 }
 
@@ -2111,18 +2177,22 @@ void printLoopRate() {
 void getJoyAngle() {
 	alphaCounts = analogRead(joyAlphaPin);
 	betaCounts = analogRead(joyBetaPin);
-	alpha = static_cast<float>(alphaCounts - alphaCounts_min) / static_cast<float>(alphaCounts_max -
-				alphaCounts_min) * (alpha_max - alpha_min) - 30.0f;
-	beta = static_cast<float>(betaCounts - betaCounts_min) / static_cast<float>(betaCounts_max -
-				betaCounts_min) * (beta_max - beta_min) - 30.0f;
+	alpha = alphaCounts*0.06577f - 40.0f;
+	beta = betaCounts*(-0.05971f) + 36.0f;
 }
 
 void openIris() {
 	iris.write(60);
+	servoLoopCounter = 0;
 }
 
 void closeIris() {
-	iris.write(138);
+	if (servoLoopCounter < 500) {
+		iris.write(138);
+		servoLoopCounter++;
+	} else {
+		iris.write(135);
+	}
 }
 
 void calibrateJoystick() {
@@ -2162,23 +2232,31 @@ void calibrateJoystick() {
 }
 
 void printRIPAngles() {
-	//Serial.print("Alpha: ");
-	Serial.print(alpha);
-	Serial.print(" ");
-	//Serial.print(" Roll: ");
-	Serial.print(roll_IMU);
-	Serial.print(" ");
-	//Serial.print(" Alpha + Roll: ");
-	Serial.print(alpha + roll_IMU);
-	Serial.print(" ");
-	//Serial.print(" Beta: ");
-	Serial.print(beta);
-	Serial.print(" ");
-	//Serial.print(" Pitch: ");
-	Serial.print(pitch_IMU);
-	Serial.print(" ");
-	//Serial.print(" Beta + Pitch: ");
-	Serial.println(beta + pitch_IMU);
+	if (current_time - print_counter > 10000) {
+		print_counter = micros();
+		//Serial.print("Alpha: ");
+		Serial.print(alpha);
+		Serial.print(" ");
+		//Serial.print(" Roll: ");
+		Serial.print(roll_IMU);
+		Serial.print(" ");
+		//Serial.print(" Alpha + Roll: ");
+		Serial.print(alpha + roll_IMU);
+		Serial.print(" ");
+		//Serial.print(" Beta: ");
+		Serial.print(beta);
+		Serial.print(" ");
+		//Serial.print(" Pitch: ");
+		Serial.print(pitch_IMU);
+		Serial.print(" ");
+		//Serial.print(" Beta + Pitch: ");
+		Serial.println(beta + pitch_IMU);
+		//Serial.print("AlphaCounts: ");
+		//Serial.print(alphaCounts);
+		//Serial.print(" ");
+		//Serial.print("BetaCounts: ");
+		//Serial.println(betaCounts);
+	}
 }
 
 String getDataString() {
@@ -2257,7 +2335,9 @@ String getDataString() {
 									+ ","
 									+ String(Ki_yaw)
 									+ ","
-									+ String(Kd_yaw);	
+									+ String(Kd_yaw)
+									+ ","
+									+ String(failureFlag);	
 	return csvDataString;
 }
 
