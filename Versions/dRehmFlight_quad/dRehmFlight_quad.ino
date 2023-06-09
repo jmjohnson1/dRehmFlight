@@ -152,15 +152,19 @@ const int chipSelect = BUILTIN_SDCARD;
 
 //Radio failsafe values for every channel in the event that bad reciever data is detected. 
 //Recommended defaults:
-unsigned long channel_1_fs = 1000; //thro
-unsigned long channel_2_fs = 1500; //ail
-unsigned long channel_3_fs = 1500; //elev
-unsigned long channel_4_fs = 1500; //rudd
+unsigned long channel_1_fs = 1000; //thro cut
+unsigned long channel_2_fs = 1500; //ail neutral
+unsigned long channel_3_fs = 1500; //elev neutral
+unsigned long channel_4_fs = 1500; //rudd neutral
 unsigned long channel_5_fs = 2000; //gear, greater than 1500 = throttle cut
-unsigned long channel_6_fs = 1000; // Iris toggle
-unsigned long channel_7_fs = 1000; // Conduct sine sweep
-unsigned long channel_8_fs = 1000; // Perform step in pitch or roll
-unsigned long channel_9_fs = 1500; // Step angle (+15, 0, -15)
+unsigned long channel_6_fs = 1000; // Iris toggle (closed)
+unsigned long channel_7_fs = 1000; // Conduct sine sweep (Don't do a sine sweep)
+unsigned long channel_8_fs = 1000; // Perform step in pitch or roll (No step commands)
+unsigned long channel_9_fs = 1500; // Step angle (+15, 0, -15) (0 degrees)
+unsigned long channel_10_fs = 1500; // P gain scale (no scaling)
+unsigned long channel_11_fs = 1500; // I gain scale
+unsigned long channel_12_fs = 1500; // D gain scale
+unsigned long channel_13_fs = 1500; // Pitch and roll pid offset
 
 //Filter parameters - Defaults tuned for 2kHz loop rate; 
 //Do not touch unless you know what you are doing:
@@ -190,58 +194,42 @@ float GyroErrorZ = 0.36;
 //Controller parameters (take note of defaults before modifying!): 
 //Integrator saturation level, mostly for safety (default 25.0)
 float i_limit = 25.0;
-//Max roll angle in degrees for angle mode (maximum ~70 degrees), deg/sec for rate mode 
+//Max roll/pitch angles in degrees for angle mode (maximum ~70 degrees), deg/sec for rate mode 
 float maxRoll = 30.0;
-//Max pitch angle in degrees for angle mode (maximum ~70 degrees), deg/sec for rate mode
 float maxPitch = 30.0;
 //Max yaw rate in deg/sec
 float maxYaw = 160.0;
 
 // ANGLE MODE PID GAINS //
-//Roll P-gain - angle mode 
-
 float Kp_scale = 0.75f;
 float Ki_scale = 0.1f;
 float Kd_scale = 1.1f;
 
 float Kp_roll_angle = 0.2*Kp_scale*0.95;
-// Roll I-gain - angle mode
 float Ki_roll_angle = 0.3*Ki_scale*1.01;
-//Roll D-gain - angle mode (has no effect on controlANGLE2)
 float Kd_roll_angle = 0.05*Kd_scale*1.01;
+float Kp_pitch_angle = 0.2*Kp_scale;
+float Ki_pitch_angle = 0.3*Ki_scale;
+float Kd_pitch_angle = 0.05*Kd_scale;
 //Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 float B_loop_roll = 0.9;
-//Pitch P-gain - angle mode
-float Kp_pitch_angle = 0.2*Kp_scale;
-//Pitch I-gain - angle mode
-float Ki_pitch_angle = 0.3*Ki_scale;
-//Pitch D-gain - angle mode (has no effect on controlANGLE2)
-float Kd_pitch_angle = 0.05*Kd_scale;
 //Pitch damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 float B_loop_pitch = 0.9;
 
 // RATE MODE PID GAINS //
-//Roll P-gain - rate mode
 float Kp_roll_rate = 0.15;
-//Roll I-gain - rate mode
 float Ki_roll_rate = 0.2;
-//Roll D-gain - rate mode (be careful when increasing too high, motors will begin to overheat!)
 float Kd_roll_rate = 0.0002;
-//Pitch P-gain - rate mode
 float Kp_pitch_rate = 0.15;
-//Pitch I-gain - rate mode
 float Ki_pitch_rate = 0.2;
-//Pitch D-gain - rate mode (be careful when increasing too high, motors will begin to overheat!)
 float Kd_pitch_rate = 0.0002;
 
 // YAW PID GAINS //
-//Yaw P-gain
 float Kp_yaw = 0.3;           
-//Yaw I-gain
 float Ki_yaw = 0.05;          
-//Yaw D-gain (be careful when increasing too high, motors will begin to overheat!)
 float Kd_yaw = 0.00015;       
 
+// MATRICES OF PID GIANS //
 const Matrix3f P_gains {{Kp_pitch_angle, 0, 0},
 												{0, Kp_yaw, 0},
 												{0, 0, Kp_roll_angle}};
@@ -252,16 +240,28 @@ const Matrix3f D_gains {{-Kd_pitch_angle, 0, 0},
 												{0, Kd_yaw, 0},
 												{0, 0, -Kd_roll_angle}};
 
-int alphaCounts_min = 148; 	// Analog int of maximum x-axis analog signal
-int alphaCounts_max = 1023;  	// Analog int of minimum x-axis analog signal
-int betaCounts_min = 51; 	// Analog int of maximum y-axis analog signal
-int betaCounts_max = 1023;  	// Analog int of minimum y-axis analog signal
+// SCALE FACTORS FOR PID //
+Matrix3f P_gainScale {{1, 0, 0},
+											{0, 1, 0},
+											{0, 0, 1}};
+Matrix3f I_gainScale {{1, 0, 0},
+											{0, 1, 0},
+											{0, 0, 1}};
+Matrix3f D_gainScale {{1, 0, 0},
+											{0, 1, 0},
+											{0, 0, 1}};
 
-float alpha_min = -30;   // Minimum alpha
-float alpha_max = 30;   // Maximum alpha
-float beta_min = -30;   // Minimum alpha
-float beta_max = 30;   // Maximum alpha
+// JOYSTICK ANALOG INPUT RANGES //
+int alphaCounts_min = 148;
+int alphaCounts_max = 1023;
+int betaCounts_min = 51;
+int betaCounts_max = 1023;
 
+// MAX AND MIN JOYSTICK ANGLES //
+float alpha_min = -30;
+float alpha_max = 30;
+float beta_min = -30;
+float beta_max = 30;
 
 // Options for controlling the quad using user input values written over the serial line
 // Sets whether or not to allow direct input of pitch or roll angles during a test flight. Setting
@@ -331,11 +331,7 @@ PWMServo servo5;
 PWMServo servo6;
 PWMServo servo7;
 
-
-
 //================================================================================================//
-
-
 
 //DECLARE GLOBAL VARIABLES
 
@@ -348,8 +344,9 @@ bool blinkAlternate;
 unsigned long print_counterSD = 200000;
 
 //Radio communication:
-int channel_1_pwm, channel_2_pwm, channel_3_pwm, channel_4_pwm, channel_5_pwm, 
-					channel_6_pwm, channel_7_pwm, channel_8_pwm, channel_9_pwm;
+int channel_1_pwm, channel_2_pwm, channel_3_pwm, channel_4_pwm, channel_5_pwm, channel_6_pwm,
+channel_7_pwm, channel_8_pwm, channel_9_pwm, channel_10_pwm, channel_11_pwm, channel_12_pwm,
+channel_13_pwm;
 int channel_1_pwm_prev, channel_2_pwm_prev, channel_3_pwm_prev, channel_4_pwm_prev;
 int channel_1_pwm_pre, channel_2_pwm_pre, channel_3_pwm_pre, channel_4_pwm_pre;
 
@@ -442,8 +439,6 @@ int ch2_CutCounter = 0;
 int ch3_CutCounter = 0;
 int ch4_CutCounter = 0;
 
-
-
 bool doneWithSetup = 0;
 int servoLoopCounter = 0;
 
@@ -499,7 +494,7 @@ void setup() {
 		}
 		dataFile = SD.open(fileName.c_str(), FILE_WRITE);
     String csvHeader =
-			"roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command,kp_roll,ki_roll,kd_roll,kp_pitch,ki_pitch,kd_pitch,kp_yaw,ki_yaw,kd_yaw,failsafeTriggered";
+			"roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,radio_ch8,radio_ch9,radio_ch10,radio_ch11,radio_ch12,radio_ch13,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command,kp_roll,ki_roll,kd_roll,kp_pitch,ki_pitch,kd_pitch,kp_yaw,ki_yaw,kd_yaw,failsafeTriggered";
 		dataFile.println(csvHeader);
 		dataFile.close();
   }
@@ -521,6 +516,10 @@ void setup() {
 	channel_7_pwm = channel_7_fs;
 	channel_8_pwm = channel_8_fs;
 	channel_9_pwm = channel_9_fs;
+	channel_10_pwm = channel_10_fs;
+	channel_11_pwm = channel_11_fs;
+	channel_12_pwm = channel_12_fs;
+	channel_13_pwm = channel_13_fs;
 
   //Initialize IMU communication
   IMUinit();
@@ -604,7 +603,7 @@ void loop() {
   //printRollPitchYawAndDesired(); 
 	// Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1
 	// to 1)
-  //printPIDoutput();     
+  printPIDoutput();     
 	// Prints the values being written to the motors (expected: 120 to 250)
   //printMotorCommands(); 
 	// Prints the values being written to the servos (expected: 0 to 180)
@@ -612,7 +611,7 @@ void loop() {
 	// Prints the time between loops in microseconds (expected: microseconds between loop iterations)
   //printLoopRate();      
 	// Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
-	printRIPAngles();
+	//printRIPAngles();
 	// Prints desired and imu roll state for serial plotter
 	//displayRoll();
 	// Prints desired and imu pitch state for serial plotter
@@ -682,9 +681,13 @@ void loop() {
 	}
   
   //PID Controller - SELECT ONE:
-//		controlANGLE();
+	//controlANGLE();
   //controlANGLE2(); //Stabilize on angle setpoint using cascaded method. Rate controller must be tuned well first!
   //controlRATE(); //Stabilize on rate setpoint
+
+	getPScale();
+	getIScale();
+	getDScale();
 
 	// Linear algebra PID function
 	desState[0] = pitch_des; 
@@ -693,7 +696,7 @@ void loop() {
 	currState[0] = pitch_IMU; 
 	currState[1] = yaw_IMU; 
 	currState[2] = roll_IMU;
-	pidOutputVals = pidOutput(desState, currState, P_gains, I_gains, D_gains, dt, channel_1_pwm <
+	pidOutputVals = pidOutput(desState, currState, (P_gains*P_gainScale), (I_gains*I_gainScale), (D_gains*D_gainScale), dt, channel_1_pwm <
 		1060, GyroX, GyroY, GyroZ);
 	pitch_PID = pidOutputVals[0];
 	yaw_PID = pidOutputVals[1];
@@ -1581,6 +1584,10 @@ void getCommands() {
 			channel_7_pwm = sbusChannels[6] * scale + bias;
 			channel_8_pwm = sbusChannels[7] * scale + bias;
 			channel_9_pwm = sbusChannels[8] * scale + bias;
+			channel_10_pwm = sbusChannels[9] * scale + bias;
+			channel_11_pwm = sbusChannels[10] * scale + bias;
+			channel_12_pwm = sbusChannels[11] * scale + bias;
+			channel_13_pwm = sbusChannels[12] * scale + bias;
     }
 
   //#elif defined USE_DSM_RX
@@ -1673,6 +1680,7 @@ void failSafe() {
   int check4 = 0;
   int check5 = 0;
   int check6 = 0;
+	failureFlag = 0;
 
   //Triggers for failure criteria
   if (channel_1_pwm > maxVal || channel_1_pwm < minVal) check1 = 1;
@@ -2023,7 +2031,19 @@ void printRadioData() {
     Serial.print(F(" CH6: "));
     Serial.print(channel_6_pwm);
     Serial.print(F(" CH7: "));
-    Serial.println(channel_7_pwm);
+    Serial.print(channel_7_pwm);
+    Serial.print(F(" CH8: "));
+    Serial.print(channel_8_pwm);
+    Serial.print(F(" CH9: "));
+    Serial.print(channel_9_pwm);
+    Serial.print(F(" CH10: "));
+    Serial.print(channel_10_pwm);
+    Serial.print(F(" CH11: "));
+    Serial.print(channel_11_pwm);
+    Serial.print(F(" CH12: "));
+    Serial.print(channel_12_pwm);
+    Serial.print(F(" CH13: "));
+    Serial.println(channel_13_pwm);
   }
 }
 
@@ -2299,6 +2319,18 @@ String getDataString() {
 									+ ","
 									+ String(channel_7_pwm)
 									+ ","
+									+ String(channel_8_pwm)
+									+ ","
+									+ String(channel_9_pwm)
+									+ ","
+									+ String(channel_10_pwm)
+									+ ","
+									+ String(channel_11_pwm)
+									+ ","
+									+ String(channel_12_pwm)
+									+ ","
+									+ String(channel_13_pwm)
+									+ ","
 									+ String(GyroX)
 									+ ","
 									+ String(GyroY)
@@ -2319,23 +2351,23 @@ String getDataString() {
 									+ ","
 									+ String(s4_command_scaled)
 									+ ","
-									+ String(Kp_roll_angle)
+									+ String(P_gains(2,2)*P_gainScale(2,2))
 									+ ","
-									+ String(Ki_roll_angle)
+									+ String(I_gains(2,2)*I_gainScale(2,2))
 									+ ","
-									+ String(Kd_roll_angle)	
+									+ String(D_gains(2,2)*D_gainScale(2,2))	
 									+ ","
-									+ String(Kp_pitch_angle)
+									+ String(P_gains(0,0)*P_gainScale(0,0))
 									+ ","
-									+ String(Ki_pitch_angle)
+									+ String(I_gains(0,0)*I_gainScale(0,0))
 									+ ","
-									+ String(Kd_pitch_angle)	
+									+ String(D_gains(0,0)*D_gainScale(0,0))	
 									+ ","
-									+ String(Kp_yaw)
+									+ String(P_gains(1,1)*P_gainScale(1,1))
 									+ ","
-									+ String(Ki_yaw)
+									+ String(I_gains(1,1)*I_gainScale(1,1))
 									+ ","
-									+ String(Kd_yaw)
+									+ String(D_gains(1,1)*D_gainScale(1,1))
 									+ ","
 									+ String(failureFlag);	
 	return csvDataString;
@@ -2357,6 +2389,33 @@ void displayPitch() {
 		Serial.print(" ");
 		Serial.println(pitch_IMU);
 	}
+}
+
+void getPScale() {
+	float scaleVal;
+	scaleVal = 1.0f + (channel_10_pwm - 1500.0f)/500.0f * 0.8f;
+	P_gainScale(0,0) = scaleVal;
+	P_gainScale(2,2) = scaleVal;
+}
+
+void getDScale() {
+	float scaleVal;
+	scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f * 0.8f;
+	D_gainScale(0,0) = scaleVal;
+	D_gainScale(2,2) = scaleVal;
+
+}
+
+void getIScale() {
+	float scaleVal;
+	scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f * 0.8f;
+	I_gainScale(0,0) = scaleVal;
+	I_gainScale(2,2) = scaleVal;
+}
+
+void rollGainOffset() {
+	float offsetVal;
+	offsetVal = 1.0f + (channel_13_pwm - 1500.0f)/500.0f * 0.05f;
 }
 
 
