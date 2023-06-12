@@ -1,0 +1,22 @@
+/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/build/core/usb.c.o: \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb.c \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_dev.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/imxrt.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_desc.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_serial.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_seremu.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_rawhid.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_keyboard.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/keylayouts.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/avr/pgmspace.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_mouse.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_joystick.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_flightsim.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_touch.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_midi.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_audio.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/usb_mtp.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/core_pins.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/pins_arduino.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/avr/pgmspace.h \
+ /home/james/.arduino15/packages/teensy/hardware/avr/1.58.1/cores/teensy4/debug/printf.h

@@ -1,4 +1,4 @@
-//Arduino/Teensy Flight Controller - dRehmFlight
+//bArduino/Teensy Flight Controller - dRehmFlight
 //Author: Nicholas Rehm
 //Project Start: 1/6/2020
 //Last Updated: 7/29/2022
@@ -22,7 +22,6 @@ RcGroups 'jihlein' - IMU implementation overhaul + SBUS implementation.
 Everyone that sends me pictures and videos of your flying creations! -Nick
 
 */
-
 
 
 //================================================================================================//
@@ -68,7 +67,10 @@ static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to mat
 #include <string>
 #include <ArduinoEigen.h>
 #include "pidController.h"
+#include "UserVariables.h"
+#include "GlobalVariables.h"
 const int chipSelect = BUILTIN_SDCARD;
+
 
 #if defined USE_SBUS_RX
   #include "src/SBUS/SBUS.h"   //sBus interface
@@ -89,9 +91,17 @@ const int chipSelect = BUILTIN_SDCARD;
 #endif
 
 
+#if defined USE_SBUS_RX
+  SBUS sbus(Serial5);
+  uint16_t sbusChannels[16];
+  bool sbusFailSafe;
+  bool sbusLostFrame;
+#endif
+#if defined USE_DSM_RX
+  DSM1024 DSM;
+#endif
 
 //================================================================================================//
-
 
 
 //Setup gyro and accel full scale value selection and scale factor
@@ -145,151 +155,6 @@ const int chipSelect = BUILTIN_SDCARD;
 #endif
 
 
-
-//================================================================================================//
-//                                     USER-SPECIFIED VARIABLES                                   //                           
-//================================================================================================//
-
-//Radio failsafe values for every channel in the event that bad reciever data is detected. 
-//Recommended defaults:
-unsigned long channel_1_fs = 1000; //thro cut
-unsigned long channel_2_fs = 1500; //ail neutral
-unsigned long channel_3_fs = 1500; //elev neutral
-unsigned long channel_4_fs = 1500; //rudd neutral
-unsigned long channel_5_fs = 2000; //gear, greater than 1500 = throttle cut
-unsigned long channel_6_fs = 1000; // Iris toggle (closed)
-unsigned long channel_7_fs = 1000; // Conduct sine sweep (Don't do a sine sweep)
-unsigned long channel_8_fs = 1000; // Perform step in pitch or roll (No step commands)
-unsigned long channel_9_fs = 1500; // Step angle (+15, 0, -15) (0 degrees)
-unsigned long channel_10_fs = 1500; // P gain scale (no scaling)
-unsigned long channel_11_fs = 1500; // I gain scale
-unsigned long channel_12_fs = 1500; // D gain scale
-unsigned long channel_13_fs = 1500; // Pitch and roll pid offset
-
-//Filter parameters - Defaults tuned for 2kHz loop rate; 
-//Do not touch unless you know what you are doing:
-float B_madgwick = 0.04;  //Madgwick filter parameter
-float B_accel = 0.14;     //Accelerometer LP filter paramter, (MPU6050 default: 0.14. MPU9250 default: 0.2)
-float B_gyro = 0.1;       //Gyro LP filter paramter, (MPU6050 default: 0.1. MPU9250 default: 0.17)
-float B_mag = 1.0;        //Magnetometer LP filter parameter
-
-//Magnetometer calibration parameters - if using MPU9250, uncomment calibrateMagnetometer() in 
-//void setup() to get these values, else just ignore these
-float MagErrorX = 0.0;
-float MagErrorY = 0.0; 
-float MagErrorZ = 0.0;
-float MagScaleX = 1.0;
-float MagScaleY = 1.0;
-float MagScaleZ = 1.0;
-
-//IMU calibration parameters - calibrate IMU using calculate_IMU_error() in the void setup() to get
-//these values, then comment out calculate_IMU_error()
-float AccErrorX = 0.07;
-float AccErrorY = 0.02;
-float AccErrorZ = -0.02;
-float GyroErrorX = -3.13;
-float GyroErrorY = -0.76;
-float GyroErrorZ = 0.36;
-
-//Controller parameters (take note of defaults before modifying!): 
-//Integrator saturation level, mostly for safety (default 25.0)
-float i_limit = 25.0;
-//Max roll/pitch angles in degrees for angle mode (maximum ~70 degrees), deg/sec for rate mode 
-float maxRoll = 30.0;
-float maxPitch = 30.0;
-//Max yaw rate in deg/sec
-float maxYaw = 160.0;
-
-// MAXIMUM PENULUM ANGLES (INERTIAL) //
-float maxAlphaRoll = 5.0f;
-float maxBetaPitch = 5.0f;
-
-// ANGLE MODE PID GAINS //
-float Kp_scale = 0.75f;
-float Ki_scale = 0.1f;
-float Kd_scale = 1.1f;
-
-float Kp_roll_angle = 0.2*Kp_scale*0.95;
-float Ki_roll_angle = 0.3*Ki_scale*1.01;
-float Kd_roll_angle = 0.05*Kd_scale*1.01;
-float Kp_pitch_angle = 0.2*Kp_scale;
-float Ki_pitch_angle = 0.3*Ki_scale;
-float Kd_pitch_angle = 0.05*Kd_scale;
-
-// YAW PID GAINS //
-float Kp_yaw = 0.3;           
-float Ki_yaw = 0.05;          
-float Kd_yaw = 0.00015;       
-
-// MATRICES OF PID GIANS //
-const Matrix3f P_gains {{Kp_pitch_angle, 0, 0},
-												{0, Kp_yaw, 0},
-												{0, 0, Kp_roll_angle}};
-const Matrix3f I_gains {{Ki_pitch_angle, 0, 0},
-												{0, Ki_yaw, 0},
-												{0, 0, Ki_roll_angle}};
-const Matrix3f D_gains {{-Kd_pitch_angle, 0, 0},
-												{0, Kd_yaw, 0},
-												{0, 0, -Kd_roll_angle}};
-
-// SCALE FACTORS FOR PID //
-Matrix3f P_gainScale {{1, 0, 0},
-											{0, 1, 0},
-											{0, 0, 1}};
-Matrix3f I_gainScale {{1, 0, 0},
-											{0, 1, 0},
-											{0, 0, 1}};
-Matrix3f D_gainScale {{1, 0, 0},
-											{0, 1, 0},
-											{0, 0, 1}};
-
-// PID GAINS FOR RIP //
-const Matrix2f P_gains_rip {{-0.1f, 0},
-														{0, -0.1f}};
-const Matrix2f I_gains_rip {{0, 0},
-														{0, 0}};
-const Matrix2f D_gains_rip {{0, 0},
-														{0, 0}};
-
-Matrix2f P_gainScale_rip {{1, 0},
-			 							      {0, 1}};
-Matrix2f I_gainScale_rip {{1, 0},
-			 									  {0, 1}};
-Matrix2f D_gainScale_rip {{1, 0},
-											    {0, 1}};
-
-// JOYSTICK ANALOG INPUT RANGES //
-int alphaCounts_min = 148;
-int alphaCounts_max = 1023;
-int betaCounts_min = 51;
-int betaCounts_max = 1023;
-
-// MAX AND MIN JOYSTICK ANGLES //
-float alpha_min = -30;
-float alpha_max = 30;
-float beta_min = -30;
-float beta_max = 30;
-
-// Options for controlling the quad using user input values written over the serial line
-// Sets whether or not to allow direct input of pitch or roll angles during a test flight. Setting
-// this to true
-bool useSerialAngleCommands = 0;  
-// The axis to rotate about in the setDesStateSerial() function: 1 = roll, 2 = pitch
-int axisToRotate = 1; 
-// Determines whether or not to use a sine wave in the setDesStateSerial() function. If so, then the
-// input from the serial line is taken to be the frequency of this sine wave in Hz.
-bool useSineWave = 1; 
-
-// Options for sine sweep
-// Option for whether or not to do a sine sweep as part of a test flight. Setting this to true will
-// result in pilot control of the axis connected to axisToRotate being removed, and a sine sweep
-// conducted between the maximum and minimum frequencies specified.
-bool conductSineSweep = 0; 	
-float maxFreq = 1.5f; 			// Maximum frequency of the sine sweep in Hz
-float minFreq = 0.05f; 			// Minimum frequency of the sine sweep in Hz
-float sweepTime = 60;  	// How long to run the sweep for in seconds
-
-
 //================================================================================================//
 //                                      DECLARE PINS                                              //
 //================================================================================================//                                          
@@ -338,125 +203,6 @@ PWMServo servo5;
 PWMServo servo6;
 PWMServo servo7;
 
-//================================================================================================//
-
-//DECLARE GLOBAL VARIABLES
-
-//General stuff
-float dt;
-unsigned long current_time, prev_time;
-unsigned long print_counter, serial_counter;
-unsigned long blink_counter, blink_delay;
-bool blinkAlternate;
-unsigned long print_counterSD = 200000;
-
-//Radio communication:
-int channel_1_pwm, channel_2_pwm, channel_3_pwm, channel_4_pwm, channel_5_pwm, channel_6_pwm,
-channel_7_pwm, channel_8_pwm, channel_9_pwm, channel_10_pwm, channel_11_pwm, channel_12_pwm,
-channel_13_pwm;
-int channel_1_pwm_prev, channel_2_pwm_prev, channel_3_pwm_prev, channel_4_pwm_prev;
-int channel_1_pwm_pre, channel_2_pwm_pre, channel_3_pwm_pre, channel_4_pwm_pre;
-
-#if defined USE_SBUS_RX
-  SBUS sbus(Serial5);
-  uint16_t sbusChannels[16];
-  bool sbusFailSafe;
-  bool sbusLostFrame;
-#endif
-#if defined USE_DSM_RX
-  DSM1024 DSM;
-#endif
-
-//IMU:
-float AccX, AccY, AccZ;
-float AccX_prev, AccY_prev, AccZ_prev;
-float GyroX, GyroY, GyroZ;
-float GyroX_prev, GyroY_prev, GyroZ_prev;
-float MagX, MagY, MagZ;
-float MagX_prev, MagY_prev, MagZ_prev;
-float roll_IMU, pitch_IMU, yaw_IMU;
-float roll_IMU_prev, pitch_IMU_prev;
-float q0 = 1.0f; //Initialize quaternion for madgwick filter
-float q1 = 0.0f;
-float q2 = 0.0f;
-float q3 = 0.0f;
-
-//Normalized desired state:
-float thro_des, roll_des, pitch_des, yaw_des;
-float roll_passthru, pitch_passthru, yaw_passthru;
-float alphaRoll_des, betaPitch_des;
-
-//Controller:
-float roll_PID  = 0;
-float pitch_PID = 0;
-float yaw_PID   = 0;
-
-//Mixer
-float m1_command_scaled, m2_command_scaled, m3_command_scaled, m4_command_scaled, m5_command_scaled,
-m6_command_scaled;
-int m1_command_PWM, m2_command_PWM, m3_command_PWM, m4_command_PWM, m5_command_PWM, m6_command_PWM;
-float s1_command_scaled, s2_command_scaled, s3_command_scaled, s4_command_scaled, s5_command_scaled,
-s6_command_scaled, s7_command_scaled;
-int s1_command_PWM, s2_command_PWM, s3_command_PWM, s4_command_PWM, s5_command_PWM, s6_command_PWM,
-s7_command_PWM;
-
-// Flag for whether or not Iris is open
-bool irisFlag = 0;
-
-// Joystick values
-int alphaCounts;        // Joystick x-axis rotation analog signal
-int betaCounts;        // Joystick y-axis rotation analog signal
-float alpha;       // Joystick x-axis rotation angle
-float beta;       // Joystick x-axis rotation angle
-float alphaRoll;
-float betaPitch;
-
-// Values for the setDesStateSerial() function
-float serialInputValue = 0.0f;  // User input over the serial line
-float sineFrequency = 0.0f; // If using sine wave, its frequency in Hz
-float sineTime = 0.0f; 		// Counter used to determine time in the sine functions (seconds)
-
-// A flag for whether or not the sine sweep should be conducted. User input while the program is 
-// running sets this. DON'T SET THIS YOURSELF!
-bool sweepFlag = 0;     
-
-// SD Card settings
-String filePrefix = "flight_data";
-String fileExtension = ".csv";
-String fileName;
-
-File dataFile;
-
-// PID vectors
-Vector3f desState(0,0,0);
-Vector3f currState(0,0,0);
-Vector3f pidOutputVals(0,0,0);
-
-// RIP PID vectors
-Vector2f desState_rip(0,0);
-Vector2f currState_rip(0,0);
-Vector2f pidOutputVals_rip(0,0);
-
-bool SD_is_present = 0;
-
-int cutoff_val = 150;
-int d_ch1;
-int d_ch2;
-int d_ch3;
-int d_ch4;
-
-int ch1_CutCounter = 0;
-int ch2_CutCounter = 0;
-int ch3_CutCounter = 0;
-int ch4_CutCounter = 0;
-
-bool doneWithSetup = 0;
-int servoLoopCounter = 0;
-
-// Number of loops before a sustained large change in values are accepted
-int radioChCutoffTimeout = 10;
-bool failureFlag = 0;
-
 //========================================================================================================================//
 //                                                      VOID SETUP                                                        //                           
 //========================================================================================================================//
@@ -483,6 +229,15 @@ void setup() {
 
 	// Attach the iris servo and close it
 	iris.attach(irisPin);
+
+	// Tare the joystick angle
+	getJoyAngle();
+	alphaOffset = -alpha;
+	betaOffset = -beta;
+	Serial.print(F("alphaOffset: "));
+	Serial.print(alphaOffset);
+	Serial.print(F("betaOffset: "));
+	Serial.print(betaOffset);
 
   //Set built in LED to turn on to signal startup
   digitalWrite(13, HIGH);
@@ -561,14 +316,14 @@ void setup() {
   // Calibrate the joystick. Will be in an infinite loop.
 	//calibrateJoystick();
 
-  //Arm OneShot125 motors
-  m1_command_PWM = 125; //Command OneShot125 ESC from 125 to 250us pulse length
-  m2_command_PWM = 125;
-  m3_command_PWM = 125;
-  m4_command_PWM = 125;
-  m5_command_PWM = 125;
-  m6_command_PWM = 125;
-  armMotors(); //Loop over commandMotors() until ESCs happily arm
+  //Arm OneShot125 motors (Commented out because not using OneShot125)
+  //m1_command_PWM = 125; //Command OneShot125 ESC from 125 to 250us pulse length
+  //m2_command_PWM = 125;
+  //m3_command_PWM = 125;
+  //m4_command_PWM = 125;
+  //m5_command_PWM = 125;
+  //m6_command_PWM = 125;
+  //armMotors(); //Loop over commandMotors() until ESCs happily arm
   
   //Indicate entering main loop with 3 quick blinks
   setupBlink(3,160,70); //numBlinks, upTime (ms), downTime (ms)
@@ -614,7 +369,7 @@ void loop() {
   //printRollPitchYawAndDesired(); 
 	// Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1
 	// to 1)
-  printPIDoutput();     
+  //printPIDoutput();     
 	// Prints the values being written to the motors (expected: 120 to 250)
   //printMotorCommands(); 
 	// Prints the values being written to the servos (expected: 0 to 180)
@@ -622,7 +377,7 @@ void loop() {
 	// Prints the time between loops in microseconds (expected: microseconds between loop iterations)
   //printLoopRate();      
 	// Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
-	//printRIPAngles();
+	printRIPAngles();
 	// Prints desired and imu roll state for serial plotter
 	//displayRoll();
 	// Prints desired and imu pitch state for serial plotter
@@ -664,7 +419,6 @@ void loop() {
     }
   }
 
-
   //Get vehicle state
   getIMUdata(); //Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
   Madgwick(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, MagY, -MagX, MagZ, dt); //Updates roll_IMU, pitch_IMU, and yaw_IMU angle estimates (degrees)
@@ -694,24 +448,25 @@ void loop() {
 		pitchStep();
 	}
   
+	// Gets the gain scale factors from controller
 	getPScale();
 	getIScale();
 	getDScale();
 
-	// RIP PID
+	// RIP PID (Sets/overwrites roll_des and pitch_des)
 	if (irisFlag) {
 		desState_rip[0]   = alphaRoll_des;
 		desState_rip[1]   = betaPitch_des;
 		currState_rip[0]  = alphaRoll;
 		currState_rip[1]  = betaPitch;
 		pidOutputVals_rip = pidOutput_rip(desState_rip, currState_rip, (P_gains_rip*P_gainScale_rip),
-																		 (I_gains_rip*I_gainScale_rip), (D_gains_rip*D_gainScale_rip), dt,
+																		 (I_gains_rip*I_gainScale_rip), (D_gains_rip*D_gainScale_rip),
 																		 channel_1_pwm < 1060);
 		roll_des          = pidOutputVals_rip[0];
 		pitch_des         = pidOutputVals_rip[1];
 	}
 
-	// Linear algebra PID function
+	//PID function
 	desState[0]   = pitch_des;
 	desState[1]   = yaw_des;
 	desState[2]   = roll_des;
@@ -719,7 +474,7 @@ void loop() {
 	currState[1]  = yaw_IMU;
 	currState[2]  = roll_IMU;
 	pidOutputVals = pidOutput(desState, currState, (P_gains*P_gainScale), (I_gains*I_gainScale),
-													 (D_gains*D_gainScale), dt, channel_1_pwm < 1060, GyroX, GyroY, GyroZ);
+													 (D_gains*D_gainScale), channel_1_pwm < 1060);
 	pitch_PID     = pidOutputVals[0];
 	yaw_PID       = pidOutputVals[1];
 	roll_PID      = pidOutputVals[2];
@@ -732,7 +487,7 @@ void loop() {
   throttleCut(); //Directly sets motor commands to low based on state of ch5
 
   //Command actuators
-  commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
+  //commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
   servo1.write(s1_command_PWM); //Writes PWM value to servo object
   servo2.write(s2_command_PWM);
   servo3.write(s3_command_PWM);
@@ -774,12 +529,12 @@ void controlMixer() {
    */
    
   //Quad mixing - EXAMPLE
-  m1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
-  m2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front Right
-  m3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back Right
-  m4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back Left
-  m5_command_scaled = 0;
-  m6_command_scaled = 0;
+  //m1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
+  //m2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front Right
+  //m3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back Right
+  //m4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back Left
+  //m5_command_scaled = 0;
+  //m6_command_scaled = 0;
 
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
   s1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
@@ -1197,14 +952,6 @@ void Madgwick6DOF(float gx, float gy, float gz, float ax, float ay, float az, fl
 
 void setDesStateSerial(int controlledAxis) {
 	//DESCRIPTION: Sets the desired pitch and roll angles based on user input over USB
-	/*
-		Input:
-			var 							type		descr
-			===     					====		=====
-			controlledAxis 		int 		The axis about which the user's serial inputs set the desired angle.
-																1: roll
-																2: pitch
-	*/
 	if (Serial.available()) {
 		serialInputValue = Serial.parseFloat();
 		while (Serial.available() !=0) {
@@ -1237,32 +984,13 @@ void setDesStateSerial(int controlledAxis) {
 
 void performSineSweep(int controlledAxis) {
 	//DESCRIPTION: Performs a sine sweep from minFreq (Hz) to maxFreq (Hz) over sweepTime (seconds)
-	/*
-		Input:
-			var 							type		descr
-			===     					====		=====
-			controlledAxis 		int 		The axis about which the user's serial inputs set the desired angle.
-																1: roll
-																2: pitch
-			minFreq 							float 	The starting frequency for the sine sweep in Hz
-			maxFreq 							float   The ending frequency for the sine sweep in Hz
-			sweepTime 				float 	The time period to perform the sweep over
-	*/
 	float desiredAngle = 0;
   float amp = 10; 		// Sine wave amplitude in degrees
-  //if (Serial.available()) {
-  //  sweepFlag = 1;
-  //  while (Serial.available() !=0) {
-  //      Serial.read();
-  //    }
-	//}
-  //if (sweepFlag){
-    desiredAngle = amp*sin(PI*(maxFreq - minFreq)/pow(sweepTime, 2)*pow(sineTime, 3) + 2*PI*minFreq*sineTime);
-    if (sineTime > sweepTime) {
-      desiredAngle = 0;
-    }
-    sineTime = sineTime + 1/2000.0f;
-  //}
+	desiredAngle = amp*sin(PI*(maxFreq - minFreq)/pow(sweepTime, 2)*pow(sineTime, 3) + 2*PI*minFreq*sineTime);
+	if (sineTime > sweepTime) {
+		desiredAngle = 0;
+	}
+	sineTime = sineTime + 1/2000.0f;
 
 	switch (controlledAxis) {
 		case 1:
@@ -1342,19 +1070,19 @@ void scaleCommands() {
    * which are used to command the servos.
    */
   //Scaled to 125us - 250us for oneshot125 protocol
-  m1_command_PWM = m1_command_scaled*125 + 125;
-  m2_command_PWM = m2_command_scaled*125 + 125;
-  m3_command_PWM = m3_command_scaled*125 + 125;
-  m4_command_PWM = m4_command_scaled*125 + 125;
-  m5_command_PWM = m5_command_scaled*125 + 125;
-  m6_command_PWM = m6_command_scaled*125 + 125;
+  //m1_command_PWM = m1_command_scaled*125 + 125;
+  //m2_command_PWM = m2_command_scaled*125 + 125;
+  //m3_command_PWM = m3_command_scaled*125 + 125;
+  //m4_command_PWM = m4_command_scaled*125 + 125;
+  //m5_command_PWM = m5_command_scaled*125 + 125;
+  //m6_command_PWM = m6_command_scaled*125 + 125;
   //Constrain commands to motors within oneshot125 bounds
-  m1_command_PWM = constrain(m1_command_PWM, 125, 250);
-  m2_command_PWM = constrain(m2_command_PWM, 125, 250);
-  m3_command_PWM = constrain(m3_command_PWM, 125, 250);
-  m4_command_PWM = constrain(m4_command_PWM, 125, 250);
-  m5_command_PWM = constrain(m5_command_PWM, 125, 250);
-  m6_command_PWM = constrain(m6_command_PWM, 125, 250);
+  //m1_command_PWM = constrain(m1_command_PWM, 125, 250);
+  //m2_command_PWM = constrain(m2_command_PWM, 125, 250);
+  //m3_command_PWM = constrain(m3_command_PWM, 125, 250);
+  //m4_command_PWM = constrain(m4_command_PWM, 125, 250);
+  //m5_command_PWM = constrain(m5_command_PWM, 125, 250);
+  //m6_command_PWM = constrain(m6_command_PWM, 125, 250);
 
   //Scaled to 0-180 for servo library
   s1_command_PWM = s1_command_scaled*180;
@@ -1442,33 +1170,33 @@ void getCommands() {
 	d_ch3 = channel_3_pwm_pre - channel_3_pwm_prev;
 	d_ch4 = channel_4_pwm_pre - channel_4_pwm_prev;
 	
-	if (abs(d_ch1) > cutoff_val && ch1_CutCounter < 5 && doneWithSetup) {
+	if (abs(d_ch1) > cutoff_val && ch1_CutCounter < maxCutCounter && doneWithSetup) {
 		channel_1_pwm = channel_1_pwm_prev;
-		Serial.println("Radio command spike detected (CH1)");
+		Serial.println(F("Radio command spike detected (CH1)"));
 		ch1_CutCounter++;
 	} else {
 		channel_1_pwm = channel_1_pwm_pre;
 		ch1_CutCounter = 0;
 	}
-	if (abs(d_ch2) > cutoff_val && ch2_CutCounter < 5 && doneWithSetup) {
+	if (abs(d_ch2) > cutoff_val && ch2_CutCounter < maxCutCounter && doneWithSetup) {
 		channel_2_pwm = channel_2_pwm_prev;
-		Serial.println("Radio command spike detected (CH2)");
+		Serial.println(F("Radio command spike detected (CH2)"));
 		ch2_CutCounter++;
 	} else {
 		channel_2_pwm = channel_2_pwm_pre;
 		ch2_CutCounter = 0;
 	}
-	if (abs(d_ch3) > cutoff_val && ch3_CutCounter < 5 && doneWithSetup) {
+	if (abs(d_ch3) > cutoff_val && ch3_CutCounter < maxCutCounter && doneWithSetup) {
 		channel_3_pwm = channel_3_pwm_prev;
-		Serial.println("Radio command spike detected (CH3)");
+		Serial.println(F("Radio command spike detected (CH3)"));
 		ch3_CutCounter++;
 	} else {
 		channel_3_pwm = channel_3_pwm_pre;
 		ch3_CutCounter = 0;
 	}
-	if (abs(d_ch4) > cutoff_val && ch4_CutCounter < 5 && doneWithSetup) {
+	if (abs(d_ch4) > cutoff_val && ch4_CutCounter < maxCutCounter && doneWithSetup) {
 		channel_4_pwm = channel_4_pwm_prev;
-		Serial.println("Radio command spike detected (CH4)");
+		Serial.println(F("Radio command spike detected (CH4)"));
 		ch4_CutCounter++;
 	} else {
 		channel_4_pwm = channel_4_pwm_pre;
@@ -1480,9 +1208,6 @@ void getCommands() {
   channel_2_pwm_prev = channel_2_pwm;
   channel_3_pwm_prev = channel_3_pwm;
   channel_4_pwm_prev = channel_4_pwm;
-
-	
-
 }
 
 void failSafe() {
@@ -1931,26 +1656,6 @@ void printRollPitchYaw() {
   }
 }
 
-void printRollPitchYawAndDesired() {
-	// Will print in this order:
-	// 	(roll) (pitch) (yaw) (thro_des) (roll_des) (pitch_des) (yaw_des)
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(roll_IMU);
-		Serial.print("\t");
-    Serial.print(pitch_IMU);
-		Serial.print("\t");
-    Serial.print(yaw_IMU);
-		Serial.print("\t");
-    Serial.print(thro_des);
-		Serial.print("\t");
-    Serial.print(roll_des);
-		Serial.print("\t");
-    Serial.print(pitch_des);
-		Serial.print("\t");
-    Serial.println(yaw_des);
-  }
-}
 
 void printPIDoutput() {
   if (current_time - print_counter > 10000) {
@@ -2019,8 +1724,15 @@ void printLoopRate() {
 void getJoyAngle() {
 	alphaCounts = analogRead(joyAlphaPin);
 	betaCounts = analogRead(joyBetaPin);
-	alpha = alphaCounts*0.06577f - 40.0f;
-	beta = betaCounts*(-0.05971f) + 36.0f;
+	//alpha = alphaCounts*0.06577f - 40.0f;
+	//beta = betaCounts*(-0.05971f) + 36.0f;
+	float FR_alpha = alphaCounts_max - alphaCounts_min;
+	float FR_beta = betaCounts_max - alphaCounts_min;
+	alpha = (static_cast<float>(alphaCounts) - FR_alpha/2.0f - alphaCounts_min)/FR_alpha*(alpha_max -
+		alpha_min) + alphaOffset;
+	beta = (static_cast<float>(betaCounts) - FR_beta/2.0f - betaCounts_min)/FR_beta*(beta_min -
+		beta_max) + betaOffset;
+
 
 	alphaRoll = alpha + roll_IMU;
 	betaPitch = beta + pitch_IMU;
@@ -2033,10 +1745,10 @@ void openIris() {
 
 void closeIris() {
 	if (servoLoopCounter < 500) {
-		iris.write(138);
+		iris.write(120);
 		servoLoopCounter++;
 	} else {
-		iris.write(135);
+		iris.write(118);
 	}
 }
 
@@ -2062,22 +1774,22 @@ void calibrateJoystick() {
 		if (betaCounts > betaCounts_max) {
 			betaCounts_max = betaCounts;
 		}
-		Serial.print("alphaCounts_max = ");
+		Serial.print(F("alphaCounts_max = "));
 		Serial.print(alphaCounts_max);
 		Serial.print("\t");
-		Serial.print("alphaCounts_min = ");
+		Serial.print(F("alphaCounts_min = "));
 		Serial.print(alphaCounts_min);
 		Serial.print("\t");
-		Serial.print("betaCounts_max = ");
+		Serial.print(F("betaCounts_max = "));
 		Serial.print(betaCounts_max);
 		Serial.print("\t");
-		Serial.print("betaCounts_min = ");
+		Serial.print(F("betaCounts_min = "));
 		Serial.println(betaCounts_min);
 	}
 }
 
 void printRIPAngles() {
-	if (current_time - print_counter > 10000) {
+	if (current_time - print_counter > 20000) {
 		print_counter = micros();
 		//Serial.print("Alpha: ");
 		Serial.print(alpha);
