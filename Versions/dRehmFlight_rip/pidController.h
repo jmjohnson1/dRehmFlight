@@ -77,6 +77,6 @@ Vector2f pidOutput_rip(Vector2f refState, Vector2f currState, Matrix2f P_gains,
 	derivative    = (error - errorOld) / dt;
 	integralOld   = integral;
 	errorOld      = error;
-	PIDValues     = 0.01f * (P_gains*error + I_gains*integral + D_gains*derivative);
+	PIDValues     = (P_gains*error + I_gains*integral + D_gains*derivative);
 	return PIDValues;
 }

@@ -251,6 +251,13 @@ const Matrix2f I_gains_rip {{0, 0},
 const Matrix2f D_gains_rip {{0, 0},
 														{0, 0}};
 
+Matrix2f P_gainScale_rip {{1, 0},
+			 							      {0, 1}};
+Matrix2f I_gainScale_rip {{1, 0},
+			 									  {0, 1}};
+Matrix2f D_gainScale_rip {{1, 0},
+											    {0, 1}};
+
 // JOYSTICK ANALOG INPUT RANGES //
 int alphaCounts_min = 148;
 int alphaCounts_max = 1023;
