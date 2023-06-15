@@ -196,6 +196,10 @@ float maxPitch = 30.0;
 //Max yaw rate in deg/sec
 float maxYaw = 160.0;
 
+// MAXIMUM PENULUM ANGLES (INERTIAL) //
+float maxAlphaRoll = 5.0f;
+float maxBetaPitch = 5.0f;
+
 // ANGLE MODE PID GAINS //
 float Kp_scale = 0.75f;
 float Ki_scale = 0.1f;
@@ -398,6 +402,11 @@ int alphaCounts;        // Joystick x-axis rotation analog signal
 int betaCounts;        // Joystick y-axis rotation analog signal
 float alpha;       // Joystick x-axis rotation angle
 float beta;       // Joystick x-axis rotation angle
+float alphaRoll;
+float betaPitch;
+
+float alphaOffset = 0.0f;
+float betaOffset = 0.0f;
 
 // Values for the setDesStateSerial() function
 float serialInputValue = 0.0f;  // User input over the serial line
@@ -465,6 +474,18 @@ void setup() {
 
 	// Attach the iris servo and close it
 	iris.attach(irisPin);
+
+	// Tare the joystick angle
+  closeIris();
+  delay(1000);
+	getJoyAngle();
+	alphaOffset = -alpha;
+	betaOffset = -beta;
+	Serial.print(F("alphaOffset: "));
+	Serial.print(alphaOffset);
+	Serial.print(F(" "));
+	Serial.print(F("betaOffset: "));
+	Serial.println(betaOffset);
 
   //Set built in LED to turn on to signal startup
   digitalWrite(13, HIGH);
@@ -651,6 +672,9 @@ void loop() {
   getIMUdata(); //Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
   Madgwick(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, MagY, -MagX, MagZ, dt); //Updates roll_IMU, pitch_IMU, and yaw_IMU angle estimates (degrees)
 
+	// Get the joystick angle from their potentiometers
+  getJoyAngle();
+
   //Compute desired state
   getDesState(); //Convert raw commands to normalized values based on saturated control limits
 
@@ -677,6 +701,11 @@ void loop() {
 	getIScale();
 	getDScale();
   
+	// RIP PID (Sets/overwrites roll_des and pitch_des)
+	if (irisFlag) {
+		ripPID();
+	}
+
   //PID Controller - SELECT ONE:
 	controlANGLE();
   //controlANGLE2(); //Stabilize on angle setpoint using cascaded method. Rate controller must be tuned well first!
@@ -703,8 +732,6 @@ void loop() {
   getCommands(); //Pulls current available radio commands
   failSafe(); //Prevent failures in event of bad receiver connection, defaults to failsafe values assigned in setup
 
-	// Get the joystick angle from their potentiometers
-  getJoyAngle();
 
   //Regulate loop rate
   loopRate(2000); //Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
@@ -1283,23 +1310,18 @@ void getDesState() {
   roll_passthru = roll_des/2.0; //Between -0.5 and 0.5
   pitch_passthru = pitch_des/2.0; //Between -0.5 and 0.5
   yaw_passthru = yaw_des/2.0; //Between -0.5 and 0.5
-  // Desired pendulum angle
-	// OLD version:
-	//alpha_des = -roll_IMU/alpha_max; // Between -1 and 1
-	//beta_des = -pitch_IMU/beta_max; // Between -1 and 1
-	alpha_des = roll_des;
-	beta_des = pitch_des;
 
   //Constrain within normalized bounds
   thro_des = constrain(thro_des, 0.0, 1.0); //Between 0 and 1
   roll_des = constrain(roll_des, -1.0, 1.0)*maxRoll; //Between -maxRoll and +maxRoll
   pitch_des = constrain(pitch_des, -1.0, 1.0)*maxPitch; //Between -maxPitch and +maxPitch
   yaw_des = constrain(yaw_des, -1.0, 1.0)*maxYaw; //Between -maxYaw and +maxYaw
-	alpha_des = constrain(alpha_des, -1.0, 1.0)*alpha_max;
-	beta_des = constrain(beta_des, -1.0, 1.0)*beta_max;
   roll_passthru = constrain(roll_passthru, -0.5, 0.5);
   pitch_passthru = constrain(pitch_passthru, -0.5, 0.5);
   yaw_passthru = constrain(yaw_passthru, -0.5, 0.5);
+
+	alphaRoll_des = constrain(roll_des, -1.0, 1.0)*maxAlphaRoll;
+	betaPitch_des = constrain(pitch_des, -1.0, 1.0)*maxBetaPitch;
 }
 
 
@@ -2214,10 +2236,21 @@ void printLoopRate() {
 }
 
 void getJoyAngle() {
+	// Read the raw analog values (0 to 1023)
 	alphaCounts = analogRead(joyAlphaPin);
 	betaCounts = analogRead(joyBetaPin);
-	alpha = alphaCounts*0.06577f - 40.0f;
-	beta = betaCounts*(-0.05971f) + 36.0f;
+	// Full range of analog input based on calibration
+	float FR_alpha = alphaCounts_max - alphaCounts_min;
+	float FR_beta = betaCounts_max - alphaCounts_min;
+
+	alpha = (static_cast<float>(alphaCounts) - FR_alpha/2.0f - alphaCounts_min)/FR_alpha*(alpha_min -
+		alpha_max) + alphaOffset;
+	beta = (static_cast<float>(betaCounts) - FR_beta/2.0f - betaCounts_min)/FR_beta*(beta_min -
+		beta_max) + betaOffset;
+
+	// Determine alpha and pitch in the inertial frame
+	alphaRoll = alpha + roll_IMU;
+	betaPitch = beta + pitch_IMU;
 }
 
 void openIris() {
