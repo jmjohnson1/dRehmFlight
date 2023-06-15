@@ -2403,23 +2403,23 @@ String getDataString() {
 									+ ","
 									+ String(s4_command_scaled)
 									+ ","
-									+ String(P_gains(2,2)*P_gainScale(2,2))
+									+ String(Kp_roll_angle*pScaleRoll)
 									+ ","
-									+ String(I_gains(2,2)*I_gainScale(2,2))
+									+ String(Ki_roll_angle*iScaleRoll)
 									+ ","
-									+ String(D_gains(2,2)*D_gainScale(2,2))	
+									+ String(Kd_roll_angle*dScaleRoll)	
 									+ ","
-									+ String(P_gains(0,0)*P_gainScale(0,0))
+									+ String(Kp_pitch_angle*pScalePitch)
 									+ ","
-									+ String(I_gains(0,0)*I_gainScale(0,0))
+									+ String(Ki_pitch_angle*iScalePitch)
 									+ ","
-									+ String(D_gains(0,0)*D_gainScale(0,0))	
+									+ String(Kd_pitch_angle*dScalePitch)	
 									+ ","
-									+ String(P_gains(1,1)*P_gainScale(1,1))
+									+ String(Kp_yaw*pScaleYaw)
 									+ ","
-									+ String(I_gains(1,1)*I_gainScale(1,1))
+									+ String(Ki_yaw*iScaleYaw)
 									+ ","
-									+ String(D_gains(1,1)*D_gainScale(1,1))
+									+ String(Kd_yaw*dScaleYaw)	
 									+ ","
 									+ String(failureFlag);	
 	return csvDataString;
