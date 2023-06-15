@@ -4,9 +4,6 @@
 
 #include <Arduino.h>
 #include <SD.h>
-#include <ArduinoEigen.h>
-
-using namespace Eigen;
 
 extern float dt;
 extern unsigned long current_time, prev_time;
@@ -83,16 +80,6 @@ extern String fileExtension;
 extern String fileName;
 
 extern File dataFile;
-
-// PID vectors
-extern Vector3f desState;
-extern Vector3f currState;
-extern Vector3f pidOutputVals;
-
-// RIP PID vectors
-extern Vector2f desState_rip;
-extern Vector2f currState_rip;
-extern Vector2f pidOutputVals_rip;
 
 extern bool SD_is_present;
 

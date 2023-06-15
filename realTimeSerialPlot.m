@@ -10,8 +10,8 @@ data2 = zeros(3000, 1);
 %Set up Plot
 fig = figure('WindowStyle', 'docked');
 hold on;
-plotGraph1 = plot(data1,'-r', DisplayName="\alpha");
-plotGraph2 = plot(data2,'-b', DisplayName="roll");
+plotGraph1 = plot(data1,'-r', DisplayName="Desired");
+plotGraph2 = plot(data2,'-b', DisplayName="Measured");
 hold off
 title("Serial Data",'FontSize',15);
 ylabel("Angle (deg)",'FontSize',15);
@@ -30,7 +30,7 @@ while 1
     data1 = circshift(data1, -1);
     data1(end) = dataLine(1);
     data2 = circshift(data2, -1);
-    data2(end) = dataLine(3);
+    data2(end) = dataLine(2);
     refreshdata(plotGraph1);
     refreshdata(plotGraph2);
 end

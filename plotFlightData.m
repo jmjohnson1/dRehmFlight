@@ -80,5 +80,14 @@ function plotFlightData(filename)
     legend();
     grid on
     title("Gains")
+    
+    % Plot PID
+    figure(6);
+    hold on
+    plot(roll_pid(rng), DisplayName="Roll PID");
+    hold off
+    legend();
+    grid on
+    title("Normalized PID outputs")
 
 end

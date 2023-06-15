@@ -7,24 +7,22 @@
  * controller. It was rewritten to use the Eigen linear algebra library.
 */
 #include <Arduino.h>
-#include <ArduinoEigen.h>
 #include "GlobalVariables.h"
+#include "UserVariables.h"
 
 
-using namespace Eigen;
+extern float errorOld_yaw;
+extern float errorOld_alpha;
+extern float errorOld_beta;
+extern float integralOld_roll;
+extern float integralOld_pitch;
+extern float integralOld_yaw;
+extern float integralOld_alpha;
+extern float integralOld_beta;
 
-extern Vector3f desState;
-extern Vector3f currState;
-extern Vector3f pidOutputVals;
-extern Vector2f desState_rip;
-extern Vector2f currState_rip;
-extern Vector2f pidOutputVals_rip;
+void initializePID();
+void anglePID();
+void ripPID();
 
-Vector3f pidOutput(Vector3f refState, Vector3f currState, Matrix3f P_gains, 
-									 Matrix3f I_gains, Matrix3f D_gains, bool lowThrottle);
-
-
-Vector2f pidOutput_rip(Vector2f refState, Vector2f currState, Matrix2f P_gains, 
-									 Matrix2f I_gains, Matrix2f D_gains, bool lowThrottle);
 
 #endif

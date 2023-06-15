@@ -65,10 +65,10 @@ static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to mat
 #include <PWMServo.h> //Commanding any extra actuators, installed with teensyduino installer
 #include <SD.h>       //SD card logging
 #include <string>
-#include <ArduinoEigen.h>
 #include "pidController.h"
 #include "UserVariables.h"
 #include "GlobalVariables.h"
+#include "filter.h"
 const int chipSelect = BUILTIN_SDCARD;
 
 
@@ -203,6 +203,7 @@ PWMServo servo5;
 PWMServo servo6;
 PWMServo servo7;
 
+
 //========================================================================================================================//
 //                                                      VOID SETUP                                                        //                           
 //========================================================================================================================//
@@ -231,6 +232,8 @@ void setup() {
 	iris.attach(irisPin);
 
 	// Tare the joystick angle
+  closeIris();
+  delay(1000);
 	getJoyAngle();
 	alphaOffset = -alpha;
 	betaOffset = -beta;
@@ -263,8 +266,7 @@ void setup() {
 			"roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,radio_ch8,radio_ch9,radio_ch10,radio_ch11,radio_ch12,radio_ch13,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command,kp_roll,ki_roll,kd_roll,kp_pitch,ki_pitch,kd_pitch,kp_yaw,ki_yaw,kd_yaw,failsafeTriggered";
 		dataFile.println(csvHeader);
 		dataFile.close();
-  }
-	else {
+  } else {
     Serial.println("Card failed, or not present");
 		SD_is_present = 0;
 	}
@@ -324,6 +326,7 @@ void setup() {
   //m5_command_PWM = 125;
   //m6_command_PWM = 125;
   //armMotors(); //Loop over commandMotors() until ESCs happily arm
+	
   
   //Indicate entering main loop with 3 quick blinks
   setupBlink(3,160,70); //numBlinks, upTime (ms), downTime (ms)
@@ -377,11 +380,12 @@ void loop() {
 	// Prints the time between loops in microseconds (expected: microseconds between loop iterations)
   //printLoopRate();      
 	// Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
-	printRIPAngles();
+	//printRIPAngles();
 	// Prints desired and imu roll state for serial plotter
 	//displayRoll();
 	// Prints desired and imu pitch state for serial plotter
 	//displayPitch();
+
 
 	// Check for whether or not the iris should be open
 	if (channel_6_pwm < 1500) {
@@ -421,6 +425,7 @@ void loop() {
 
   //Get vehicle state
   getIMUdata(); //Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
+
   Madgwick(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, MagY, -MagX, MagZ, dt); //Updates roll_IMU, pitch_IMU, and yaw_IMU angle estimates (degrees)
 
 	// Get the joystick angle from their potentiometers
@@ -455,29 +460,11 @@ void loop() {
 
 	// RIP PID (Sets/overwrites roll_des and pitch_des)
 	if (irisFlag) {
-		desState_rip[0]   = alphaRoll_des;
-		desState_rip[1]   = betaPitch_des;
-		currState_rip[0]  = alphaRoll;
-		currState_rip[1]  = betaPitch;
-		pidOutputVals_rip = pidOutput_rip(desState_rip, currState_rip, (P_gains_rip*P_gainScale_rip),
-																		 (I_gains_rip*I_gainScale_rip), (D_gains_rip*D_gainScale_rip),
-																		 channel_1_pwm < 1060);
-		roll_des          = pidOutputVals_rip[0];
-		pitch_des         = pidOutputVals_rip[1];
+		ripPID();
 	}
 
 	//PID function
-	desState[0]   = pitch_des;
-	desState[1]   = yaw_des;
-	desState[2]   = roll_des;
-	currState[0]  = pitch_IMU;
-	currState[1]  = yaw_IMU;
-	currState[2]  = roll_IMU;
-	pidOutputVals = pidOutput(desState, currState, (P_gains*P_gainScale), (I_gains*I_gainScale),
-													 (D_gains*D_gainScale), channel_1_pwm < 1060);
-	pitch_PID     = pidOutputVals[0];
-	yaw_PID       = pidOutputVals[1];
-	roll_PID      = pidOutputVals[2];
+	anglePID();
 
   //Actuator mixing and scaling to PWM values
   controlMixer(); //Mixes PID outputs to scaled actuator commands -- custom mixing assignments done here
@@ -1632,7 +1619,7 @@ void printAccelData() {
   }
 }
 
-void pjintMagData() {
+void printMagData() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
     Serial.print(F("MagX: "));
@@ -1665,13 +1652,7 @@ void printPIDoutput() {
     Serial.print(F(" pitch_PID: "));
     Serial.print(pitch_PID);
     Serial.print(F(" yaw_PID: "));
-    Serial.print(yaw_PID);
-    Serial.print(F(" roll_PID_new: "));
-    Serial.print(pidOutputVals[2]);
-    Serial.print(F(" pitch_PID_new: "));
-    Serial.print(pidOutputVals[0]);
-    Serial.print(F(" yaw_PID_new: "));
-    Serial.println(pidOutputVals[1]);
+    Serial.println(yaw_PID);
   }
 }
 
@@ -1722,18 +1703,19 @@ void printLoopRate() {
 }
 
 void getJoyAngle() {
+	// Read the raw analog values (0 to 1023)
 	alphaCounts = analogRead(joyAlphaPin);
 	betaCounts = analogRead(joyBetaPin);
-	//alpha = alphaCounts*0.06577f - 40.0f;
-	//beta = betaCounts*(-0.05971f) + 36.0f;
+	// Full range of analog input based on calibration
 	float FR_alpha = alphaCounts_max - alphaCounts_min;
 	float FR_beta = betaCounts_max - alphaCounts_min;
-	alpha = (static_cast<float>(alphaCounts) - FR_alpha/2.0f - alphaCounts_min)/FR_alpha*(alpha_max -
-		alpha_min) + alphaOffset;
+
+	alpha = (static_cast<float>(alphaCounts) - FR_alpha/2.0f - alphaCounts_min)/FR_alpha*(alpha_min -
+		alpha_max) + alphaOffset;
 	beta = (static_cast<float>(betaCounts) - FR_beta/2.0f - betaCounts_min)/FR_beta*(beta_min -
 		beta_max) + betaOffset;
 
-
+	// Determine alpha and pitch in the inertial frame
 	alphaRoll = alpha + roll_IMU;
 	betaPitch = beta + pitch_IMU;
 }
@@ -1745,14 +1727,16 @@ void openIris() {
 
 void closeIris() {
 	if (servoLoopCounter < 500) {
-		iris.write(120);
+		iris.write(140);
 		servoLoopCounter++;
 	} else {
-		iris.write(118);
+		iris.write(137); // Open it slightly more to ease strain on the servo
 	}
 }
 
 void calibrateJoystick() {
+	// Move the joystick to its limits to find the minimum and maximum analog values input to the
+	// microcontroller for each axis. Copy the values to the appropriate location of UserVariables
 	alphaCounts_max = 0;
 	alphaCounts_min = 1000;
 	betaCounts_max = 0;
@@ -1789,30 +1773,20 @@ void calibrateJoystick() {
 }
 
 void printRIPAngles() {
+	// Suitable for serial plotter or Matlab serial plotter
 	if (current_time - print_counter > 20000) {
 		print_counter = micros();
-		//Serial.print("Alpha: ");
 		Serial.print(alpha);
 		Serial.print(" ");
-		//Serial.print(" Roll: ");
 		Serial.print(roll_IMU);
 		Serial.print(" ");
-		//Serial.print(" Alpha + Roll: ");
 		Serial.print(alpha + roll_IMU);
 		Serial.print(" ");
-		//Serial.print(" Beta: ");
 		Serial.print(beta);
 		Serial.print(" ");
-		//Serial.print(" Pitch: ");
 		Serial.print(pitch_IMU);
 		Serial.print(" ");
-		//Serial.print(" Beta + Pitch: ");
 		Serial.println(beta + pitch_IMU);
-		//Serial.print("AlphaCounts: ");
-		//Serial.print(alphaCounts);
-		//Serial.print(" ");
-		//Serial.print("BetaCounts: ");
-		//Serial.println(betaCounts);
 	}
 }
 
@@ -1888,23 +1862,23 @@ String getDataString() {
 									+ ","
 									+ String(s4_command_scaled)
 									+ ","
-									+ String(P_gains(2,2)*P_gainScale(2,2))
+									+ String(Kp_roll_angle*pScaleRoll)
 									+ ","
-									+ String(I_gains(2,2)*I_gainScale(2,2))
+									+ String(Ki_roll_angle*iScaleRoll)
 									+ ","
-									+ String(D_gains(2,2)*D_gainScale(2,2))	
+									+ String(Kd_roll_angle*dScaleRoll)	
 									+ ","
-									+ String(P_gains(0,0)*P_gainScale(0,0))
+									+ String(Kp_pitch_angle*pScalePitch)
 									+ ","
-									+ String(I_gains(0,0)*I_gainScale(0,0))
+									+ String(Ki_pitch_angle*iScalePitch)
 									+ ","
-									+ String(D_gains(0,0)*D_gainScale(0,0))	
+									+ String(Kd_pitch_angle*dScalePitch)	
 									+ ","
-									+ String(P_gains(1,1)*P_gainScale(1,1))
+									+ String(Kp_yaw*pScaleYaw)
 									+ ","
-									+ String(I_gains(1,1)*I_gainScale(1,1))
+									+ String(Ki_yaw*iScaleYaw)
 									+ ","
-									+ String(D_gains(1,1)*D_gainScale(1,1))
+									+ String(Kd_yaw*dScaleYaw)	
 									+ ","
 									+ String(failureFlag);	
 	return csvDataString;
@@ -1930,29 +1904,34 @@ void displayPitch() {
 
 void getPScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_10_pwm - 1500.0f)/500.0f * 0.8f;
-	P_gainScale(0,0) = scaleVal;
-	P_gainScale(2,2) = scaleVal;
+	scaleVal = 1.0f + (channel_10_pwm - 1500.0f)/500.0f;
+	if (scaleVal < 0.2f) {
+		scaleVal = 0.2f;
+	}
+	pScaleRoll = scaleVal;
+	pScalePitch = scaleVal;
 }
 
 void getDScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f * 0.8f;
-	D_gainScale(0,0) = scaleVal;
-	D_gainScale(2,2) = scaleVal;
-
+	scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f;
+	dScaleRoll = scaleVal;
+	dScalePitch = scaleVal;
 }
 
 void getIScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f * 0.8f;
-	I_gainScale(0,0) = scaleVal;
-	I_gainScale(2,2) = scaleVal;
+	scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f;
+	iScaleRoll = scaleVal;
+	iScalePitch = scaleVal;
 }
 
 void rollGainOffset() {
 	float offsetVal;
 	offsetVal = 1.0f + (channel_13_pwm - 1500.0f)/500.0f * 0.05f;
+	pScaleRoll = pScaleRoll*offsetVal;
+	iScaleRoll = iScaleRoll*offsetVal;
+	dScaleRoll = dScaleRoll*offsetVal;
 }
 
 

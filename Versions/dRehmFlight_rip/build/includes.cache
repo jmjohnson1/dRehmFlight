@@ -31,11 +31,6 @@
   },
   {
     "Sourcefile": "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/build/sketch/dRehmFlight_rip.ino.cpp",
-    "Include": "ArduinoEigen.h",
-    "Includepath": "/home/james/Arduino/libraries/Eigen"
-  },
-  {
-    "Sourcefile": "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/build/sketch/dRehmFlight_rip.ino.cpp",
     "Include": "",
     "Includepath": null
   },
@@ -46,6 +41,11 @@
   },
   {
     "Sourcefile": "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/build/sketch/UserVariables.cpp",
+    "Include": "",
+    "Includepath": null
+  },
+  {
+    "Sourcefile": "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/build/sketch/filter.cpp",
     "Include": "",
     "Includepath": null
   },

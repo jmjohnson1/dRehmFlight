@@ -24,8 +24,9 @@ hold off
 title("Serial Data",'FontSize',15);
 ylabel("Angle (deg)",'FontSize',15);
 legend()
-axis([0 3000 -30 30]);
+axis([0 3000 -15 15]);
 grid("on");
+grid minor
 
 plotGraph1.YDataSource = 'data1';
 plotGraph2.YDataSource = 'data2';

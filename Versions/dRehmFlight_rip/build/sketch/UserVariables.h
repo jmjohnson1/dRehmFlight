@@ -2,10 +2,6 @@
 #ifndef _USERVARIABLES_H_
 #define _USERVARIABLES_H_ 
 
-#include <ArduinoEigen.h>
-
-using namespace Eigen;
-
 // DO NOT ASSIGN VARIABLES IN THIS FILE
 //
 //Radio failsafe values
@@ -56,10 +52,6 @@ extern float maxAlphaRoll;
 extern float maxBetaPitch;
 
 // ANGLE MODE PID GAINS //
-extern float Kp_scale;
-extern float Ki_scale;
-extern float Kd_scale;
-
 extern float Kp_roll_angle; 
 extern float Ki_roll_angle; 
 extern float Kd_roll_angle; 
@@ -72,24 +64,31 @@ extern float Kp_yaw;
 extern float Ki_yaw;
 extern float Kd_yaw;
 
-// MATRICES OF PID GIANS //
-extern const Matrix3f P_gains;
-extern const Matrix3f I_gains;
-extern const Matrix3f D_gains;
-
 // SCALE FACTORS FOR PID //
-extern Matrix3f P_gainScale;
-extern Matrix3f I_gainScale;
-extern Matrix3f D_gainScale;
+extern float pScaleRoll;
+extern float pScalePitch;
+extern float pScaleYaw;
+extern float iScaleRoll;
+extern float iScalePitch;
+extern float iScaleYaw;
+extern float dScaleRoll;
+extern float dScalePitch;
+extern float dScaleYaw;
 
 // PID GAINS FOR RIP //
-extern const Matrix2f P_gains_rip;
-extern const Matrix2f I_gains_rip;
-extern const Matrix2f D_gains_rip;
+extern const float Kp_alphaRoll;
+extern const float Ki_alphaRoll;
+extern const float Kd_alphaRoll;
+extern const float Kp_betaPitch;
+extern const float Ki_betaPitch;
+extern const float Kd_betaPitch;
 
-extern Matrix2f P_gainScale_rip;
-extern Matrix2f I_gainScale_rip;
-extern Matrix2f D_gainScale_rip;
+extern float pScaleAlpha;
+extern float iScaleAlpha;
+extern float dScaleAlpha;
+extern float pScaleBeta;
+extern float iScaleBeta;
+extern float dScaleBeta;
 
 // JOYSTICK ANALOG INPUT RANGES //
 extern int alphaCounts_min;
