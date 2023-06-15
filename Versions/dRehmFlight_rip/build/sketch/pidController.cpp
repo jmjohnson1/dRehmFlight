@@ -23,9 +23,12 @@ biquadFilter_s dTermFilter_pitch;
 biquadFilter_s dTermFilter_yaw;
 
 void initializePID() {
+	#ifndef PID_FILTERING
+	#define PID_FILTERING
 	biquadFilter_init(&dTermFilter_roll, 100.0f, 2000.0f);
 	biquadFilter_init(&dTermFilter_pitch, 100.0f, 2000.0f);
 	biquadFilter_init(&dTermFilter_yaw, 100.0f, 2000.0f);
+	#endif
 }
 
 
@@ -40,7 +43,9 @@ void anglePID() {
   //Saturate integrator to prevent unsafe buildup
   integral_roll = constrain(integral_roll, -i_limit, i_limit);
   float derivative_roll = GyroX;
-	derivative_roll = biquadFilter_apply(&dTermFilter_roll, derivative_roll);
+	#ifdef PID_FILTERING
+		derivative_roll = biquadFilter_apply(&dTermFilter_roll, derivative_roll);
+	#endif
 	//Scaled by .01 to bring within -1 to 1 range
   roll_PID = 0.01*(Kp_roll_angle*pScaleRoll*error_roll 
 							   		+ Ki_roll_angle*iScaleRoll*integral_roll 
@@ -54,7 +59,9 @@ void anglePID() {
   }
   integral_pitch = constrain(integral_pitch, -i_limit, i_limit);
   float derivative_pitch = GyroY;
-	derivative_pitch = biquadFilter_apply(&dTermFilter_pitch, derivative_pitch);
+	#ifdef PID_FILTERING
+		derivative_pitch = biquadFilter_apply(&dTermFilter_pitch, derivative_pitch);
+	#endif
 	pitch_PID = 0.01*(Kp_pitch_angle*pScalePitch*error_pitch 
 										+ Ki_pitch_angle*iScalePitch*integral_pitch 
 										- Kd_pitch_angle*dScalePitch*derivative_pitch);
@@ -67,7 +74,9 @@ void anglePID() {
   }
   integral_yaw = constrain(integral_yaw, -i_limit, i_limit); 
   float derivative_yaw = (error_yaw - errorOld_yaw)/dt; 
-	derivative_yaw = biquadFilter_apply(&dTermFilter_yaw, derivative_yaw);
+	#ifdef PID_FILTERING
+		derivative_yaw = biquadFilter_apply(&dTermFilter_yaw, derivative_yaw);
+	#endif
   yaw_PID = 0.01*(Kp_yaw*pScaleYaw*error_yaw 
 									+ Ki_yaw*iScaleYaw*integral_yaw 
 									+ Kd_yaw*dScaleYaw*derivative_yaw);

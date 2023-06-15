@@ -40,12 +40,12 @@ float MagScaleZ = 1.0;
 
 //IMU calibration parameters - calibrate IMU using calculate_IMU_error() in the void setup() to get
 //these values, then comment out calculate_IMU_error()
-float AccErrorX = 0.08;
-float AccErrorY = 0.01;
-float AccErrorZ = -0.03;
-float GyroErrorX = -3.11;
-float GyroErrorY = -0.60;
-float GyroErrorZ = 0.17;
+float AccErrorX = 0.19;
+float AccErrorY = 0.00;
+float AccErrorZ = -0.06;
+float GyroErrorX = -3.12;
+float GyroErrorY = -0.52;
+float GyroErrorZ = -0.08;
 //Controller parameters (take note of defaults before modifying!): 
 //Integrator saturation level, mostly for safety (default 25.0)
 float i_limit = 25.0;
@@ -60,11 +60,11 @@ float maxAlphaRoll = 5.0f;
 float maxBetaPitch = 5.0f;
 
 // ANGLE MODE PID GAINS //
-float Kp_roll_angle  = 0.2;
-float Ki_roll_angle  = 0.3;
+float Kp_roll_angle  = 0.15;
+float Ki_roll_angle  = 0.03;
 float Kd_roll_angle  = 0.05;
-float Kp_pitch_angle = 0.2;
-float Ki_pitch_angle = 0.3;
+float Kp_pitch_angle = 0.15;
+float Ki_pitch_angle = 0.03;
 float Kd_pitch_angle = 0.05;
 
 // YAW PID GAINS //

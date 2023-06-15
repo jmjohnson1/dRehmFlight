@@ -29,6 +29,17 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 //                                    USER-SPECIFIED DEFINES                        						  //                                                                 
 //================================================================================================//
 
+// Keep track of last error term
+float errorOld_yaw   = 0;
+float errorOld_alpha = 0;
+float errorOld_beta  = 0;
+
+// Keep track of last integral term
+float integralOld_roll  = 0;
+float integralOld_pitch = 0;
+float integralOld_yaw   = 0;
+float integralOld_alpha = 0;
+float integralOld_beta  = 0;
 
 //Uncomment only one receiver type
 //#define USE_PWM_RX
@@ -184,13 +195,12 @@ float MagScaleZ = 1.0;
 
 //IMU calibration parameters - calibrate IMU using calculate_IMU_error() in the void setup() to get
 //these values, then comment out calculate_IMU_error()
-float AccErrorX = 0.07;
-float AccErrorY = 0.02;
-float AccErrorZ = -0.02;
-float GyroErrorX = -3.13;
-float GyroErrorY = -0.76;
-float GyroErrorZ = 0.36;
-
+float AccErrorX = 0.05;
+float AccErrorY = -0.02;
+float AccErrorZ = -0.05;
+float GyroErrorX = -3.02;
+float GyroErrorY = -0.50;
+float GyroErrorZ = -0.32;
 //Controller parameters (take note of defaults before modifying!): 
 //Integrator saturation level, mostly for safety (default 25.0)
 float i_limit = 25.0;
@@ -603,7 +613,7 @@ void loop() {
   //printRollPitchYawAndDesired(); 
 	// Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1
 	// to 1)
-  printPIDoutput();     
+  //printPIDoutput();     
 	// Prints the values being written to the motors (expected: 120 to 250)
   //printMotorCommands(); 
 	// Prints the values being written to the servos (expected: 0 to 180)
@@ -613,7 +623,7 @@ void loop() {
 	// Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
 	//printRIPAngles();
 	// Prints desired and imu roll state for serial plotter
-	//displayRoll();
+	displayRoll();
 	// Prints desired and imu pitch state for serial plotter
 	//displayPitch();
 
@@ -690,17 +700,19 @@ void loop() {
 	getDScale();
 
 	// Linear algebra PID function
-	desState[0] = pitch_des; 
-	desState[1] = yaw_des; 
-	desState[2] = roll_des;
-	currState[0] = pitch_IMU; 
-	currState[1] = yaw_IMU; 
-	currState[2] = roll_IMU;
-	pidOutputVals = pidOutput(desState, currState, (P_gains*P_gainScale), (I_gains*I_gainScale), (D_gains*D_gainScale), dt, channel_1_pwm <
-		1060, GyroX, GyroY, GyroZ);
-	pitch_PID = pidOutputVals[0];
-	yaw_PID = pidOutputVals[1];
-	roll_PID = pidOutputVals[2];
+	//desState[0] = pitch_des; 
+	//desState[1] = yaw_des; 
+	//desState[2] = roll_des;
+	//currState[0] = pitch_IMU; 
+	//currState[1] = yaw_IMU; 
+	//currState[2] = roll_IMU;
+	//pidOutputVals = pidOutput(desState, currState, (P_gains*P_gainScale), (I_gains*I_gainScale), (D_gains*D_gainScale), dt, channel_1_pwm <
+	//	1060, GyroX, GyroY, GyroZ);
+	//pitch_PID = pidOutputVals[0];
+	//yaw_PID = pidOutputVals[1];
+	//roll_PID = pidOutputVals[2];
+
+	anglePID();
 
 
   //Actuator mixing and scaling to PWM values
@@ -2423,6 +2435,64 @@ void rollGainOffset() {
 	D_gainScale(0,0) *= offsetVal;
 	D_gainScale(2,2) *= offsetVal;
 	
+}
+
+void anglePID() {
+
+  // --- Roll --- //
+  float error_roll = roll_des - roll_IMU;
+  float integral_roll = integralOld_roll + error_roll*dt;
+  if (channel_1_pwm < 1060) {   //Don't let integrator build if throttle is too low
+    integral_roll = 0;
+  }
+  //Saturate integrator to prevent unsafe buildup
+  integral_roll = constrain(integral_roll, -i_limit, i_limit);
+  float derivative_roll = GyroX;
+	#ifdef PID_FILTERING
+		derivative_roll = biquadFilter_apply(&dTermFilter_roll, derivative_roll);
+	#endif
+	//Scaled by .01 to bring within -1 to 1 range
+  roll_PID = 0.01*(Kp_roll_angle*error_roll 
+							   		+ Ki_roll_angle*integral_roll 
+										- Kd_roll_angle*derivative_roll); 
+
+  // --- Pitch --- //
+  float error_pitch = pitch_des - pitch_IMU;
+  float integral_pitch = integralOld_pitch + error_pitch*dt;
+  if (channel_1_pwm < 1060) {
+    integral_pitch = 0;
+  }
+  integral_pitch = constrain(integral_pitch, -i_limit, i_limit);
+  float derivative_pitch = GyroY;
+	#ifdef PID_FILTERING
+		derivative_pitch = biquadFilter_apply(&dTermFilter_pitch, derivative_pitch);
+	#endif
+	pitch_PID = 0.01*(Kp_pitch_angle*error_pitch 
+										+ Ki_pitch_angle*integral_pitch 
+										- Kd_pitch_angle*derivative_pitch);
+
+  // --- Yaw --- // stablize on rate from GyroZ
+  float error_yaw = yaw_des - GyroZ;
+  float integral_yaw = integralOld_yaw + error_yaw*dt;
+  if (channel_1_pwm < 1060) {
+    integral_yaw = 0;
+  }
+  integral_yaw = constrain(integral_yaw, -i_limit, i_limit); 
+  float derivative_yaw = (error_yaw - errorOld_yaw)/dt; 
+	#ifdef PID_FILTERING
+		derivative_yaw = biquadFilter_apply(&dTermFilter_yaw, derivative_yaw);
+	#endif
+  yaw_PID = 0.01*(Kp_yaw*error_yaw 
+									+ Ki_yaw*integral_yaw 
+									+ Kd_yaw*derivative_yaw);
+
+  //Update roll variables
+  integralOld_roll = integral_roll;
+  //Update pitch variables
+  integralOld_pitch = integral_pitch;
+  //Update yaw variables
+  errorOld_yaw = error_yaw;
+  integralOld_yaw = integral_yaw;
 }
 
 

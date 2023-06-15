@@ -162,11 +162,6 @@ PWMServo servo6;
 PWMServo servo7;
 
 
-
-// Filter testing
-biquadFilter_s filter;
-float roll_IMU_filtered;
-
 //========================================================================================================================//
 //                                                      VOID SETUP                                                        //                           
 //========================================================================================================================//
@@ -229,8 +224,7 @@ void setup() {
    "roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,radio_ch8,radio_ch9,radio_ch10,radio_ch11,radio_ch12,radio_ch13,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command,kp_roll,ki_roll,kd_roll,kp_pitch,ki_pitch,kd_pitch,kp_yaw,ki_yaw,kd_yaw,failsafeTriggered";
   dataFile.println(csvHeader);
   dataFile.close();
-  }
- else {
+  } else {
     Serial.println("Card failed, or not present");
   SD_is_present = 0;
  }
@@ -291,7 +285,6 @@ void setup() {
   //m6_command_PWM = 125;
   //armMotors(); //Loop over commandMotors() until ESCs happily arm
 
- initializePID();
 
   //Indicate entering main loop with 3 quick blinks
   setupBlink(3,160,70); //numBlinks, upTime (ms), downTime (ms)
@@ -373,6 +366,7 @@ void loop() {
  //Save to SD card
  if (SD_is_present && current_time - print_counterSD > 10000) {
 
+
     print_counterSD = micros();
     String dataString;
 
@@ -439,7 +433,7 @@ void loop() {
   throttleCut(); //Directly sets motor commands to low based on state of ch5
 
   //Command actuators
-  //commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
+  commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
   servo1.write(s1_command_PWM); //Writes PWM value to servo object
   servo2.write(s2_command_PWM);
   servo3.write(s3_command_PWM);
@@ -453,6 +447,7 @@ void loop() {
   failSafe(); //Prevent failures in event of bad receiver connection, defaults to failsafe values assigned in setup
 
 
+ Serial.println(integralOld_roll);
   //Regulate loop rate
   loopRate(2000); //Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
 }
@@ -492,14 +487,14 @@ void controlMixer() {
    *channel_6_pwm - free auxillary channel, can be used to toggle things with an 'if' statement
 
    */
-# 525 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 520 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   //Quad mixing - EXAMPLE
-  //m1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
-  //m2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front Right
-  //m3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back Right
-  //m4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back Left
-  //m5_command_scaled = 0;
-  //m6_command_scaled = 0;
+  m1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
+  m2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front Right
+  m3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back Right
+  m4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back Left
+  m5_command_scaled = 0;
+  m6_command_scaled = 0;
 
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
   s1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
@@ -518,7 +513,7 @@ void IMUinit() {
    * Don't worry about how this works.
 
    */
-# 549 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 544 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
     Wire.begin();
     Wire.setClock(1000000); //Note this is 2.5 times the spec sheet 400 kHz max...
 
@@ -535,7 +530,7 @@ void IMUinit() {
     //do is set the desired fullscale ranges
     mpu6050.setFullScaleGyroRange(0x00);
     mpu6050.setFullScaleAccelRange(0x00);
-# 587 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 582 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 }
 
 void getIMUdata() {
@@ -555,7 +550,7 @@ void getIMUdata() {
    * the constant errors found in calculate_IMU_error() on startup are subtracted from the accelerometer and gyro readings.
 
    */
-# 599 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 594 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   int16_t AcX,AcY,AcZ,GyX,GyY,GyZ,MgX,MgY,MgZ;
 
 
@@ -624,7 +619,7 @@ void calculate_IMU_error() {
    * measurement. 
 
    */
-# 663 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 658 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   int16_t AcX,AcY,AcZ,GyX,GyY,GyZ,MgX,MgY,MgZ;
   AccErrorX = 0.0;
   AccErrorY = 0.0;
@@ -699,7 +694,7 @@ void calibrateAttitude() {
    * to boot. 
 
    */
-# 734 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 729 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   //Warm up IMU and madgwick filter in simulated main loop
   for (int i = 0; i <= 10000; i++) {
     prev_time = current_time;
@@ -726,7 +721,7 @@ void Madgwick(float gx, float gy, float gz, float ax, float ay, float az, float 
    * pitch_IMU, and yaw_IMU variables which are in degrees. If magnetometer data is not available, this function calls Madgwick6DOF() instead.
 
    */
-# 754 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 749 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   float recipNorm;
   float s0, s1, s2, s3;
   float qDot1, qDot2, qDot3, qDot4;
@@ -847,7 +842,7 @@ void Madgwick6DOF(float gx, float gy, float gz, float ax, float ay, float az, fl
    * available (for example when using the recommended MPU6050 IMU for the default setup).
 
    */
-# 871 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 866 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   float recipNorm;
   float s0, s1, s2, s3;
   float qDot1, qDot2, qDot3, qDot4;
@@ -1020,7 +1015,7 @@ void getDesState() {
    * yaw_passthru variables, to be used in commanding motors/servos with direct unstabilized commands in controlMixer().
 
    */
-# 1037 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1032 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   thro_des = (channel_1_pwm - 1000.0)/1000.0; //Between 0 and 1
   roll_des = (channel_2_pwm - 1500.0)/500.0; //Between -1 and 1
   pitch_des = (channel_3_pwm - 1500.0)/500.0; //Between -1 and 1
@@ -1055,21 +1050,21 @@ void scaleCommands() {
    * which are used to command the servos.
 
    */
-# 1066 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1061 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   //Scaled to 125us - 250us for oneshot125 protocol
-  //m1_command_PWM = m1_command_scaled*125 + 125;
-  //m2_command_PWM = m2_command_scaled*125 + 125;
-  //m3_command_PWM = m3_command_scaled*125 + 125;
-  //m4_command_PWM = m4_command_scaled*125 + 125;
-  //m5_command_PWM = m5_command_scaled*125 + 125;
-  //m6_command_PWM = m6_command_scaled*125 + 125;
+  m1_command_PWM = m1_command_scaled*125 + 125;
+  m2_command_PWM = m2_command_scaled*125 + 125;
+  m3_command_PWM = m3_command_scaled*125 + 125;
+  m4_command_PWM = m4_command_scaled*125 + 125;
+  m5_command_PWM = m5_command_scaled*125 + 125;
+  m6_command_PWM = m6_command_scaled*125 + 125;
   //Constrain commands to motors within oneshot125 bounds
-  //m1_command_PWM = constrain(m1_command_PWM, 125, 250);
-  //m2_command_PWM = constrain(m2_command_PWM, 125, 250);
-  //m3_command_PWM = constrain(m3_command_PWM, 125, 250);
-  //m4_command_PWM = constrain(m4_command_PWM, 125, 250);
-  //m5_command_PWM = constrain(m5_command_PWM, 125, 250);
-  //m6_command_PWM = constrain(m6_command_PWM, 125, 250);
+  m1_command_PWM = ({ typeof(m1_command_PWM) _amt = (m1_command_PWM); typeof(125) _low = (125); typeof(250) _high = (250); (_amt < _low) ? _low : ((_amt > _high) ? _high : _amt); });
+  m2_command_PWM = ({ typeof(m2_command_PWM) _amt = (m2_command_PWM); typeof(125) _low = (125); typeof(250) _high = (250); (_amt < _low) ? _low : ((_amt > _high) ? _high : _amt); });
+  m3_command_PWM = ({ typeof(m3_command_PWM) _amt = (m3_command_PWM); typeof(125) _low = (125); typeof(250) _high = (250); (_amt < _low) ? _low : ((_amt > _high) ? _high : _amt); });
+  m4_command_PWM = ({ typeof(m4_command_PWM) _amt = (m4_command_PWM); typeof(125) _low = (125); typeof(250) _high = (250); (_amt < _low) ? _low : ((_amt > _high) ? _high : _amt); });
+  m5_command_PWM = ({ typeof(m5_command_PWM) _amt = (m5_command_PWM); typeof(125) _low = (125); typeof(250) _high = (250); (_amt < _low) ? _low : ((_amt > _high) ? _high : _amt); });
+  m6_command_PWM = ({ typeof(m6_command_PWM) _amt = (m6_command_PWM); typeof(125) _low = (125); typeof(250) _high = (250); (_amt < _low) ? _low : ((_amt > _high) ? _high : _amt); });
 
   //Scaled to 0-180 for servo library
   s1_command_PWM = s1_command_scaled*180;
@@ -1126,7 +1121,7 @@ void getCommands() {
    channel_12_pwm = sbusChannels[11] * scale + bias;
    channel_13_pwm = sbusChannels[12] * scale + bias;
     }
-# 1154 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1149 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   //Low-pass the critical commands and update previous values
   float b = 0.7; //Lower=slower, higher=noiser
   channel_1_pwm_pre = (1.0 - b)*channel_1_pwm_prev + b*channel_1_pwm_pre;
@@ -1195,7 +1190,7 @@ void failSafe() {
    * your radio connection in case any extreme values are triggering this function to overwrite the printed variables.
 
    */
-# 1216 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1211 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   int minVal = 800;
   int maxVal = 2200;
   int check1 = 0;
@@ -1235,7 +1230,7 @@ void commandMotors() {
    * sent are mX_command_PWM, computed in scaleCommands(). This may be replaced by something more efficient in the future.
 
    */
-# 1252 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1247 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   int wentLow = 0;
   int pulseStart, timer;
   int flagM1 = 0;
@@ -1301,7 +1296,7 @@ void armMotors() {
    *  for other processes that sometimes prevent motors from arming.
 
    */
-# 1313 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1308 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   for (int i = 0; i <= 50; i++) {
     commandMotors();
     delay(2);
@@ -1319,7 +1314,7 @@ void calibrateESCs() {
    *  uncommented when performing an ESC calibration.
 
    */
-# 1326 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1321 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
    while (true) {
       prev_time = current_time;
       current_time = micros();
@@ -1385,7 +1380,7 @@ float floatFaderLinear(float param, float param_min, float param_max, float fade
    *  
 
    */
-# 1383 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1378 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   float diffParam = (param_max - param_min)/(fadeTime*loopFreq); //Difference to add or subtract from param for each loop iteration for desired fadeTime
 
   if (state == 1) { //Maximum param bound desired, increase param by diffParam for each loop iteration
@@ -1417,7 +1412,7 @@ float floatFaderLinear2(float param, float param_des, float param_lower, float p
    *  
 
    */
-# 1407 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1402 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   if (param > param_des) { //Need to fade down to get to desired
     float diffParam = (param_upper - param_des)/(fadeTime_down*loopFreq);
     param = param - diffParam;
@@ -1447,7 +1442,7 @@ void switchRollYaw(int reverseRoll, int reverseYaw) {
    * IMU tilted 90 degrees from default level).
 
    */
-# 1430 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1425 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   float switch_holder;
 
   switch_holder = yaw_des;
@@ -1468,7 +1463,7 @@ void throttleCut() {
    * the motors to anything other than minimum value. Safety first. 
 
    */
-# 1445 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1440 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   if (channel_5_pwm > 1500) {
     // m1_command_PWM = 120;
     // m2_command_PWM = 120;
@@ -1489,7 +1484,7 @@ void throttleCut() {
 }
 
 void calibrateMagnetometer() {
-# 1507 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1502 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   Serial.println("Error: MPU9250 not selected. Cannot calibrate non-existent magnetometer.");
   while(1); //Halt code so it won't enter main loop until this function commented out
 }
@@ -1509,7 +1504,7 @@ void loopRate(int freq) {
    * and remain above 2kHz, without needing to retune all of our filtering parameters.
 
    */
-# 1520 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1515 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   float invFreq = 1.0/freq*1000000.0;
   unsigned long checker = micros();
 
@@ -1526,7 +1521,7 @@ void loopBlink() {
    * It looks cool.
 
    */
-# 1534 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1529 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   if (current_time - blink_counter > blink_delay) {
     blink_counter = micros();
     digitalWrite(13, blinkAlternate); //Pin 13 is built in LED
@@ -1907,31 +1902,34 @@ void displayPitch() {
 
 void getPScale() {
  float scaleVal;
- scaleVal = 1.0f + (channel_10_pwm - 1500.0f)/500.0f * 0.8f;
- pScaleRoll = scaleVal;
- pScalePitch = scaleVal;
+ //scaleVal = 1.0f + (channel_10_pwm - 1500.0f)/500.0f;
+ //if (scaleVal < 0.2f) {
+ //	scaleVal = 0.2f;
+ //}
+ //pScaleRoll = scaleVal;
+ //pScalePitch = scaleVal;
 }
 
 void getDScale() {
  float scaleVal;
- scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f * 0.8f;
- dScaleRoll = scaleVal;
- dScalePitch = scaleVal;
+ //scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f;
+ //dScaleRoll = scaleVal;
+ //dScalePitch = scaleVal;
 }
 
 void getIScale() {
  float scaleVal;
- scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f * 0.8f;
- iScaleRoll = scaleVal;
- iScalePitch = scaleVal;
+ //scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f;
+ //iScaleRoll = scaleVal;
+ //iScalePitch = scaleVal;
 }
 
 void rollGainOffset() {
  float offsetVal;
- offsetVal = 1.0f + (channel_13_pwm - 1500.0f)/500.0f * 0.05f;
- pScaleRoll = pScaleRoll*offsetVal;
- iScaleRoll = iScaleRoll*offsetVal;
- dScaleRoll = dScaleRoll*offsetVal;
+ //offsetVal = 1.0f + (channel_13_pwm - 1500.0f)/500.0f * 0.05f;
+ //pScaleRoll = pScaleRoll*offsetVal;
+ //iScaleRoll = iScaleRoll*offsetVal;
+ //dScaleRoll = dScaleRoll*offsetVal;
 }
 
 
@@ -1960,7 +1958,7 @@ float invSqrt(float x) {
   return y;
 
   */
-# 1958 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1956 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   /*
 
   //alternate form:
@@ -1974,7 +1972,7 @@ float invSqrt(float x) {
   return y;
 
   */
-# 1965 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+# 1963 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
   return 1.0/sqrtf(x); //Teensy is fast enough to just take the compute penalty lol suck it arduino nano
 }
 # 1 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/radioComm.ino"

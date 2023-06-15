@@ -407,6 +407,7 @@ void loop() {
 
 	//Save to SD card
 	if (SD_is_present && current_time - print_counterSD > 10000) {
+
     
     print_counterSD = micros();
     String dataString;
@@ -474,7 +475,7 @@ void loop() {
   throttleCut(); //Directly sets motor commands to low based on state of ch5
 
   //Command actuators
-  //commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
+  commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
   servo1.write(s1_command_PWM); //Writes PWM value to servo object
   servo2.write(s2_command_PWM);
   servo3.write(s3_command_PWM);
@@ -488,6 +489,7 @@ void loop() {
   failSafe(); //Prevent failures in event of bad receiver connection, defaults to failsafe values assigned in setup
 
 
+	Serial.println(integralOld_roll);
   //Regulate loop rate
   loopRate(2000); //Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
 }
@@ -516,12 +518,12 @@ void controlMixer() {
    */
    
   //Quad mixing - EXAMPLE
-  //m1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
-  //m2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front Right
-  //m3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back Right
-  //m4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back Left
-  //m5_command_scaled = 0;
-  //m6_command_scaled = 0;
+  m1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
+  m2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front Right
+  m3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back Right
+  m4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back Left
+  m5_command_scaled = 0;
+  m6_command_scaled = 0;
 
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
   s1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
@@ -1057,19 +1059,19 @@ void scaleCommands() {
    * which are used to command the servos.
    */
   //Scaled to 125us - 250us for oneshot125 protocol
-  //m1_command_PWM = m1_command_scaled*125 + 125;
-  //m2_command_PWM = m2_command_scaled*125 + 125;
-  //m3_command_PWM = m3_command_scaled*125 + 125;
-  //m4_command_PWM = m4_command_scaled*125 + 125;
-  //m5_command_PWM = m5_command_scaled*125 + 125;
-  //m6_command_PWM = m6_command_scaled*125 + 125;
+  m1_command_PWM = m1_command_scaled*125 + 125;
+  m2_command_PWM = m2_command_scaled*125 + 125;
+  m3_command_PWM = m3_command_scaled*125 + 125;
+  m4_command_PWM = m4_command_scaled*125 + 125;
+  m5_command_PWM = m5_command_scaled*125 + 125;
+  m6_command_PWM = m6_command_scaled*125 + 125;
   //Constrain commands to motors within oneshot125 bounds
-  //m1_command_PWM = constrain(m1_command_PWM, 125, 250);
-  //m2_command_PWM = constrain(m2_command_PWM, 125, 250);
-  //m3_command_PWM = constrain(m3_command_PWM, 125, 250);
-  //m4_command_PWM = constrain(m4_command_PWM, 125, 250);
-  //m5_command_PWM = constrain(m5_command_PWM, 125, 250);
-  //m6_command_PWM = constrain(m6_command_PWM, 125, 250);
+  m1_command_PWM = constrain(m1_command_PWM, 125, 250);
+  m2_command_PWM = constrain(m2_command_PWM, 125, 250);
+  m3_command_PWM = constrain(m3_command_PWM, 125, 250);
+  m4_command_PWM = constrain(m4_command_PWM, 125, 250);
+  m5_command_PWM = constrain(m5_command_PWM, 125, 250);
+  m6_command_PWM = constrain(m6_command_PWM, 125, 250);
 
   //Scaled to 0-180 for servo library
   s1_command_PWM = s1_command_scaled*180;
@@ -1904,34 +1906,34 @@ void displayPitch() {
 
 void getPScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_10_pwm - 1500.0f)/500.0f;
-	if (scaleVal < 0.2f) {
-		scaleVal = 0.2f;
-	}
-	pScaleRoll = scaleVal;
-	pScalePitch = scaleVal;
+	//scaleVal = 1.0f + (channel_10_pwm - 1500.0f)/500.0f;
+	//if (scaleVal < 0.2f) {
+	//	scaleVal = 0.2f;
+	//}
+	//pScaleRoll = scaleVal;
+	//pScalePitch = scaleVal;
 }
 
 void getDScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f;
-	dScaleRoll = scaleVal;
-	dScalePitch = scaleVal;
+	//scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f;
+	//dScaleRoll = scaleVal;
+	//dScalePitch = scaleVal;
 }
 
 void getIScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f;
-	iScaleRoll = scaleVal;
-	iScalePitch = scaleVal;
+	//scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f;
+	//iScaleRoll = scaleVal;
+	//iScalePitch = scaleVal;
 }
 
 void rollGainOffset() {
 	float offsetVal;
-	offsetVal = 1.0f + (channel_13_pwm - 1500.0f)/500.0f * 0.05f;
-	pScaleRoll = pScaleRoll*offsetVal;
-	iScaleRoll = iScaleRoll*offsetVal;
-	dScaleRoll = dScaleRoll*offsetVal;
+	//offsetVal = 1.0f + (channel_13_pwm - 1500.0f)/500.0f * 0.05f;
+	//pScaleRoll = pScaleRoll*offsetVal;
+	//iScaleRoll = iScaleRoll*offsetVal;
+	//dScaleRoll = dScaleRoll*offsetVal;
 }
 
 

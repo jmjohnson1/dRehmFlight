@@ -206,116 +206,111 @@ PWMServo servo6;
 PWMServo servo7;
 
 
-
-// Filter testing
-biquadFilter_s filter;
-float roll_IMU_filtered;
-
 //========================================================================================================================//
 //                                                      VOID SETUP                                                        //                           
 //========================================================================================================================//
 
-#line 216 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 211 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void setup();
-#line 353 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 346 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void loop();
-#line 508 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 503 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void controlMixer();
-#line 543 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 538 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void IMUinit();
-#line 589 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 584 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void getIMUdata();
-#line 656 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 651 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void calculate_IMU_error();
-#line 727 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 722 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void calibrateAttitude();
-#line 745 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 740 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void Madgwick(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float invSampleFreq);
-#line 865 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 860 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void Madgwick6DOF(float gx, float gy, float gz, float ax, float ay, float az, float invSampleFreq);
-#line 947 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 942 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void setDesStateSerial(int controlledAxis);
-#line 979 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 974 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void performSineSweep(int controlledAxis);
-#line 1001 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 996 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void rollStep();
-#line 1014 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1009 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void pitchStep();
-#line 1028 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1023 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void getDesState();
-#line 1058 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1053 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void scaleCommands();
-#line 1099 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1094 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void getCommands();
-#line 1207 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1202 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void failSafe();
-#line 1246 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1241 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void commandMotors();
-#line 1306 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1301 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void armMotors();
-#line 1319 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1314 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void calibrateESCs();
-#line 1372 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1367 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 float floatFaderLinear(float param, float param_min, float param_max, float fadeTime, int state, int loopFreq);
-#line 1397 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1392 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 float floatFaderLinear2(float param, float param_des, float param_lower, float param_upper, float fadeTime_up, float fadeTime_down, int loopFreq);
-#line 1421 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1416 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void switchRollYaw(int reverseRoll, int reverseYaw);
-#line 1437 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1432 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void throttleCut();
-#line 1464 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1459 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void calibrateMagnetometer();
-#line 1511 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1506 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void loopRate(int freq);
-#line 1529 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1524 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void loopBlink();
-#line 1549 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1544 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void setupBlink(int numBlinks,int upTime, int downTime);
-#line 1559 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1554 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void printRadioData();
-#line 1591 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1586 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void printDesiredState();
-#line 1605 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1600 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void printGyroData();
-#line 1617 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1612 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void printAccelData();
-#line 1629 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1624 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void printMagData();
-#line 1641 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1636 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void printRollPitchYaw();
-#line 1654 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1649 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void printPIDoutput();
-#line 1666 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1661 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void printMotorCommands();
-#line 1684 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1679 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void printServoCommands();
-#line 1704 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1699 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void printLoopRate();
-#line 1712 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1707 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void getJoyAngle();
-#line 1730 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1725 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void openIris();
-#line 1735 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1730 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void closeIris();
-#line 1744 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1739 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void calibrateJoystick();
-#line 1782 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1777 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void printRIPAngles();
-#line 1800 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1795 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 String getDataString();
-#line 1894 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1889 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void displayRoll();
-#line 1903 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1898 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void displayPitch();
-#line 1912 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1907 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void getPScale();
-#line 1919 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1917 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void getDScale();
-#line 1926 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1924 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void getIScale();
-#line 1933 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1931 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void rollGainOffset();
-#line 1946 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 1944 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 float invSqrt(float x);
 #line 18 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/radioComm.ino"
 void radioSetup();
@@ -337,7 +332,7 @@ void getCh4();
 void getCh5();
 #line 192 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/radioComm.ino"
 void getCh6();
-#line 216 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
+#line 211 "/home/james/Documents/dRehmFlight/Versions/dRehmFlight_rip/dRehmFlight_rip.ino"
 void setup() {
   Serial.begin(500000); //USB serial
   delay(500);
@@ -396,8 +391,7 @@ void setup() {
 			"roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,radio_ch8,radio_ch9,radio_ch10,radio_ch11,radio_ch12,radio_ch13,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command,kp_roll,ki_roll,kd_roll,kp_pitch,ki_pitch,kd_pitch,kp_yaw,ki_yaw,kd_yaw,failsafeTriggered";
 		dataFile.println(csvHeader);
 		dataFile.close();
-  }
-	else {
+  } else {
     Serial.println("Card failed, or not present");
 		SD_is_present = 0;
 	}
@@ -458,7 +452,6 @@ void setup() {
   //m6_command_PWM = 125;
   //armMotors(); //Loop over commandMotors() until ESCs happily arm
 	
-	initializePID();
   
   //Indicate entering main loop with 3 quick blinks
   setupBlink(3,160,70); //numBlinks, upTime (ms), downTime (ms)
@@ -539,6 +532,7 @@ void loop() {
 
 	//Save to SD card
 	if (SD_is_present && current_time - print_counterSD > 10000) {
+
     
     print_counterSD = micros();
     String dataString;
@@ -606,7 +600,7 @@ void loop() {
   throttleCut(); //Directly sets motor commands to low based on state of ch5
 
   //Command actuators
-  //commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
+  commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
   servo1.write(s1_command_PWM); //Writes PWM value to servo object
   servo2.write(s2_command_PWM);
   servo3.write(s3_command_PWM);
@@ -620,6 +614,7 @@ void loop() {
   failSafe(); //Prevent failures in event of bad receiver connection, defaults to failsafe values assigned in setup
 
 
+	Serial.println(integralOld_roll);
   //Regulate loop rate
   loopRate(2000); //Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
 }
@@ -648,12 +643,12 @@ void controlMixer() {
    */
    
   //Quad mixing - EXAMPLE
-  //m1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
-  //m2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front Right
-  //m3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back Right
-  //m4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back Left
-  //m5_command_scaled = 0;
-  //m6_command_scaled = 0;
+  m1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
+  m2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front Right
+  m3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back Right
+  m4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back Left
+  m5_command_scaled = 0;
+  m6_command_scaled = 0;
 
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
   s1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
@@ -1189,19 +1184,19 @@ void scaleCommands() {
    * which are used to command the servos.
    */
   //Scaled to 125us - 250us for oneshot125 protocol
-  //m1_command_PWM = m1_command_scaled*125 + 125;
-  //m2_command_PWM = m2_command_scaled*125 + 125;
-  //m3_command_PWM = m3_command_scaled*125 + 125;
-  //m4_command_PWM = m4_command_scaled*125 + 125;
-  //m5_command_PWM = m5_command_scaled*125 + 125;
-  //m6_command_PWM = m6_command_scaled*125 + 125;
+  m1_command_PWM = m1_command_scaled*125 + 125;
+  m2_command_PWM = m2_command_scaled*125 + 125;
+  m3_command_PWM = m3_command_scaled*125 + 125;
+  m4_command_PWM = m4_command_scaled*125 + 125;
+  m5_command_PWM = m5_command_scaled*125 + 125;
+  m6_command_PWM = m6_command_scaled*125 + 125;
   //Constrain commands to motors within oneshot125 bounds
-  //m1_command_PWM = constrain(m1_command_PWM, 125, 250);
-  //m2_command_PWM = constrain(m2_command_PWM, 125, 250);
-  //m3_command_PWM = constrain(m3_command_PWM, 125, 250);
-  //m4_command_PWM = constrain(m4_command_PWM, 125, 250);
-  //m5_command_PWM = constrain(m5_command_PWM, 125, 250);
-  //m6_command_PWM = constrain(m6_command_PWM, 125, 250);
+  m1_command_PWM = constrain(m1_command_PWM, 125, 250);
+  m2_command_PWM = constrain(m2_command_PWM, 125, 250);
+  m3_command_PWM = constrain(m3_command_PWM, 125, 250);
+  m4_command_PWM = constrain(m4_command_PWM, 125, 250);
+  m5_command_PWM = constrain(m5_command_PWM, 125, 250);
+  m6_command_PWM = constrain(m6_command_PWM, 125, 250);
 
   //Scaled to 0-180 for servo library
   s1_command_PWM = s1_command_scaled*180;
@@ -2036,31 +2031,34 @@ void displayPitch() {
 
 void getPScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_10_pwm - 1500.0f)/500.0f * 0.8f;
-	pScaleRoll = scaleVal;
-	pScalePitch = scaleVal;
+	//scaleVal = 1.0f + (channel_10_pwm - 1500.0f)/500.0f;
+	//if (scaleVal < 0.2f) {
+	//	scaleVal = 0.2f;
+	//}
+	//pScaleRoll = scaleVal;
+	//pScalePitch = scaleVal;
 }
 
 void getDScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f * 0.8f;
-	dScaleRoll = scaleVal;
-	dScalePitch = scaleVal;
+	//scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f;
+	//dScaleRoll = scaleVal;
+	//dScalePitch = scaleVal;
 }
 
 void getIScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f * 0.8f;
-	iScaleRoll = scaleVal;
-	iScalePitch = scaleVal;
+	//scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f;
+	//iScaleRoll = scaleVal;
+	//iScalePitch = scaleVal;
 }
 
 void rollGainOffset() {
 	float offsetVal;
-	offsetVal = 1.0f + (channel_13_pwm - 1500.0f)/500.0f * 0.05f;
-	pScaleRoll = pScaleRoll*offsetVal;
-	iScaleRoll = iScaleRoll*offsetVal;
-	dScaleRoll = dScaleRoll*offsetVal;
+	//offsetVal = 1.0f + (channel_13_pwm - 1500.0f)/500.0f * 0.05f;
+	//pScaleRoll = pScaleRoll*offsetVal;
+	//iScaleRoll = iScaleRoll*offsetVal;
+	//dScaleRoll = dScaleRoll*offsetVal;
 }
 
 

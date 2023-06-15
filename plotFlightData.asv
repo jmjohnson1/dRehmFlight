@@ -1,4 +1,5 @@
-function plotFlightData(filename)
+%function plotFlightData(filename)
+filename = "flight_data18.csv"
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -9,17 +10,20 @@ function plotFlightData(filename)
 
     lw = 1;
     rng = 1:length(radio_ch1);
+    time = rng/100;
+    %
+    % rng = 4.68E04:4.69E04;
     close all
 
     %%% Plot Desired and Measured States %%%
     figure(1);
     hold on
-    plot(roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
-    plot(roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
-    % plot(pitch_des(rng), DisplayName="Desired pitch", LineWidth=lw);
-    % plot(pitch_imu(rng), DisplayName="Measured pitch", LineWidth=lw);
-    % plot(yaw_des(rng), DisplayName="Desired yaw", LineWidth=lw);
-    % plot(yaw_imu(rng), DisplayName="Measured yaw", LineWidth=lw);
+    plot(time(rng), roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
+    plot(time(rng), roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
+    % plot(time(rng), pitch_des(rng), DisplayName="Desired pitch", LineWidth=lw);
+    % plot(time(rng), pitch_imu(rng), DisplayName="Measured pitch", LineWidth=lw);
+    % plot(time(rng), yaw_des(rng), DisplayName="Desired yaw", LineWidth=lw);
+    % plot(time(rng), yaw_imu(rng), DisplayName="Measured yaw", LineWidth=lw);
     hold off
     legend();
     grid on
@@ -70,9 +74,36 @@ function plotFlightData(filename)
     % Plot gains
     figure(5);
     hold on
-    plot(kp_roll, DisplayName="K_p_{roll}")
-    plot(ki_roll, DisplayName="K_i_{roll}")
-    plot(kd_roll, DisplayName="K_d_{roll}")
+    plot(kp_roll(rng), DisplayName="K_p_{roll}")
+    plot(ki_roll(rng), DisplayName="K_i_{roll}")
+    plot(kd_roll(rng), DisplayName="K_d_{roll}")
+    plot(kp_pitch(rng), DisplayName="K_p_{pitch}")
+    plot(ki_pitch(rng), DisplayName="K_i_{pitch}")
+    plot(kd_pitch(rng), DisplayName="K_d_{pitch}")
     hold off
+    legend();
+    grid on
+    title("Gains")
+    
+    % Plot PID
+    figure(6);
+    hold on
+    plot(roll_pid(rng), DisplayName="Roll PID");
+    plot(pitch_pid(rng), DisplayName="Pitch PID");
+    hold off
+    legend();
+    grid on
+    title("Normalized PID outputs")
 
-end
+    % Plot Gyro
+    figure(7);
+    hold on
+    plot(GyroX(rng), DisplayName="GyroX");
+    plot(GyroY(rng), DisplayName="GyroY");
+    plot(GyroZ(rng), DisplayName="GyroZ");
+    hold off;
+    legend();
+    grid on;
+    title("Gyro");
+
+%end
