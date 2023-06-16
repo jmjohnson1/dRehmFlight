@@ -241,12 +241,12 @@ float Ki_yaw = 0.05;
 float Kd_yaw = 0.00015;       
 
 // PID GAINS FOR RIP //
-const float Kp_alphaRoll = -0.1f;
-const float Ki_alphaRoll = -0.1f;
-const float Kd_alphaRoll = -0.1f;
-const float Kp_betaPitch  = -0.1f;
-const float Ki_betaPitch  = -0.1f;
-const float Kd_betaPitch  = -0.1f;
+const float Kp_alphaRoll = 0.1f;
+const float Ki_alphaRoll = 0.1f;
+const float Kd_alphaRoll = 0.1f;
+const float Kp_betaPitch = 0.1f;
+const float Ki_betaPitch = 0.1f;
+const float Kd_betaPitch = 0.1f;
 
 float pScaleAlpha = 1.0f;
 float iScaleAlpha = 1.0f;
