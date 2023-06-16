@@ -1,0 +1,5 @@
+# Ignore build directories and other local files
+build/
+sketch.yaml
+compile_commands.json
+*.asv
