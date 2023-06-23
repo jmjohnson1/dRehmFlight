@@ -186,12 +186,12 @@ float MagScaleZ = 1.0;
 
 //IMU calibration parameters - calibrate IMU using calculate_IMU_error() in the void setup() to get
 //these values, then comment out calculate_IMU_error()
-float AccErrorX = 0.05;
-float AccErrorY = -0.02;
+float AccErrorX = 0.03;
+float AccErrorY = -0.03;
 float AccErrorZ = -0.05;
-float GyroErrorX = -3.02;
-float GyroErrorY = -0.50;
-float GyroErrorZ = -0.32;
+float GyroErrorX = -3.23;
+float GyroErrorY = -0.59;
+float GyroErrorZ = 0.01;
 //Controller parameters (take note of defaults before modifying!): 
 //Integrator saturation level, mostly for safety (default 25.0)
 float i_limit = 25.0;
@@ -221,12 +221,12 @@ float dScaleRoll  = 1.0f;
 float dScalePitch = 1.0f;
 float dScaleYaw   = 1.0f;
 
-float Kp_roll_angle = 0.15;
-float Ki_roll_angle = 0.03;
-float Kd_roll_angle = 0.05;
-float Kp_pitch_angle = 0.15;
-float Ki_pitch_angle = 0.03;
-float Kd_pitch_angle = 0.05;
+float Kp_roll_angle = 0.1512;
+float Ki_roll_angle = 0.0082;
+float Kd_roll_angle = 0.0338;
+float Kp_pitch_angle = 0.1512;
+float Ki_pitch_angle = 0.0082;
+float Kd_pitch_angle = 0.0338;
 //Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 float B_loop_roll = 0.9;
 //Pitch damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
@@ -513,29 +513,29 @@ void setup() {
   delay(5);
 
   //Initialize SD card
-  Serial.print("Initializing SD card...");
-  // see if the card is present and can be initialized:
-  if (SD.begin(chipSelect)) {
-		Serial.println("card initialized.");
-		SD_is_present = 1;
-		int fileIncrement = 0;
-		fileName = filePrefix + String(fileIncrement) + fileExtension;
-		// Check whether or not the file name exists
-		while(SD.exists(fileName.c_str())) {
-			// Increment the filename if it exists and try again
-			fileIncrement++;
-			fileName = filePrefix + String(fileIncrement) + fileExtension;
-		}
-		dataFile = SD.open(fileName.c_str(), FILE_WRITE);
-    String csvHeader =
-			"roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,radio_ch8,radio_ch9,radio_ch10,radio_ch11,radio_ch12,radio_ch13,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command,kp_roll,ki_roll,kd_roll,kp_pitch,ki_pitch,kd_pitch,kp_yaw,ki_yaw,kd_yaw,failsafeTriggered";
-		dataFile.println(csvHeader);
-		dataFile.close();
-  }
-	else {
-    Serial.println("Card failed, or not present");
-		SD_is_present = 0;
-	}
+  //Serial.print("Initializing SD card...");
+  //// see if the card is present and can be initialized:
+  //if (SD.begin(chipSelect)) {
+	//	Serial.println("card initialized.");
+	//	SD_is_present = 1;
+	//	int fileIncrement = 0;
+	//	fileName = filePrefix + String(fileIncrement) + fileExtension;
+	//	// Check whether or not the file name exists
+	//	while(SD.exists(fileName.c_str())) {
+	//		// Increment the filename if it exists and try again
+	//		fileIncrement++;
+	//		fileName = filePrefix + String(fileIncrement) + fileExtension;
+	//	}
+	//	dataFile = SD.open(fileName.c_str(), FILE_WRITE);
+  //  String csvHeader =
+	//		"roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,radio_ch8,radio_ch9,radio_ch10,radio_ch11,radio_ch12,radio_ch13,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command,kp_roll,ki_roll,kd_roll,kp_pitch,ki_pitch,kd_pitch,kp_yaw,ki_yaw,kd_yaw,failsafeTriggered";
+	//	dataFile.println(csvHeader);
+	//	dataFile.close();
+  //}
+	//else {
+  //  Serial.println("Card failed, or not present");
+	//	SD_is_present = 0;
+	//}
 
   //Initialize radio communication (defined in header file)
   radioSetup();
@@ -578,7 +578,7 @@ void setup() {
 
   //PROPS OFF. Uncomment this to calibrate your ESCs by setting throttle stick to max, powering on,
   //and lowering throttle to zero after the beeps
-  calibrateESCs();
+  //calibrateESCs();
   //Code will not proceed past here if this function is uncommented!
 
   // Calibrate the joystick. Will be in an infinite loop.
@@ -653,7 +653,7 @@ void loop() {
 	// Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
 	//printRIPAngles();
 	// Prints desired and imu roll state for serial plotter
-	displayRoll();
+	//displayRoll();
 	// Prints desired and imu pitch state for serial plotter
 	//displayPitch();
 
@@ -676,22 +676,22 @@ void loop() {
 	}
 
 	//Save to SD card
-	if (SD_is_present && current_time - print_counterSD > 10000) {
-    
-    print_counterSD = micros();
-    String dataString;
+	//if (SD_is_present && current_time - print_counterSD > 10000) {
+  //  
+  //  print_counterSD = micros();
+  //  String dataString;
 
-    dataString = getDataString();
-    dataFile = SD.open(fileName.c_str(), FILE_WRITE);
-    if (dataFile) {
-      dataFile.println(dataString);
-      dataFile.close();
-    }
-    // if the file isn't open, pop up an error:
-    else {
-      Serial.println("error opening datalog.txt");
-    }
-  }
+  //  dataString = getDataString();
+  //  dataFile = SD.open(fileName.c_str(), FILE_WRITE);
+  //  if (dataFile) {
+  //    dataFile.println(dataString);
+  //    dataFile.close();
+  //  }
+  //  // if the file isn't open, pop up an error:
+  //  else {
+  //    Serial.println("error opening datalog.txt");
+  //  }
+  //}
 
 
   //Get vehicle state
@@ -1399,17 +1399,17 @@ void controlANGLE() {
   
   // --- Roll --- //
   error_roll = roll_des - roll_IMU;
-	error_roll = biquadFilter_apply(&pFilter, error_roll);
+	//error_roll = biquadFilter_apply(&pFilter, error_roll);
 
   integral_roll = integral_roll_prev + error_roll*dt;
   if (channel_1_pwm < 1060) {   //Don't let integrator build if throttle is too low
 		integral_pitch = 0;
 	}
   integral_roll = constrain(integral_roll, -i_limit, i_limit); //Saturate integrator to prevent unsafe buildup
-	integral_roll = biquadFilter_apply(&iFilter, integral_roll);
+	//integral_roll = biquadFilter_apply(&iFilter, integral_roll);
 	
   derivative_roll = GyroX;
-	derivative_roll = biquadFilter_apply(&dFilter, derivative_roll);
+	//derivative_roll = biquadFilter_apply(&dFilter, derivative_roll);
 
   roll_PID = 0.01*(Kp_roll_angle*pScaleRoll*error_roll 
 									 + Ki_roll_angle*iScaleRoll*integral_roll 
@@ -1417,17 +1417,17 @@ void controlANGLE() {
 
   // --- Pitch --- //
   error_pitch = pitch_des - pitch_IMU;
-	error_pitch = biquadFilter_apply(&pFilter, error_pitch);
+	//error_pitch = biquadFilter_apply(&pFilter, error_pitch);
 
   integral_pitch = integral_pitch_prev + error_pitch*dt;
   if (channel_1_pwm < 1060) {   //Don't let integrator build if throttle is too low
 		integral_pitch = 0;
 	}
   integral_pitch = constrain(integral_pitch, -i_limit, i_limit); //Saturate integrator to prevent unsafe buildup
-	integral_pitch = biquadFilter_apply(&iFilter, integral_pitch);
+	//integral_pitch = biquadFilter_apply(&iFilter, integral_pitch);
 
   derivative_pitch = GyroY;
-	derivative_pitch = biquadFilter_apply(&dFilter, derivative_pitch);
+	//derivative_pitch = biquadFilter_apply(&dFilter, derivative_pitch);
 	
   pitch_PID = 0.01*(Kp_pitch_angle*pScalePitch*error_pitch 
 									 	+ Ki_pitch_angle*iScalePitch*integral_pitch 
@@ -1435,17 +1435,17 @@ void controlANGLE() {
 
   // --- Yaw, stablize on rate from GyroZ --- //
   error_yaw = yaw_des - GyroZ;
-	error_yaw = biquadFilter_apply(&pFilter, error_yaw);
+	//error_yaw = biquadFilter_apply(&pFilter, error_yaw);
 
   integral_yaw = integral_yaw_prev + error_yaw*dt;
   if (channel_1_pwm < 1060) {   //Don't let integrator build if throttle is too low
 		integral_pitch = 0;
 	}
   integral_yaw = constrain(integral_yaw, -i_limit, i_limit); //Saturate integrator to prevent unsafe buildup
-	integral_yaw = biquadFilter_apply(&iFilter, integral_yaw);
+	//integral_yaw = biquadFilter_apply(&iFilter, integral_yaw);
 
   derivative_yaw = (error_yaw - error_yaw_prev)/dt; 
-	derivative_yaw = biquadFilter_apply(&dFilter, derivative_yaw);
+	//derivative_yaw = biquadFilter_apply(&dFilter, derivative_yaw);
 
   yaw_PID = 0.01*(Kp_yaw*pScaleYaw*error_yaw 
 									+ Ki_yaw*iScaleYaw*integral_yaw 
