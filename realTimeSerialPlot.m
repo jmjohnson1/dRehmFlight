@@ -10,11 +10,12 @@ data2 = zeros(3000, 1);
 %Set up Plot
 fig = figure('WindowStyle', 'docked');
 hold on;
-plotGraph1 = plot(data1,'-r', DisplayName="Desired");
-plotGraph2 = plot(data2,'-b', DisplayName="Measured");
+plotGraph1 = plot(data1,'-r', DisplayName="Thrust (lbs)");
+yyaxis("right")
+plotGraph2 = plot(data2,'-b', DisplayName="Motor Command");
 hold off
 title("Serial Data",'FontSize',15);
-ylabel("Angle (deg)",'FontSize',15);
+ylabel("",'FontSize',15);
 legend()
 axis([0 3000 -30 30]);
 grid("on");

@@ -65,6 +65,7 @@ static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to mat
 #include <PWMServo.h> //Commanding any extra actuators, installed with teensyduino installer
 #include <SD.h>       //SD card logging
 #include <string>
+#include "filter.h" 	// For data filtering
 const int chipSelect = BUILTIN_SDCARD;
 
 #if defined USE_SBUS_RX
@@ -169,6 +170,10 @@ float B_madgwick = 0.04;  //Madgwick filter parameter
 float B_accel = 0.14;     //Accelerometer LP filter paramter, (MPU6050 default: 0.14. MPU9250 default: 0.2)
 float B_gyro = 0.1;       //Gyro LP filter paramter, (MPU6050 default: 0.1. MPU9250 default: 0.17)
 float B_mag = 1.0;        //Magnetometer LP filter parameter
+
+float cutoffFreq_pFilter = 500; // Cutoff frequency for filtering the p-term in the PID calculation
+float cutoffFreq_iFilter = 500;
+float cutoffFreq_dFilter = 500;
 
 //Magnetometer calibration parameters - if using MPU9250, uncomment calibrateMagnetometer() in 
 //void setup() to get these values, else just ignore these
@@ -392,6 +397,10 @@ float error_pitch, error_pitch_prev, pitch_des_prev, integral_pitch, integral_pi
 			derivative_pitch, pitch_PID = 0;
 float error_yaw, error_yaw_prev, integral_yaw, integral_yaw_prev, derivative_yaw, yaw_PID = 0;
 
+biquadFilter_s pFilter;
+biquadFilter_s iFilter;
+biquadFilter_s dFilter;
+
 // Keep track of last error term
 float errorOld_alpha = 0;
 float errorOld_beta  = 0;
@@ -569,7 +578,7 @@ void setup() {
 
   //PROPS OFF. Uncomment this to calibrate your ESCs by setting throttle stick to max, powering on,
   //and lowering throttle to zero after the beeps
-  //calibrateESCs();
+  calibrateESCs();
   //Code will not proceed past here if this function is uncommented!
 
   // Calibrate the joystick. Will be in an infinite loop.
@@ -591,6 +600,12 @@ void setup() {
 	//new locations) Generates magentometer error and scale factors to be pasted in user-specified
 	//variables section
   //calibrateMagnetometer();
+
+	// Initialize biquad filters
+	biquadFilter_init(&pFilter, cutoffFreq_pFilter, 2000);
+	biquadFilter_init(&iFilter, cutoffFreq_iFilter, 2000);
+	biquadFilter_init(&dFilter, cutoffFreq_dFilter, 2000);
+	
 	doneWithSetup = 1;
 }
 
@@ -1382,38 +1397,56 @@ void controlANGLE() {
    * can be thought of as 1-D stablized signals. They are mixed to the configuration of the vehicle in controlMixer().
    */
   
-  //Roll
+  // --- Roll --- //
   error_roll = roll_des - roll_IMU;
+	error_roll = biquadFilter_apply(&pFilter, error_roll);
+
   integral_roll = integral_roll_prev + error_roll*dt;
   if (channel_1_pwm < 1060) {   //Don't let integrator build if throttle is too low
-    integral_roll = 0;
-  }
+		integral_pitch = 0;
+	}
   integral_roll = constrain(integral_roll, -i_limit, i_limit); //Saturate integrator to prevent unsafe buildup
+	integral_roll = biquadFilter_apply(&iFilter, integral_roll);
+	
   derivative_roll = GyroX;
+	derivative_roll = biquadFilter_apply(&dFilter, derivative_roll);
+
   roll_PID = 0.01*(Kp_roll_angle*pScaleRoll*error_roll 
 									 + Ki_roll_angle*iScaleRoll*integral_roll 
 									 - Kd_roll_angle*dScaleRoll*derivative_roll); //Scaled by .01 to bring within -1 to 1 range
 
-  //Pitch
+  // --- Pitch --- //
   error_pitch = pitch_des - pitch_IMU;
+	error_pitch = biquadFilter_apply(&pFilter, error_pitch);
+
   integral_pitch = integral_pitch_prev + error_pitch*dt;
   if (channel_1_pwm < 1060) {   //Don't let integrator build if throttle is too low
-    integral_pitch = 0;
-  }
+		integral_pitch = 0;
+	}
   integral_pitch = constrain(integral_pitch, -i_limit, i_limit); //Saturate integrator to prevent unsafe buildup
+	integral_pitch = biquadFilter_apply(&iFilter, integral_pitch);
+
   derivative_pitch = GyroY;
+	derivative_pitch = biquadFilter_apply(&dFilter, derivative_pitch);
+	
   pitch_PID = 0.01*(Kp_pitch_angle*pScalePitch*error_pitch 
 									 	+ Ki_pitch_angle*iScalePitch*integral_pitch 
 									 	- Kd_pitch_angle*dScalePitch*derivative_pitch); //Scaled by .01 to bring within -1 to 1 range
 
-  //Yaw, stablize on rate from GyroZ
+  // --- Yaw, stablize on rate from GyroZ --- //
   error_yaw = yaw_des - GyroZ;
+	error_yaw = biquadFilter_apply(&pFilter, error_yaw);
+
   integral_yaw = integral_yaw_prev + error_yaw*dt;
   if (channel_1_pwm < 1060) {   //Don't let integrator build if throttle is too low
-    integral_yaw = 0;
-  }
+		integral_pitch = 0;
+	}
   integral_yaw = constrain(integral_yaw, -i_limit, i_limit); //Saturate integrator to prevent unsafe buildup
+	integral_yaw = biquadFilter_apply(&iFilter, integral_yaw);
+
   derivative_yaw = (error_yaw - error_yaw_prev)/dt; 
+	derivative_yaw = biquadFilter_apply(&dFilter, derivative_yaw);
+
   yaw_PID = 0.01*(Kp_yaw*pScaleYaw*error_yaw 
 									+ Ki_yaw*iScaleYaw*integral_yaw 
 									+ Kd_yaw*dScaleYaw*derivative_yaw); //Scaled by .01 to bring within -1 to 1 range
