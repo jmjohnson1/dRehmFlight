@@ -63,10 +63,8 @@ static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to mat
 #include <Wire.h>     //I2c communication
 #include <SPI.h>      //SPI communication
 #include <PWMServo.h> //Commanding any extra actuators, installed with teensyduino installer
-#include <SD.h>       //SD card logging
 #include <string>
 #include "filter.h" 	// For data filtering
-const int chipSelect = BUILTIN_SDCARD;
 
 #if defined USE_SBUS_RX
   #include "src/SBUS/SBUS.h"   //sBus interface
@@ -86,7 +84,29 @@ const int chipSelect = BUILTIN_SDCARD;
   #error No MPU defined... 
 #endif
 
+/// Move this later...
+#include "RingBuf.h"
+#include "SdFat.h"
 
+// Use Teensy SDIO
+#define SD_CONFIG SdioConfig(FIFO_SDIO)
+
+// Interval between points (usec) for 100 samples/sec
+#define LOG_INTERVAL_USEC 10000
+
+// Size to log 256 byte lines at 100 Hz for more than ten minutes.
+#define LOG_FILE_SIZE 256 * 100 * 600  // 150,000,000 bytes.
+
+// Space to hold more than 1 second of 256-byte lines at 100 Hz in the buffer
+#define RING_BUF_CAPACITY 50 * 512
+#define LOG_FILENAME "SdioLogger.csv"
+
+SdFs sd;
+FsFile file;
+
+// Ring buffer for filetype FsFile (The filemanager that will handle the data stream)
+RingBuf<FsFile, RING_BUF_CAPACITY> buffer;
+/////
 
 //================================================================================================//
 
@@ -446,7 +466,6 @@ String filePrefix = "flight_data";
 String fileExtension = ".csv";
 String fileName;
 
-File dataFile;
 
 bool SD_is_present = 0;
 
@@ -537,6 +556,7 @@ void setup() {
 	//	SD_is_present = 0;
 	//}
 
+
   //Initialize radio communication (defined in header file)
   radioSetup();
   
@@ -605,6 +625,13 @@ void setup() {
 	biquadFilter_init(&pFilter, cutoffFreq_pFilter, 2000);
 	biquadFilter_init(&iFilter, cutoffFreq_iFilter, 2000);
 	biquadFilter_init(&dFilter, cutoffFreq_dFilter, 2000);
+
+	while (channel_5_pwm > 1500) {
+		//Serial.println("Waiting to start");
+		getCommands();
+	}
+
+	logData_setup();
 	
 	doneWithSetup = 1;
 }
@@ -693,6 +720,11 @@ void loop() {
   //  }
   //}
 
+	// Write to SD card buffer
+	if (SD_is_present && (current_time - print_counterSD) > LOG_INTERVAL_USEC) {
+		print_counterSD = micros();
+		logData_writeBuffer();
+	}
 
   //Get vehicle state
   getIMUdata(); //Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
@@ -758,6 +790,10 @@ void loop() {
   getCommands(); //Pulls current available radio commands
   failSafe(); //Prevent failures in event of bad receiver connection, defaults to failsafe values assigned in setup
 
+	if (throttleCut()) {
+		logData_endProcess();
+		for(;;)
+	}
 
   //Regulate loop rate
   loopRate(2000); //Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
@@ -1978,7 +2014,7 @@ void switchRollYaw(int reverseRoll, int reverseYaw) {
   roll_des = reverseRoll*switch_holder;
 }
 
-void throttleCut() {
+int throttleCut() {
   //DESCRIPTION: Directly set actuator outputs to minimum value if triggered
   /*
    * Monitors the state of radio command channel_5_pwm and directly sets the mx_command_PWM values to minimum (120 is
@@ -2002,7 +2038,9 @@ void throttleCut() {
     s5_command_PWM = 0;
     s6_command_PWM = 0;
     s7_command_PWM = 0;
+		return 1;
   }
+	return 0;
 }
 
 void calibrateMagnetometer() {
