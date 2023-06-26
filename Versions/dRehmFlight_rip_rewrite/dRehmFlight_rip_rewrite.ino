@@ -85,6 +85,12 @@ static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to mat
 #endif
 
 /// Move this later...
+// Logic needed to restart teensy
+#define CPU_RESTART_ADDR (uint32_t *)0xE000ED0C
+#define CPU_RESTART_VAL 0x5FA0004
+#define CPU_RESTART (*CPU_RESTART_ADDR = CPU_RESTART_VAL);
+
+
 #include "RingBuf.h"
 #include "SdFat.h"
 
@@ -183,6 +189,7 @@ unsigned long channel_10_fs = 1500; // P gain scale (no scaling)
 unsigned long channel_11_fs = 1500; // I gain scale
 unsigned long channel_12_fs = 1500; // D gain scale
 unsigned long channel_13_fs = 1500; // Pitch and roll pid offset
+unsigned long channel_14_fs = 1000; // Reset switch
 
 //Filter parameters - Defaults tuned for 2kHz loop rate; 
 //Do not touch unless you know what you are doing:
@@ -267,11 +274,11 @@ float Kd_yaw = 0.00015;
 
 // PID GAINS FOR RIP //
 const float Kp_alphaRoll = 0.1f;
-const float Ki_alphaRoll = 0.1f;
-const float Kd_alphaRoll = 0.1f;
+const float Ki_alphaRoll = 100.0f;
+const float Kd_alphaRoll = 0.00001f;
 const float Kp_betaPitch = 0.1f;
-const float Ki_betaPitch = 0.1f;
-const float Kd_betaPitch = 0.1f;
+const float Ki_betaPitch = 100.0f;
+const float Kd_betaPitch = 0.00001f;
 
 float pScaleAlpha = 1.0f;
 float iScaleAlpha = 1.0f;
@@ -366,6 +373,7 @@ PWMServo servo7;
 
 //General stuff
 float dt;
+
 unsigned long current_time, prev_time;
 unsigned long print_counter, serial_counter;
 unsigned long blink_counter, blink_delay;
@@ -375,7 +383,7 @@ unsigned long print_counterSD = 200000;
 //Radio communication:
 int channel_1_pwm, channel_2_pwm, channel_3_pwm, channel_4_pwm, channel_5_pwm, channel_6_pwm,
 channel_7_pwm, channel_8_pwm, channel_9_pwm, channel_10_pwm, channel_11_pwm, channel_12_pwm,
-channel_13_pwm;
+channel_13_pwm, channel_14_pwm;
 int channel_1_pwm_prev, channel_2_pwm_prev, channel_3_pwm_prev, channel_4_pwm_prev;
 int channel_1_pwm_pre, channel_2_pwm_pre, channel_3_pwm_pre, channel_4_pwm_pre;
 
@@ -487,6 +495,8 @@ int servoLoopCounter = 0;
 int radioChCutoffTimeout = 10;
 bool failureFlag = 0;
 
+int throttleCutCount = 0;
+
 //========================================================================================================================//
 //                                                      VOID SETUP                                                        //                           
 //========================================================================================================================//
@@ -531,32 +541,6 @@ void setup() {
 
   delay(5);
 
-  //Initialize SD card
-  //Serial.print("Initializing SD card...");
-  //// see if the card is present and can be initialized:
-  //if (SD.begin(chipSelect)) {
-	//	Serial.println("card initialized.");
-	//	SD_is_present = 1;
-	//	int fileIncrement = 0;
-	//	fileName = filePrefix + String(fileIncrement) + fileExtension;
-	//	// Check whether or not the file name exists
-	//	while(SD.exists(fileName.c_str())) {
-	//		// Increment the filename if it exists and try again
-	//		fileIncrement++;
-	//		fileName = filePrefix + String(fileIncrement) + fileExtension;
-	//	}
-	//	dataFile = SD.open(fileName.c_str(), FILE_WRITE);
-  //  String csvHeader =
-	//		"roll_imu,pitch_imu,yaw_imu,alpha,beta,roll_des,pitch_des,yaw_des,throttle_des,roll_pid,pitch_pid,yaw_pid,radio_ch1,radio_ch2,radio_ch3,radio_ch4,radio_ch5,radio_ch6,radio_ch7,radio_ch8,radio_ch9,radio_ch10,radio_ch11,radio_ch12,radio_ch13,GyroX,GyroY,GyroZ,AccX,AccY,AccZ,s1_command,s2_command,s3_command,s4_command,kp_roll,ki_roll,kd_roll,kp_pitch,ki_pitch,kd_pitch,kp_yaw,ki_yaw,kd_yaw,failsafeTriggered";
-	//	dataFile.println(csvHeader);
-	//	dataFile.close();
-  //}
-	//else {
-  //  Serial.println("Card failed, or not present");
-	//	SD_is_present = 0;
-	//}
-
-
   //Initialize radio communication (defined in header file)
   radioSetup();
   
@@ -574,6 +558,7 @@ void setup() {
 	channel_11_pwm = channel_11_fs;
 	channel_12_pwm = channel_12_fs;
 	channel_13_pwm = channel_13_fs;
+	channel_14_pwm = channel_14_fs;
 
   //Initialize IMU communication
   IMUinit();
@@ -631,7 +616,8 @@ void setup() {
 		getCommands();
 	}
 
-	logData_setup();
+	// Initialize the SD card, returns 1 if no sd card is detected or it can't be initialized
+	SD_is_present = !logData_setup();
 	
 	doneWithSetup = 1;
 }
@@ -654,7 +640,7 @@ void loop() {
   //printRadioData();     
 	// Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for
 	// roll, pitch, yaw; 0 to 1 for throttle)
-  //printDesiredState();  
+  printDesiredState();  
 	// Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
   //printGyroData();      
 	// Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1
@@ -701,24 +687,6 @@ void loop() {
 		conductSineSweep = 0;
 		sineTime = 0;
 	}
-
-	//Save to SD card
-	//if (SD_is_present && current_time - print_counterSD > 10000) {
-  //  
-  //  print_counterSD = micros();
-  //  String dataString;
-
-  //  dataString = getDataString();
-  //  dataFile = SD.open(fileName.c_str(), FILE_WRITE);
-  //  if (dataFile) {
-  //    dataFile.println(dataString);
-  //    dataFile.close();
-  //  }
-  //  // if the file isn't open, pop up an error:
-  //  else {
-  //    Serial.println("error opening datalog.txt");
-  //  }
-  //}
 
 	// Write to SD card buffer
 	if (SD_is_present && (current_time - print_counterSD) > LOG_INTERVAL_USEC) {
@@ -774,7 +742,7 @@ void loop() {
   scaleCommands(); //Scales motor commands to 125 to 250 range (oneshot125 protocol) and servo PWM commands to 0 to 180 (for servo library)
 
   //Throttle cut check
-  throttleCut(); //Directly sets motor commands to low based on state of ch5
+  bool killThrottle = throttleCut(); //Directly sets motor commands to low based on state of ch5
 
   //Command actuators
   commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
@@ -790,10 +758,41 @@ void loop() {
   getCommands(); //Pulls current available radio commands
   failSafe(); //Prevent failures in event of bad receiver connection, defaults to failsafe values assigned in setup
 
-	if (throttleCut()) {
+	if (killThrottle && (throttleCutCount > 100)) {
 		logData_endProcess();
-		for(;;)
+		while(1) {
+			getCommands();
+			servo1.write(s1_command_PWM); //Writes PWM value to servo object
+			servo2.write(s2_command_PWM);
+			servo3.write(s3_command_PWM);
+			servo4.write(s4_command_PWM);
+			servo5.write(s5_command_PWM);
+			servo6.write(s6_command_PWM);
+			servo7.write(s7_command_PWM);
+
+			// Check for whether or not the iris should be open
+			if (channel_6_pwm < 1500) {
+				irisFlag = 0;
+				closeIris();
+			}
+			else {
+				irisFlag = 1;
+				openIris();
+			}
+
+			if (channel_14_pwm > 1500) {
+				CPU_RESTART;
+			}
+		}
+	} else if (killThrottle) {
+		throttleCutCount++;
+		Serial.print("throttleCutCount: ");
+		Serial.println(throttleCutCount);
+	} else {
+		throttleCutCount = 0;
 	}
+
+	//Serial.println((micros() - current_time)*1.0, 5);
 
   //Regulate loop rate
   loopRate(2000); //Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
@@ -1373,6 +1372,9 @@ void getDesState() {
   pitch_passthru = pitch_des/2.0; //Between -0.5 and 0.5
   yaw_passthru = yaw_des/2.0; //Between -0.5 and 0.5
 
+	alphaRoll_des = roll_des;
+	betaPitch_des = pitch_des;
+
   //Constrain within normalized bounds
   thro_des = constrain(thro_des, 0.0, 1.0); //Between 0 and 1
   roll_des = constrain(roll_des, -1.0, 1.0)*maxRoll; //Between -maxRoll and +maxRoll
@@ -1382,8 +1384,8 @@ void getDesState() {
   pitch_passthru = constrain(pitch_passthru, -0.5, 0.5);
   yaw_passthru = constrain(yaw_passthru, -0.5, 0.5);
 
-	alphaRoll_des = constrain(roll_des, -1.0, 1.0)*maxAlphaRoll;
-	betaPitch_des = constrain(pitch_des, -1.0, 1.0)*maxBetaPitch;
+	alphaRoll_des = constrain(alphaRoll_des, -1.0, 1.0)*maxAlphaRoll;
+	betaPitch_des = constrain(betaPitch_des, -1.0, 1.0)*maxBetaPitch;
 }
 
 
@@ -1403,6 +1405,14 @@ void ripPID() {
   roll_des = (Kp_alphaRoll*pScaleAlpha*error_alphaRoll 
 							+ Ki_alphaRoll*iScaleAlpha*integral_alphaRoll 
 							- Kd_alphaRoll*dScaleAlpha*derivative_alphaRoll); 
+
+	Serial.print("Proportional: ");
+	Serial.print(Kp_alphaRoll*pScaleAlpha*error_alphaRoll);
+	Serial.print(" Integral: ");
+	Serial.print(Ki_alphaRoll*iScaleAlpha*integral_alphaRoll);
+	Serial.print(" Derivative: ");
+	Serial.print(Kd_alphaRoll*dScaleAlpha*derivative_alphaRoll);
+	Serial.println();
 
   // --- Beta --- //
   float error_betaPitch = betaPitch_des - betaPitch;
@@ -1709,6 +1719,7 @@ void getCommands() {
 			channel_11_pwm = sbusChannels[10] * scale + bias;
 			channel_12_pwm = sbusChannels[11] * scale + bias;
 			channel_13_pwm = sbusChannels[12] * scale + bias;
+			channel_14_pwm = sbusChannels[13] * scale + bias;
     }
 
   //#elif defined USE_DSM_RX
@@ -1779,9 +1790,6 @@ void getCommands() {
   channel_2_pwm_prev = channel_2_pwm;
   channel_3_pwm_prev = channel_3_pwm;
   channel_4_pwm_prev = channel_4_pwm;
-
-	
-
 }
 
 void failSafe() {
@@ -1819,6 +1827,15 @@ void failSafe() {
     channel_4_pwm = channel_4_fs;
     channel_5_pwm = channel_5_fs;
     channel_6_pwm = channel_6_fs;
+    channel_7_pwm = channel_7_fs;
+    channel_8_pwm = channel_8_fs;
+    channel_9_pwm = channel_9_fs;
+    channel_10_pwm = channel_10_fs;
+    channel_11_pwm = channel_11_fs;
+    channel_12_pwm = channel_12_fs;
+    channel_13_pwm = channel_13_fs;
+    channel_14_pwm = channel_14_fs;
+		
 		failureFlag = 1;
   }
 }

@@ -2,25 +2,106 @@
 int logData_setup() {
 	// Initialize the SD
 	if (!sd.begin(SD_CONFIG)) {
-		sd.initErrorHalt(&Serial); // Prints message to serial if SD can't init
+		sd.initErrorPrint(&Serial); // Prints message to serial if SD can't init
 		return 1;
 	}
+	// Determine logfile name
+	int fileIncrement = 0;
+	fileName = filePrefix + String(fileIncrement) + fileExtension;
+	while(sd.exists(fileName)) {
+		// Increment file name if it exists and try again
+		fileIncrement++;
+		fileName = filePrefix + String(fileIncrement) + fileExtension;
+	}
 	// Open or create file - truncate existing
-	if (!file.open(LOG_FILENAME, O_RDWR | O_CREAT | O_TRUNC)) { // NOTE: Lookup meaning
+	if (!file.open(fileName.c_str(), O_RDWR | O_CREAT | O_TRUNC)) {
 		Serial.println("open failed\n");
 		return 1;
 	}
 	// Initialize ring buffer
 	buffer.begin(&file);
 	Serial.println("Buffer initialized");
+	logData_printCSVHeader();
 	return 0;
 }
 
-int logData_writeFile() {
-	return 0;
+void logData_printCSVHeader() {
+	buffer.print("roll_imu");
+	buffer.write(",");
+	buffer.print("pitch_imu");
+	buffer.write(",");
+	buffer.print("yaw_imu");
+	buffer.write(",");
+	buffer.print("alpha");
+	buffer.write(",");
+	buffer.print("beta");
+	buffer.write(",");
+	buffer.print("roll_des");
+	buffer.write(",");
+	buffer.print("pitch_des");
+	buffer.write(",");
+	buffer.print("yaw_des");
+	buffer.write(",");
+	buffer.print("throttle_des");
+	buffer.write(",");
+	buffer.print("roll_pid");
+	buffer.write(",");
+	buffer.print("pitch_pid");
+	buffer.write(",");
+	buffer.print("yaw_pid");
+	buffer.write(",");
+	buffer.print("radio_ch1");
+	buffer.write(",");
+	buffer.print("radio_ch2");
+	buffer.write(",");
+	buffer.print("radio_ch3");
+	buffer.write(",");
+	buffer.print("radio_ch4");
+	buffer.write(",");
+	buffer.print("radio_ch5");
+	buffer.write(",");
+	buffer.print("radio_ch6");
+	buffer.write(",");
+	buffer.print("radio_ch7");
+	buffer.write(",");
+	buffer.print("radio_ch8");
+	buffer.write(",");
+	buffer.print("radio_ch9");
+	buffer.write(",");
+	buffer.print("radio_ch10");
+	buffer.write(",");
+	buffer.print("radio_ch11");
+	buffer.write(",");
+	buffer.print("radio_ch12");
+	buffer.print("radio_ch13");
+	buffer.print("GyroX");
+	buffer.print("GyroY");
+	buffer.print("GyroZ");
+	buffer.print("AccX");
+	buffer.print("AccY");
+	buffer.print("AccZ");
+	buffer.print("s1_command");
+	buffer.print("s2_command");
+	buffer.print("s3_command");
+	buffer.print("s4_command");
+	buffer.print("kp_roll");
+	buffer.print("ki_roll");
+	buffer.print("kd_roll");
+	buffer.print("kp_pitch");
+	buffer.print("ki_pitch");
+	buffer.print("kd_pitch");
+	buffer.print("kp_yaw");
+	buffer.print("ki_yaw");
+	buffer.print("kd_yaw");
+	buffer.println("failsafeTriggered");
 }
+
 int logData_writeBuffer() {
 	size_t amtDataInBuf = buffer.bytesUsed();
+  // DEBUG
+	//Serial.print("Data in buffer: ");
+	//Serial.println(amtDataInBuf);
+	// end DEBUG
 	if ((amtDataInBuf + file.curPosition()) > (LOG_FILE_SIZE - 20)) {
 		Serial.println("Log file full -- No longer writing");
 		return 1;
@@ -135,4 +216,7 @@ void logData_endProcess() {
 	file.truncate();
 	file.rewind();
 	file.close();
+	
+	// DEBUG
+	Serial.println("logging exited peacefully");
 }
