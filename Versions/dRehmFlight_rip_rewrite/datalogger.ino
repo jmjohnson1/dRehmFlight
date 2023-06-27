@@ -93,7 +93,8 @@ void logData_printCSVHeader() {
 	buffer.print("kp_yaw");
 	buffer.print("ki_yaw");
 	buffer.print("kd_yaw");
-	buffer.println("failsafeTriggered");
+	buffer.print("failsafeTriggered");
+  buffer.println((micros() - current_time)*1.0, 4);
 }
 
 int logData_writeBuffer() {
@@ -218,5 +219,5 @@ void logData_endProcess() {
 	file.close();
 	
 	// DEBUG
-	Serial.println("logging exited peacefully");
+	Serial.println("logging ended peacefully");
 }

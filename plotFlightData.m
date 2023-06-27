@@ -1,5 +1,5 @@
 %function plotFlightData(filename)
-filename = "flight_data33.csv"
+filename = "flight_data40.csv"
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -9,8 +9,8 @@ filename = "flight_data33.csv"
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     lw = 1;
-    % rng = 1:length(radio_ch1);
-    rng = 5.10E04:5.15E04;
+     rng = 1:length(radio_ch1);
+    %rng = 5.10E04:5.15E04;
     time = rng/100;
     %
     

@@ -65,6 +65,8 @@ static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to mat
 #include <PWMServo.h> //Commanding any extra actuators, installed with teensyduino installer
 #include <string>
 #include "filter.h" 	// For data filtering
+#include "RingBuf.h"  // Ring buffer used to store values for SD card
+#include "SdFat.h"    // Library used for SD card
 
 #if defined USE_SBUS_RX
   #include "src/SBUS/SBUS.h"   //sBus interface
@@ -91,8 +93,7 @@ static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to mat
 #define CPU_RESTART (*CPU_RESTART_ADDR = CPU_RESTART_VAL);
 
 
-#include "RingBuf.h"
-#include "SdFat.h"
+
 
 // Use Teensy SDIO
 #define SD_CONFIG SdioConfig(FIFO_SDIO)
@@ -248,12 +249,21 @@ float dScaleRoll  = 1.0f;
 float dScalePitch = 1.0f;
 float dScaleYaw   = 1.0f;
 
-float Kp_roll_angle = 0.1512;
+float Kp_roll_angle = 0.2204;
 float Ki_roll_angle = 0.0082;
-float Kd_roll_angle = 0.0338;
-float Kp_pitch_angle = 0.1512;
+float Kd_roll_angle = 0.0438;
+float Kp_pitch_angle = 0.2204;
 float Ki_pitch_angle = 0.0082;
-float Kd_pitch_angle = 0.0338;
+float Kd_pitch_angle = 0.0438;
+
+float Kp_roll_angleOld = 0.1512;
+float Ki_roll_angleOld = 0.0082;
+float Kd_roll_angleOld = 0.0338;
+float Kp_pitch_angleOld = 0.1512;
+float Ki_pitch_angleOld = 0.0082;
+float Kd_pitch_angleOld = 0.0338;
+
+
 //Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 float B_loop_roll = 0.9;
 //Pitch damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
@@ -273,10 +283,10 @@ float Ki_yaw = 0.05;
 float Kd_yaw = 0.00015;       
 
 // PID GAINS FOR RIP //
-const float Kp_alphaRoll = 0.1f;
+const float Kp_alphaRoll = 0.3f;
 const float Ki_alphaRoll = 100.0f;
 const float Kd_alphaRoll = 0.00001f;
-const float Kp_betaPitch = 0.1f;
+const float Kp_betaPitch = 0.3f;
 const float Ki_betaPitch = 100.0f;
 const float Kd_betaPitch = 0.00001f;
 
@@ -614,6 +624,14 @@ void setup() {
 	while (channel_5_pwm > 1500) {
 		//Serial.println("Waiting to start");
 		getCommands();
+      //Arm servo channels
+    servo1.write(0); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
+    servo2.write(0); //Set these to 90 for servos if you do not want them to briefly max out on startup
+    servo3.write(0); //Keep these at 0 if you are using servo outputs for motors
+    servo4.write(0);
+    servo5.write(0);
+    servo6.write(0);
+    servo7.write(0);
 	}
 
 	// Initialize the SD card, returns 1 if no sd card is detected or it can't be initialized
@@ -640,7 +658,7 @@ void loop() {
   //printRadioData();     
 	// Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for
 	// roll, pitch, yaw; 0 to 1 for throttle)
-  printDesiredState();  
+  //printDesiredState();  
 	// Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
   //printGyroData();      
 	// Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1
@@ -792,7 +810,7 @@ void loop() {
 		throttleCutCount = 0;
 	}
 
-	//Serial.println((micros() - current_time)*1.0, 5);
+	Serial.println((micros() - current_time)*1.0, 5);
 
   //Regulate loop rate
   loopRate(2000); //Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
@@ -1406,13 +1424,13 @@ void ripPID() {
 							+ Ki_alphaRoll*iScaleAlpha*integral_alphaRoll 
 							- Kd_alphaRoll*dScaleAlpha*derivative_alphaRoll); 
 
-	Serial.print("Proportional: ");
-	Serial.print(Kp_alphaRoll*pScaleAlpha*error_alphaRoll);
-	Serial.print(" Integral: ");
-	Serial.print(Ki_alphaRoll*iScaleAlpha*integral_alphaRoll);
-	Serial.print(" Derivative: ");
-	Serial.print(Kd_alphaRoll*dScaleAlpha*derivative_alphaRoll);
-	Serial.println();
+	// Serial.print("Proportional: ");
+	// Serial.print(Kp_alphaRoll*pScaleAlpha*error_alphaRoll);
+	// Serial.print(" Integral: ");
+	// Serial.print(Ki_alphaRoll*iScaleAlpha*integral_alphaRoll);
+	// Serial.print(" Derivative: ");
+	// Serial.print(Kd_alphaRoll*dScaleAlpha*derivative_alphaRoll);
+	// Serial.println();
 
   // --- Beta --- //
   float error_betaPitch = betaPitch_des - betaPitch;
@@ -1456,7 +1474,6 @@ void controlANGLE() {
 	
   derivative_roll = GyroX;
 	//derivative_roll = biquadFilter_apply(&dFilter, derivative_roll);
-
   roll_PID = 0.01*(Kp_roll_angle*pScaleRoll*error_roll 
 									 + Ki_roll_angle*iScaleRoll*integral_roll 
 									 - Kd_roll_angle*dScaleRoll*derivative_roll); //Scaled by .01 to bring within -1 to 1 range
@@ -1672,6 +1689,7 @@ void scaleCommands() {
   s5_command_PWM = s5_command_scaled*180;
   s6_command_PWM = s6_command_scaled*180;
   s7_command_PWM = s7_command_scaled*180;
+
   //Constrain commands to servos within servo library bounds
   s1_command_PWM = constrain(s1_command_PWM, 0, 180);
   s2_command_PWM = constrain(s2_command_PWM, 0, 180);
@@ -2336,10 +2354,10 @@ void getJoyAngle() {
 	float FR_alpha = alphaCounts_max - alphaCounts_min;
 	float FR_beta = betaCounts_max - alphaCounts_min;
 
-	alpha = (static_cast<float>(alphaCounts) - FR_alpha/2.0f - alphaCounts_min)/FR_alpha*(alpha_min -
-		alpha_max) + alphaOffset;
-	beta = (static_cast<float>(betaCounts) - FR_beta/2.0f - betaCounts_min)/FR_beta*(beta_min -
-		beta_max) + betaOffset;
+	alpha = (static_cast<float>(alphaCounts) - FR_alpha/2.0f - alphaCounts_min)/FR_alpha*(alpha_max -
+		alpha_min) + alphaOffset;
+	beta = (static_cast<float>(betaCounts) - FR_beta/2.0f - betaCounts_min)/FR_beta*(beta_max -
+		beta_min) + betaOffset;
 
 	// Determine alpha and pitch in the inertial frame
 	alphaRoll = alpha + roll_IMU;
@@ -2353,10 +2371,10 @@ void openIris() {
 
 void closeIris() {
 	if (servoLoopCounter < 500) {
-		iris.write(138);
+		iris.write(140);
 		servoLoopCounter++;
 	} else {
-		iris.write(135);
+		iris.write(140);
 	}
 }
 
@@ -2538,23 +2556,35 @@ void displayPitch() {
 
 void getPScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_10_pwm - 1500.0f)/500.0f * 0.8f;
-	pScaleRoll = scaleVal;
-	pScalePitch = scaleVal;
+	scaleVal = 1.0f + (channel_10_pwm - 1000.0f)/1000.0f * 5.0f;
+	// pScaleRoll = scaleVal;
+	// pScalePitch = scaleVal;
+  pScaleAlpha = scaleVal;
+	pScaleBeta = scaleVal;
 }
 
 void getDScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f * 0.8f;
-	dScaleRoll = scaleVal;
-	dScalePitch = scaleVal;
+	scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f * 5.0f;
+  if (scaleVal < 0.0f) {
+    scaleVal = 0.0f;
+  }
+	// dScaleRoll = scaleVal;
+	// dScalePitch = scaleVal;
+  dScaleAlpha = scaleVal;
+	dScaleBeta = scaleVal;
 }
 
 void getIScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f * 0.8f;
-	iScaleRoll = scaleVal;
-	iScalePitch = scaleVal;
+	scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f * 5.0f;
+  if (scaleVal < 0.0f) {
+    scaleVal = 0.0f;
+  }
+	// iScaleRoll = scaleVal;
+	// iScalePitch = scaleVal;
+  iScaleAlpha = scaleVal;
+	iScaleBeta = scaleVal;
 }
 
 void rollGainOffset() {
