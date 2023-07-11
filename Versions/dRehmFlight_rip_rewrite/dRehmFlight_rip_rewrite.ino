@@ -279,16 +279,16 @@ float Kd_pitch_rate = 0.0002;
 
 // YAW PID GAINS //
 float Kp_yaw = 0.3;           
-float Ki_yaw = 0.05;          
+float Ki_yaw = 0.06;          
 float Kd_yaw = 0.00015;       
 
 // PID GAINS FOR RIP //
-const float Kp_alphaRoll = 0.3f;
-const float Ki_alphaRoll = 100.0f;
-const float Kd_alphaRoll = 0.00001f;
-const float Kp_betaPitch = 0.3f;
-const float Ki_betaPitch = 100.0f;
-const float Kd_betaPitch = 0.00001f;
+const float Kp_alphaRoll = -0.3f;
+const float Ki_alphaRoll = -100.0f;
+const float Kd_alphaRoll = -0.001f;
+const float Kp_betaPitch = -0.3f;
+const float Ki_betaPitch = -100.0f;
+const float Kd_betaPitch = -0.001f;
 
 float pScaleAlpha = 1.0f;
 float iScaleAlpha = 1.0f;
@@ -435,9 +435,9 @@ float error_pitch, error_pitch_prev, pitch_des_prev, integral_pitch, integral_pi
 			derivative_pitch, pitch_PID = 0;
 float error_yaw, error_yaw_prev, integral_yaw, integral_yaw_prev, derivative_yaw, yaw_PID = 0;
 
-biquadFilter_s pFilter;
-biquadFilter_s iFilter;
-biquadFilter_s dFilter;
+// biquadFilter_s pFilter;
+// biquadFilter_s iFilter;
+// biquadFilter_s dFilter;
 
 // Keep track of last error term
 float errorOld_alpha = 0;
@@ -466,6 +466,13 @@ float alpha;       // Joystick x-axis rotation angle
 float beta;       // Joystick x-axis rotation angle
 float alphaRoll;
 float betaPitch;
+float beta_old = 0;
+float alpha_old = 0;
+// Full range of analog input based on calibration
+float fullRange_alpha = alphaCounts_max - alphaCounts_min;
+float fullRange_beta = betaCounts_max - alphaCounts_min;
+float fullRange_alpha_half = fullRange_alpha/2.0f;
+float fullRange_beta_half = fullRange_beta/2.0f;
 
 float alphaOffset = 0.0f;
 float betaOffset = 0.0f;
@@ -507,6 +514,10 @@ bool failureFlag = 0;
 
 int throttleCutCount = 0;
 
+
+// For keeping track of loop times
+float max_loopTime = 0;
+
 //========================================================================================================================//
 //                                                      VOID SETUP                                                        //                           
 //========================================================================================================================//
@@ -517,12 +528,12 @@ void setup() {
   
   //Initialize all pins
   pinMode(13, OUTPUT); //Pin 13 LED blinker on board, do not modify 
-  pinMode(m1Pin, OUTPUT);
-  pinMode(m2Pin, OUTPUT);
-  pinMode(m3Pin, OUTPUT);
-  pinMode(m4Pin, OUTPUT);
-  pinMode(m5Pin, OUTPUT);
-  pinMode(m6Pin, OUTPUT);
+  // pinMode(m1Pin, OUTPUT);
+  // pinMode(m2Pin, OUTPUT);
+  // pinMode(m3Pin, OUTPUT);
+  // pinMode(m4Pin, OUTPUT);
+  // pinMode(m5Pin, OUTPUT);
+  // pinMode(m6Pin, OUTPUT);
   servo1.attach(servo1Pin, 1000, 2100); //Pin, min PWM value, max PWM value
   servo2.attach(servo2Pin, 1000, 2100);
   servo3.attach(servo3Pin, 1000, 2100);
@@ -540,11 +551,11 @@ void setup() {
 	getJoyAngle();
 	alphaOffset = -alpha;
 	betaOffset = -beta;
-	Serial.print(F("alphaOffset: "));
-	Serial.print(alphaOffset);
-	Serial.print(F(" "));
-	Serial.print(F("betaOffset: "));
-	Serial.println(betaOffset);
+	// Serial.print(F("alphaOffset: "));
+	// Serial.print(alphaOffset);
+	// Serial.print(F(" "));
+	// Serial.print(F("betaOffset: "));
+	// Serial.println(betaOffset);
 
   //Set built in LED to turn on to signal startup
   digitalWrite(13, HIGH);
@@ -600,13 +611,13 @@ void setup() {
 	//calibrateJoystick();
 
   //Arm OneShot125 motors
-  m1_command_PWM = 125; //Command OneShot125 ESC from 125 to 250us pulse length
-  m2_command_PWM = 125;
-  m3_command_PWM = 125;
-  m4_command_PWM = 125;
-  m5_command_PWM = 125;
-  m6_command_PWM = 125;
-  armMotors(); //Loop over commandMotors() until ESCs happily arm
+  // m1_command_PWM = 125; //Command OneShot125 ESC from 125 to 250us pulse length
+  // m2_command_PWM = 125;
+  // m3_command_PWM = 125;
+  // m4_command_PWM = 125;
+  // m5_command_PWM = 125;
+  // m6_command_PWM = 125;
+  // armMotors(); //Loop over commandMotors() until ESCs happily arm
   
   //Indicate entering main loop with 3 quick blinks
   setupBlink(3,160,70); //numBlinks, upTime (ms), downTime (ms)
@@ -617,21 +628,19 @@ void setup() {
   //calibrateMagnetometer();
 
 	// Initialize biquad filters
-	biquadFilter_init(&pFilter, cutoffFreq_pFilter, 2000);
-	biquadFilter_init(&iFilter, cutoffFreq_iFilter, 2000);
-	biquadFilter_init(&dFilter, cutoffFreq_dFilter, 2000);
+	// biquadFilter_init(&pFilter, cutoffFreq_pFilter, 2000);
+	// biquadFilter_init(&iFilter, cutoffFreq_iFilter, 2000);
+	// biquadFilter_init(&dFilter, cutoffFreq_dFilter, 2000);
 
 	while (channel_5_pwm > 1500) {
 		//Serial.println("Waiting to start");
 		getCommands();
-      //Arm servo channels
+    //Arm servo channels
     servo1.write(0); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
     servo2.write(0); //Set these to 90 for servos if you do not want them to briefly max out on startup
     servo3.write(0); //Keep these at 0 if you are using servo outputs for motors
     servo4.write(0);
-    servo5.write(0);
-    servo6.write(0);
-    servo7.write(0);
+    delayMicroseconds(500);
 	}
 
 	// Initialize the SD card, returns 1 if no sd card is detected or it can't be initialized
@@ -658,7 +667,7 @@ void loop() {
   //printRadioData();     
 	// Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for
 	// roll, pitch, yaw; 0 to 1 for throttle)
-  //printDesiredState();  
+  printDesiredState();  
 	// Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
   //printGyroData();      
 	// Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1
@@ -750,6 +759,7 @@ void loop() {
 		ripPID();
 	}
 
+
   //PID Controller - SELECT ONE:
 	controlANGLE();
   //controlANGLE2(); //Stabilize on angle setpoint using cascaded method. Rate controller must be tuned well first!
@@ -763,14 +773,11 @@ void loop() {
   bool killThrottle = throttleCut(); //Directly sets motor commands to low based on state of ch5
 
   //Command actuators
-  commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
+  //commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
   servo1.write(s1_command_PWM); //Writes PWM value to servo object
   servo2.write(s2_command_PWM);
   servo3.write(s3_command_PWM);
   servo4.write(s4_command_PWM);
-  servo5.write(s5_command_PWM);
-  servo6.write(s6_command_PWM);
-  servo7.write(s7_command_PWM);
     
   //Get vehicle commands for next loop iteration
   getCommands(); //Pulls current available radio commands
@@ -784,9 +791,6 @@ void loop() {
 			servo2.write(s2_command_PWM);
 			servo3.write(s3_command_PWM);
 			servo4.write(s4_command_PWM);
-			servo5.write(s5_command_PWM);
-			servo6.write(s6_command_PWM);
-			servo7.write(s7_command_PWM);
 
 			// Check for whether or not the iris should be open
 			if (channel_6_pwm < 1500) {
@@ -810,7 +814,14 @@ void loop() {
 		throttleCutCount = 0;
 	}
 
-	Serial.println((micros() - current_time)*1.0, 5);
+  // unsigned long time = micros() - current_time;
+  // if (time > max_loopTime) {
+  //   max_loopTime = time;
+  // }
+  // Serial.print("Time = ");
+  // Serial.print(time);
+  // Serial.print(" Max = ");
+  // Serial.println(max_loopTime);
 
   //Regulate loop rate
   loopRate(2000); //Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
@@ -1418,19 +1429,22 @@ void ripPID() {
   }
   //Saturate integrator to prevent unsafe buildup
   integral_alphaRoll = constrain(integral_alphaRoll, -i_limit, i_limit);
-  float derivative_alphaRoll = (error_alphaRoll - errorOld_alpha)/dt;
+  float derivative_alphaRoll = (alpha - alpha_old) / dt - GyroX;
 
   roll_des = (Kp_alphaRoll*pScaleAlpha*error_alphaRoll 
 							+ Ki_alphaRoll*iScaleAlpha*integral_alphaRoll 
 							- Kd_alphaRoll*dScaleAlpha*derivative_alphaRoll); 
+  
+  alpha_old = alpha;
 
-	// Serial.print("Proportional: ");
-	// Serial.print(Kp_alphaRoll*pScaleAlpha*error_alphaRoll);
-	// Serial.print(" Integral: ");
-	// Serial.print(Ki_alphaRoll*iScaleAlpha*integral_alphaRoll);
-	// Serial.print(" Derivative: ");
-	// Serial.print(Kd_alphaRoll*dScaleAlpha*derivative_alphaRoll);
-	// Serial.println();
+	//Serial.print("Proportional: ");
+	//Serial.print(Kp_alphaRoll*pScaleAlpha*error_alphaRoll);
+	//Serial.print(" Integral: ");
+	//Serial.print(Ki_alphaRoll*iScaleAlpha*integral_alphaRoll);
+	//Serial.print(" Derivative: ");
+	//Serial.print(Kd_alphaRoll*dScaleAlpha*derivative_alphaRoll, 10);
+	//Serial.println();
+
 
   // --- Beta --- //
   float error_betaPitch = betaPitch_des - betaPitch;
@@ -1440,11 +1454,13 @@ void ripPID() {
   }
   //Saturate integrator to prevent unsafe buildup
   integral_betaPitch = constrain(integral_betaPitch, -i_limit, i_limit);
-  float derivative_betaPitch = (error_betaPitch - errorOld_beta)/dt;
+  float derivative_betaPitch = (beta - beta_old)/dt - GyroY;
 
   pitch_des = (Kp_betaPitch*pScaleBeta*error_betaPitch 
 							+ Ki_betaPitch*iScaleBeta*integral_betaPitch 
 							- Kd_betaPitch*dScaleBeta*derivative_betaPitch); 
+  
+  beta_old = beta;
 }
 
 
@@ -1474,9 +1490,15 @@ void controlANGLE() {
 	
   derivative_roll = GyroX;
 	//derivative_roll = biquadFilter_apply(&dFilter, derivative_roll);
-  roll_PID = 0.01*(Kp_roll_angle*pScaleRoll*error_roll 
-									 + Ki_roll_angle*iScaleRoll*integral_roll 
-									 - Kd_roll_angle*dScaleRoll*derivative_roll); //Scaled by .01 to bring within -1 to 1 range
+	if (irisFlag) {
+		roll_PID = 0.01*(Kp_roll_angleOld*pScaleRoll*error_roll 
+										 + Ki_roll_angleOld*iScaleRoll*integral_roll 
+										 - Kd_roll_angleOld*dScaleRoll*derivative_roll); //Scaled by .01 to bring within -1 to 1 range
+	} else {
+		roll_PID = 0.01*(Kp_roll_angle*pScaleRoll*error_roll 
+										 + Ki_roll_angle*iScaleRoll*integral_roll 
+										 - Kd_roll_angle*dScaleRoll*derivative_roll); //Scaled by .01 to bring within -1 to 1 range
+	}
 
   // --- Pitch --- //
   error_pitch = pitch_des - pitch_IMU;
@@ -1491,10 +1513,16 @@ void controlANGLE() {
 
   derivative_pitch = GyroY;
 	//derivative_pitch = biquadFilter_apply(&dFilter, derivative_pitch);
-	
-  pitch_PID = 0.01*(Kp_pitch_angle*pScalePitch*error_pitch 
-									 	+ Ki_pitch_angle*iScalePitch*integral_pitch 
-									 	- Kd_pitch_angle*dScalePitch*derivative_pitch); //Scaled by .01 to bring within -1 to 1 range
+
+	if (irisFlag) {
+		pitch_PID = 0.01*(Kp_pitch_angleOld*pScalePitch*error_pitch 
+											+ Ki_pitch_angleOld*iScalePitch*integral_pitch 
+											- Kd_pitch_angleOld*dScalePitch*derivative_pitch); //Scaled by .01 to bring within -1 to 1 range
+	} else {
+		pitch_PID = 0.01*(Kp_pitch_angle*pScalePitch*error_pitch 
+											+ Ki_pitch_angle*iScalePitch*integral_pitch 
+											- Kd_pitch_angle*dScalePitch*derivative_pitch); //Scaled by .01 to bring within -1 to 1 range
+	}
 
   // --- Yaw, stablize on rate from GyroZ --- //
   error_yaw = yaw_des - GyroZ;
@@ -1666,20 +1694,20 @@ void scaleCommands() {
    * mX_command_PWM are updated here which are used to command the motors in commandMotors(). sX_command_PWM are updated 
    * which are used to command the servos.
    */
-  //Scaled to 125us - 250us for oneshot125 protocol
-  m1_command_PWM = m1_command_scaled*125 + 125;
-  m2_command_PWM = m2_command_scaled*125 + 125;
-  m3_command_PWM = m3_command_scaled*125 + 125;
-  m4_command_PWM = m4_command_scaled*125 + 125;
-  m5_command_PWM = m5_command_scaled*125 + 125;
-  m6_command_PWM = m6_command_scaled*125 + 125;
-  //Constrain commands to motors within oneshot125 bounds
-  m1_command_PWM = constrain(m1_command_PWM, 125, 250);
-  m2_command_PWM = constrain(m2_command_PWM, 125, 250);
-  m3_command_PWM = constrain(m3_command_PWM, 125, 250);
-  m4_command_PWM = constrain(m4_command_PWM, 125, 250);
-  m5_command_PWM = constrain(m5_command_PWM, 125, 250);
-  m6_command_PWM = constrain(m6_command_PWM, 125, 250);
+  // //Scaled to 125us - 250us for oneshot125 protocol
+  // m1_command_PWM = m1_command_scaled*125 + 125;
+  // m2_command_PWM = m2_command_scaled*125 + 125;
+  // m3_command_PWM = m3_command_scaled*125 + 125;
+  // m4_command_PWM = m4_command_scaled*125 + 125;
+  // m5_command_PWM = m5_command_scaled*125 + 125;
+  // m6_command_PWM = m6_command_scaled*125 + 125;
+  // //Constrain commands to motors within oneshot125 bounds
+  // m1_command_PWM = constrain(m1_command_PWM, 125, 250);
+  // m2_command_PWM = constrain(m2_command_PWM, 125, 250);
+  // m3_command_PWM = constrain(m3_command_PWM, 125, 250);
+  // m4_command_PWM = constrain(m4_command_PWM, 125, 250);
+  // m5_command_PWM = constrain(m5_command_PWM, 125, 250);
+  // m6_command_PWM = constrain(m6_command_PWM, 125, 250);
 
   //Scaled to 0-180 for servo library
   s1_command_PWM = s1_command_scaled*180;
@@ -1952,12 +1980,12 @@ void calibrateESCs() {
       Madgwick(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, MagY, -MagX, MagZ, dt); //Updates roll_IMU, pitch_IMU, and yaw_IMU (degrees)
       getDesState(); //Convert raw commands to normalized values based on saturated control limits
       
-      m1_command_scaled = thro_des;
-      m2_command_scaled = thro_des;
-      m3_command_scaled = thro_des;
-      m4_command_scaled = thro_des;
-      m5_command_scaled = thro_des;
-      m6_command_scaled = thro_des;
+      // m1_command_scaled = thro_des;
+      // m2_command_scaled = thro_des;
+      // m3_command_scaled = thro_des;
+      // m4_command_scaled = thro_des;
+      // m5_command_scaled = thro_des;
+      // m6_command_scaled = thro_des;
       s1_command_scaled = thro_des;
       s2_command_scaled = thro_des;
       s3_command_scaled = thro_des;
@@ -1976,7 +2004,7 @@ void calibrateESCs() {
       servo5.write(s5_command_PWM);
       servo6.write(s6_command_PWM);
       servo7.write(s7_command_PWM);
-      commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
+      //commandMotors(); //Sends command pulses to each motor pin using OneShot125 protocol
       
       //printRadioData(); //Radio pwm values (expected: 1000 to 2000)
       
@@ -2173,191 +2201,17 @@ void setupBlink(int numBlinks,int upTime, int downTime) {
   }
 }
 
-void printRadioData() {
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(F(" CH1: "));
-    Serial.print(channel_1_pwm);
-    Serial.print(F(" CH2: "));
-    Serial.print(channel_2_pwm);
-    Serial.print(F(" CH3: "));
-    Serial.print(channel_3_pwm);
-    Serial.print(F(" CH4: "));
-    Serial.print(channel_4_pwm);
-    Serial.print(F(" CH5: "));
-    Serial.print(channel_5_pwm);
-    Serial.print(F(" CH6: "));
-    Serial.print(channel_6_pwm);
-    Serial.print(F(" CH7: "));
-    Serial.print(channel_7_pwm);
-    Serial.print(F(" CH8: "));
-    Serial.print(channel_8_pwm);
-    Serial.print(F(" CH9: "));
-    Serial.print(channel_9_pwm);
-    Serial.print(F(" CH10: "));
-    Serial.print(channel_10_pwm);
-    Serial.print(F(" CH11: "));
-    Serial.print(channel_11_pwm);
-    Serial.print(F(" CH12: "));
-    Serial.print(channel_12_pwm);
-    Serial.print(F(" CH13: "));
-    Serial.println(channel_13_pwm);
-  }
-}
-
-void printDesiredState() {
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(F("thro_des: "));
-    Serial.print(thro_des);
-    Serial.print(F(" roll_des: "));
-    Serial.print(roll_des);
-    Serial.print(F(" pitch_des: "));
-    Serial.print(pitch_des);
-    Serial.print(F(" yaw_des: "));
-    Serial.println(yaw_des);
-  }
-}
-
-void printGyroData() {
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(F("GyroX: "));
-    Serial.print(GyroX);
-    Serial.print(F(" GyroY: "));
-    Serial.print(GyroY);
-    Serial.print(F(" GyroZ: "));
-    Serial.println(GyroZ);
-  }
-}
-
-void printAccelData() {
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(F("AccX: "));
-    Serial.print(AccX);
-    Serial.print(F(" AccY: "));
-    Serial.print(AccY);
-    Serial.print(F(" AccZ: "));
-    Serial.println(AccZ);
-  }
-}
-
-void pjintMagData() {
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(F("MagX: "));
-    Serial.print(MagX);
-    Serial.print(F(" MagY: "));
-    Serial.print(MagY);
-    Serial.print(F(" MagZ: "));
-    Serial.println(MagZ);
-  }
-}
-
-void printRollPitchYaw() {
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(F("roll: "));
-    Serial.print(roll_IMU);
-    Serial.print(F(" pitch: "));
-    Serial.print(pitch_IMU);
-    Serial.print(F(" yaw: "));
-    Serial.println(yaw_IMU);
-  }
-}
-
-void printRollPitchYawAndDesired() {
-	// Will print in this order:
-	// 	(roll) (pitch) (yaw) (thro_des) (roll_des) (pitch_des) (yaw_des)
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(roll_IMU);
-		Serial.print("\t");
-    Serial.print(pitch_IMU);
-		Serial.print("\t");
-    Serial.print(yaw_IMU);
-		Serial.print("\t");
-    Serial.print(thro_des);
-		Serial.print("\t");
-    Serial.print(roll_des);
-		Serial.print("\t");
-    Serial.print(pitch_des);
-		Serial.print("\t");
-    Serial.println(yaw_des);
-  }
-}
-
-void printPIDoutput() {
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(F("roll_PID: "));
-    Serial.print(roll_PID);
-    Serial.print(F(" pitch_PID: "));
-    Serial.print(pitch_PID);
-    Serial.print(F(" yaw_PID: "));
-    Serial.println(yaw_PID);
-  }
-}
-
-void printMotorCommands() {
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(F("m1_command: "));
-    Serial.print(m1_command_PWM);
-    Serial.print(F(" m2_command: "));
-    Serial.print(m2_command_PWM);
-    Serial.print(F(" m3_command: "));
-    Serial.print(m3_command_PWM);
-    Serial.print(F(" m4_command: "));
-    Serial.print(m4_command_PWM);
-    Serial.print(F(" m5_command: "));
-    Serial.print(m5_command_PWM);
-    Serial.print(F(" m6_command: "));
-    Serial.println(m6_command_PWM);
-  }
-}
-
-void printServoCommands() {
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(F("s1_command: "));
-    Serial.print(s1_command_PWM);
-    Serial.print(F(" s2_command: "));
-    Serial.print(s2_command_PWM);
-    Serial.print(F(" s3_command: "));
-    Serial.print(s3_command_PWM);
-    Serial.print(F(" s4_command: "));
-    Serial.print(s4_command_PWM);
-    Serial.print(F(" s5_command: "));
-    Serial.print(s5_command_PWM);
-    Serial.print(F(" s6_command: "));
-    Serial.print(s6_command_PWM);
-    Serial.print(F(" s7_command: "));
-    Serial.println(s7_command_PWM);
-  }
-}
-
-void printLoopRate() {
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(F("dt = "));
-    Serial.println(dt*1000000.0);
-  }
-}
-
 void getJoyAngle() {
 	// Read the raw analog values (0 to 1023)
 	alphaCounts = analogRead(joyAlphaPin);
 	betaCounts = analogRead(joyBetaPin);
-	// Full range of analog input based on calibration
-	float FR_alpha = alphaCounts_max - alphaCounts_min;
-	float FR_beta = betaCounts_max - alphaCounts_min;
 
-	alpha = (static_cast<float>(alphaCounts) - FR_alpha/2.0f - alphaCounts_min)/FR_alpha*(alpha_max -
-		alpha_min) + alphaOffset;
-	beta = (static_cast<float>(betaCounts) - FR_beta/2.0f - betaCounts_min)/FR_beta*(beta_max -
-		beta_min) + betaOffset;
+	alpha = (static_cast<float>(alphaCounts) - fullRange_alpha_half -
+		alphaCounts_min)/fullRange_alpha*(alpha_min -
+		alpha_max) + alphaOffset;
+	beta = (static_cast<float>(betaCounts) - fullRange_beta_half -
+		betaCounts_min)/fullRange_beta*(beta_min -
+		beta_max) + betaOffset;
 
 	// Determine alpha and pitch in the inertial frame
 	alphaRoll = alpha + roll_IMU;
@@ -2414,185 +2268,48 @@ void calibrateJoystick() {
 	}
 }
 
-void printRIPAngles() {
-	if (current_time - print_counter > 10000) {
-		print_counter = micros();
-		//Serial.print("Alpha: ");
-		Serial.print(alpha);
-		Serial.print(" ");
-		//Serial.print(" Roll: ");
-		Serial.print(roll_IMU);
-		Serial.print(" ");
-		//Serial.print(" Alpha + Roll: ");
-		Serial.print(alpha + roll_IMU);
-		Serial.print(" ");
-		//Serial.print(" Beta: ");
-		Serial.print(beta);
-		Serial.print(" ");
-		//Serial.print(" Pitch: ");
-		Serial.print(pitch_IMU);
-		Serial.print(" ");
-		//Serial.print(" Beta + Pitch: ");
-		Serial.println(beta + pitch_IMU);
-		//Serial.print("AlphaCounts: ");
-		//Serial.print(alphaCounts);
-		//Serial.print(" ");
-		//Serial.print("BetaCounts: ");
-		//Serial.println(betaCounts);
-	}
-}
-
-String getDataString() {
-	String csvDataString;
-	csvDataString = String(roll_IMU)
-									+ ","
-									+ String(pitch_IMU)
-									+ ","
-									+ String(yaw_IMU)
-									+ ","
-									+ String(alpha)
-									+ ","
-									+ String(beta)
-									+ ","
-									+ String(roll_des)
-									+ ","
-									+ String(pitch_des)
-									+ ","
-									+ String(yaw_des)
-									+ ","
-									+ String(thro_des)
-									+ ","
-									+ String(roll_PID)
-									+ ","
-									+ String(pitch_PID)
-									+ ","
-									+ String(yaw_PID)
-									+ ","
-									+ String(channel_1_pwm)
-									+ ","
-									+ String(channel_2_pwm)
-									+ ","
-									+ String(channel_3_pwm)
-									+ ","
-									+ String(channel_4_pwm)
-									+ ","
-									+ String(channel_5_pwm)
-									+ ","
-									+ String(channel_6_pwm)
-									+ ","
-									+ String(channel_7_pwm)
-									+ ","
-									+ String(channel_8_pwm)
-									+ ","
-									+ String(channel_9_pwm)
-									+ ","
-									+ String(channel_10_pwm)
-									+ ","
-									+ String(channel_11_pwm)
-									+ ","
-									+ String(channel_12_pwm)
-									+ ","
-									+ String(channel_13_pwm)
-									+ ","
-									+ String(GyroX)
-									+ ","
-									+ String(GyroY)
-									+ ","
-									+ String(GyroZ)
-									+ ","
-									+ String(AccX)
-									+ ","
-									+ String(AccY)
-									+ ","
-									+ String(AccZ)
-									+ ","
-									+ String(s1_command_scaled)
-									+ ","
-									+ String(s2_command_scaled)
-									+ ","
-									+ String(s3_command_scaled)
-									+ ","
-									+ String(s4_command_scaled)
-									+ ","
-									+ String(Kp_roll_angle*pScaleRoll)
-									+ ","
-									+ String(Ki_roll_angle*iScaleRoll)
-									+ ","
-									+ String(Kd_roll_angle*dScaleRoll)	
-									+ ","
-									+ String(Kp_pitch_angle*pScalePitch)
-									+ ","
-									+ String(Ki_pitch_angle*iScalePitch)
-									+ ","
-									+ String(Kd_pitch_angle*dScalePitch)	
-									+ ","
-									+ String(Kp_yaw*pScaleYaw)
-									+ ","
-									+ String(Ki_yaw*iScaleYaw)
-									+ ","
-									+ String(Kd_yaw*dScaleYaw)	
-									+ ","
-									+ String(failureFlag);	
-	return csvDataString;
-}
-
-void displayRoll() {
-	if (current_time - print_counter > 10000) {
-		print_counter = micros();
-		Serial.print(roll_des);
-		Serial.print(" ");
-		Serial.println(roll_IMU);
-	}
-}
-
-void displayPitch() {
-	if (current_time - print_counter > 10000) {
-		print_counter = micros();
-		Serial.print(pitch_des);
-		Serial.print(" ");
-		Serial.println(pitch_IMU);
-	}
-}
-
 void getPScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_10_pwm - 1000.0f)/1000.0f * 5.0f;
-	// pScaleRoll = scaleVal;
-	// pScalePitch = scaleVal;
-  pScaleAlpha = scaleVal;
-	pScaleBeta = scaleVal;
+	//scaleVal = 1.0f + (channel_10_pwm - 1000.0f)/1000.0f*7.0f;
+	scaleVal = 1.0f + (channel_10_pwm - 1500.0f)/500.0f*0.8f;
+	pScaleRoll = scaleVal;
+	pScalePitch = scaleVal;
+  //pScaleAlpha = scaleVal;
+	//pScaleBeta = scaleVal;
 }
 
 void getDScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f * 5.0f;
+	//scaleVal = 1.0f + (channel_12_pwm - 1000.0f)/1000.0f*5.0f*7.0f;
+	scaleVal = 1.0f + (channel_12_pwm - 1500.0f)/500.0f*0.8f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
-	// dScaleRoll = scaleVal;
-	// dScalePitch = scaleVal;
-  dScaleAlpha = scaleVal;
-	dScaleBeta = scaleVal;
+	dScaleRoll = scaleVal;
+	dScalePitch = scaleVal;
+  //dScaleAlpha = scaleVal;
+	//dScaleBeta = scaleVal;
 }
 
 void getIScale() {
 	float scaleVal;
-	scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f * 5.0f;
+	//scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f*5.0f*7.0f;
+	scaleVal = 1.0f + (channel_11_pwm - 1500.0f)/500.0f*0.8f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
-	// iScaleRoll = scaleVal;
-	// iScalePitch = scaleVal;
-  iScaleAlpha = scaleVal;
-	iScaleBeta = scaleVal;
+	 iScaleRoll = scaleVal;
+	 iScalePitch = scaleVal;
+  //iScaleAlpha = scaleVal;
+	//iScaleBeta = scaleVal;
 }
 
 void rollGainOffset() {
-	float offsetVal;
-	offsetVal = 1.0f + (channel_13_pwm - 1500.0f)/500.0f * 0.05f;
-	pScaleRoll *= offsetVal;
-	dScaleRoll *= offsetVal;
-	iScaleRoll *= offsetVal;
+	//float offsetVal;
+	//offsetVal = 1.0f + (channel_13_pwm - 1500.0f)/500.0f * 0.05f;
+	//pScaleRoll *= offsetVal;
+	//dScaleRoll *= offsetVal;
+	//iScaleRoll *= offsetVal;
 }
 
 

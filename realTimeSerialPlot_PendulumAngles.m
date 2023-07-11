@@ -1,7 +1,7 @@
 clear
 clc
 
-sp = serialport("/dev/ttyACM1", 500000);
+sp = serialport("/dev/cu.usbmodem130644501", 500000);
 
 data1 = zeros(3000, 1);
 data2 = zeros(3000, 1);
