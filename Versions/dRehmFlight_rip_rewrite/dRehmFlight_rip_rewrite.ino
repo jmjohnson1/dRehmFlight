@@ -55,11 +55,11 @@ static const uint8_t num_DSM_channels =
 // #define ACCEL_16G
 
 // Define whether tuning RIP gains or core PID gains
-#define TUNE_RIP
-// #define TUNE_CORE
+//#define TUNE_RIP
+ #define TUNE_CORE
 
 // Defines an extreme rip angle to be at 9 degrees or greater
-#define EXTREME_RIP_ANGLE 8.0f
+#define EXTREME_RIP_ANGLE 7.0f
 //================================================================================================//
 
 // REQUIRED LIBRARIES (included with download in main sketch folder)
@@ -259,13 +259,19 @@ float Kd_roll_angle = 0.0438;
 float Kp_pitch_angle = 0.2204;
 float Ki_pitch_angle = 0.0082;
 float Kd_pitch_angle = 0.0438;
+//float Kp_roll_angle = 0.3317;
+//float Ki_roll_angle = 0.0082;
+//float Kd_roll_angle = 0.0673;
+//float Kp_pitch_angle = 0.3317;
+//float Ki_pitch_angle = 0.0082;
+//float Kd_pitch_angle = 0.0673;
 
-float Kp_roll_angleOld = 0.1512;
+float Kp_roll_angleOld = 0.3317;
 float Ki_roll_angleOld = 0.0082;
-float Kd_roll_angleOld = 0.0338;
-float Kp_pitch_angleOld = 0.1512;
+float Kd_roll_angleOld = 0.0673;
+float Kp_pitch_angleOld = 0.3317;
 float Ki_pitch_angleOld = 0.0082;
-float Kd_pitch_angleOld = 0.0338;
+float Kd_pitch_angleOld = 0.0673;
 
 // Roll damping term for controlANGLE2(), lower is more damping (must be between
 // 0 to 1)
@@ -647,6 +653,7 @@ void setup() {
   // biquadFilter_init(&iFilter, cutoffFreq_iFilter, 2000);
   // biquadFilter_init(&dFilter, cutoffFreq_dFilter, 2000);
 
+
   while (channel_5_pwm > 1500) {
     // Serial.println("Waiting to start");
     getCommands();
@@ -713,11 +720,12 @@ void loop() {
   //  between loop iterations)
   // printLoopRate();
   //  Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
-  // printRIPAngles();
+   //printRIPAngles();
   //  Prints desired and imu roll state for serial plotter
-  // displayRoll();
+  //displayRoll();
   //  Prints desired and imu pitch state for serial plotter
   // displayPitch();
+  //printPIDGains();
 
   // Check for whether or not the iris should be open
   if ((channel_6_pwm < 1750) || extremeAngleFlag) {
@@ -783,6 +791,7 @@ void loop() {
   getPScale();
   getIScale();
   getDScale();
+	scaleBoth();
 
   // RIP PID (Sets/overwrites roll_des and pitch_des)
   if (irisFlag) {
@@ -1471,9 +1480,9 @@ void performSineSweep(int controlledAxis) {
 void rollStep() {
   float desiredAngle;
   if (channel_9_pwm < 1250) {
-    desiredAngle = 15.0f;
+    desiredAngle = 5.0f;
   } else if (channel_9_pwm > 1750) {
-    desiredAngle = -15.0f;
+    desiredAngle = -5.0f;
   } else {
     desiredAngle = 0.0f;
   }
@@ -1482,9 +1491,9 @@ void rollStep() {
 void pitchStep() {
   float desiredAngle;
   if (channel_9_pwm < 1250) {
-    desiredAngle = 15.0f;
+    desiredAngle = 5.0f;
   } else if (channel_9_pwm > 1750) {
-    desiredAngle = -15.0f;
+    desiredAngle = -5.0f;
   } else {
     desiredAngle = 0.0f;
   }
@@ -2527,63 +2536,72 @@ void calibrateJoystick() {
 
 void getPScale() {
   float scaleVal;
-#ifdef TUNE_RIP
-  scaleVal = 1.0f + (channel_10_pwm - 1000.0f) / 1000.0f * 7.0f;
+//#ifdef TUNE_RIP
+  scaleVal = 3.0f + (channel_10_pwm - 1000.0f) / 1000.0f * 9.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
   pScaleAlpha = scaleVal;
   pScaleBeta = scaleVal;
-#elif TUNE_CORE
-  scaleVal = 1.0f + (channel_10_pwm - 1500.0f) / 500.0f * 0.8f;
-  if (scaleVal < 0.0f) {
-    scaleVal = 0.0f;
-  }
-  pScaleRoll = scaleVal;
-  pScalePitch = scaleVal;
-#endif
+//#elifdef TUNE_CORE
+//  scaleVal = 1.0f + (channel_10_pwm - 1000.0f) / 1000.0f * 1.0f;
+//  if (scaleVal < 0.0f) {
+//    scaleVal = 0.0f;
+//  }
+//  pScaleRoll = scaleVal;
+//  pScalePitch = scaleVal;
+//#endif
 }
 
 void getDScale() {
   float scaleVal;
-#ifdef TUNE_RIP
-  scaleVal = 1.0f + (channel_12_pwm - 1000.0f) / 1000.0f * 5.0f * 7.0f;
+//#ifdef TUNE_RIP
+  scaleVal = 1 + (channel_12_pwm - 1000.0f) / 1000.0f * 10.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
   dScaleAlpha = scaleVal;
   dScaleBeta = scaleVal;
-#elif TUNE_CORE
-  scaleVal = 1.0f + (channel_12_pwm - 1500.0f) / 500.0f * 0.8f;
-  if (scaleVal < 0.0f) {
-    scaleVal = 0.0f;
-  }
-  dScaleRoll = scaleVal;
-  dScalePitch = scaleVal;
-#endif
+//#elifdef TUNE_CORE
+//  scaleVal = 1.0f + (channel_12_pwm - 1000.0f) / 1000.0f * 1.0f;
+//  if (scaleVal < 0.0f) {
+//    scaleVal = 0.0f;
+//  }
+//  dScaleRoll = scaleVal;
+//  dScalePitch = scaleVal;
+//#endif
 }
 
 void getIScale() {
   float scaleVal;
-#ifdef TUNE_RIP
-  scaleVal = 1.0f + (channel_11_pwm - 1500.0f) / 500.0f * 5.0f * 7.0f;
+//#ifdef TUNE_RIP
+  scaleVal = (channel_11_pwm - 1000.0f) / 1000.0f * 7.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
   iScaleAlpha = scaleVal;
   iScaleBeta = scaleVal;
-#elif TUNE_CORE
-  scaleVal = 1.0f + (channel_11_pwm - 1500.0f) / 500.0f * 0.8f;
-  if (scaleVal < 0.0f) {
-    scaleVal = 0.0f;
-  }
-  iScaleRoll = scaleVal;
-  iScalePitch = scaleVal;
-#endif
+//#elifdef TUNE_CORE
+//  scaleVal = 1.0f + (channel_11_pwm - 1000.0f) / 1000.0f * 1.0f;
+//  if (scaleVal < 0.0f) {
+//    scaleVal = 0.0f;
+//  }
+//  iScaleRoll = scaleVal;
+//  iScalePitch = scaleVal;
+//#endif
+}
+
+void scaleBoth() {
+	float scaleAdd;
+//	scaleAdd = (channel_13_pwm - 1000.0f) / 1000.0f * 1.0f;
+//	pScaleRoll  += scaleAdd;
+// 	pScalePitch += scaleAdd;
+//	dScaleRoll  += scaleAdd;
+// 	dScalePitch += scaleAdd;
 }
 
 void ripExtremeAngleCheck() {
-	if ((abs(alpha) > EXTREME_RIP_ANGLE) || (abs(beta) > EXTREME_RIP_ANGLE)) {
+	if (abs(acos(cos(alpha*PI/180.0f) * cos(beta*PI/180.0f))) > EXTREME_RIP_ANGLE*PI/180.0f) {
 		closeIris();
 		extremeAngleFlag = 1;
 	}

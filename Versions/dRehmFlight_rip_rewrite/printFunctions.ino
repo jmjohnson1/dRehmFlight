@@ -202,17 +202,9 @@ void printRIPAngles() {
 void displayRoll() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
-    // Serial.print(roll_des);
-    // Serial.print(" ");
-    // Serial.println(roll_IMU);
-    Serial.print(roll_IMU);
-    Serial.print(" ");
-    Serial.print(alpha);
-    Serial.print(" ");
-    Serial.print(alphaRoll);
-    Serial.print(" ");
     Serial.print(roll_des);
-    Serial.println();
+    Serial.print(" ");
+    Serial.println(roll_IMU);
   }
 }
 
@@ -221,6 +213,20 @@ void displayPitch() {
     print_counter = micros();
     Serial.print(pitch_des);
     Serial.print(" ");
-    Serial.println(pitch_IMU);
+    Serial.print(pitch_IMU);
+    Serial.println();
+  }
+}
+
+void printPIDGains() {
+  if (current_time - print_counter > 10000) {
+    print_counter = micros();
+    Serial.print("Kp_pitch: ");
+    Serial.print(Kp_roll_angle);
+    Serial.print(" Ki_pitch: ");
+    Serial.print(Ki_pitch_angle);
+    Serial.print(" Kd_pitch: ");
+    Serial.print(Kd_pitch_angle);
+    Serial.println();
   }
 }

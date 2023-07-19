@@ -1,5 +1,5 @@
 %function plotFlightData(filename)
-filename = "flight_data9.csv";
+filename = "flight_data16.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -7,6 +7,7 @@ filename = "flight_data9.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%% END IMPORT %%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
     lw = 1;
      rng = 1:length(radio_ch1);
@@ -16,95 +17,116 @@ filename = "flight_data9.csv";
     
     close all
 
-    %%% Plot Desired and Measured States %%%
+%     %%% Plot Desired and Measured States %%%
     figure(1);
     hold on
-    plot(roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
-    plot(roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
-    % plot(time(rng), pitch_des(rng), DisplayName="Desired pitch", LineWidth=lw);
-    % plot(time(rng), pitch_imu(rng), DisplayName="Measured pitch", LineWidth=lw);
+    %plot(roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
+    %plot(roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
+    plot(pitch_des(rng), DisplayName="Desired pitch", LineWidth=lw);
+    plot(pitch_imu(rng), DisplayName="Measured pitch", LineWidth=lw);
     % plot(time(rng), yaw_des(rng), DisplayName="Desired yaw", LineWidth=lw);
     % plot(time(rng), yaw_imu(rng), DisplayName="Measured yaw", LineWidth=lw);
+
+    plot(beta1(rng)+pitch_imu(rng), DisplayName="Beta+pitch", LineWidth=lw);
     hold off
     legend();
     grid on
     title("Pitch/Yaw/Roll")
+% 
+%     % Plot motor commands
+%     figure(2);
+%     hold on
+%     plot(s1_command(rng), DisplayName="s1", LineWidth=lw);
+%     plot(s2_command(rng), DisplayName="s2", LineWidth=lw);
+%     plot(s3_command(rng), DisplayName="s3", LineWidth=lw);
+%     plot(s4_command(rng), DisplayName="s4", LineWidth=lw);
+%     hold off
+%     legend();
+%     grid on
+%     title("Motor Commands")
+% 
+%     % % Plot radio channel data
+%     figure(3);
+%     hold on
+%     plot(radio_ch11(rng), DisplayName="thro", LineWidth=lw)
+%     plot(radio_ch12(rng), DisplayName="roll", LineWidth=lw)
+%     plot(radio_ch13(rng), DisplayName="pitch", LineWidth=lw)
+%     %plot(radio_ch4(rng), DisplayName="yaw", LineWidth=lw)
+%     hold off
+%     legend();
+%     grid on
+%     title("Recieved Radio Commands")
+% 
+%     % Calculate derivative of radio commands (dt = 1/(100 Hz))
+%     ch1_diff = diff(radio_ch1(rng))*100;
+%     ch2_diff = diff(radio_ch2(rng))*100;
+%     ch3_diff = diff(radio_ch3(rng))*100;
+%     ch4_diff = diff(radio_ch4(rng))*100;
+% 
+%     % % Plot radio channel derivatives
+%     figure(4);
+%     hold on
+%     plot(ch1_diff, DisplayName="thro", LineWidth=lw)
+%     plot(ch2_diff, DisplayName="roll", LineWidth=lw)
+%     plot(ch3_diff, DisplayName="pitch", LineWidth=lw)
+%     plot(ch4_diff, DisplayName="yaw", LineWidth=lw)
+%     hold off
+%     legend();
+%     grid on
+%     title("Derivative of Recieved Radio Commands (dPWM/dt)")
+% 
+%     % Plot gains
+%     figure(5);
+%     hold on
+%     plot(kp_roll(rng), DisplayName="K_p_{roll}")
+%     plot(ki_roll(rng), DisplayName="K_i_{roll}")
+%     plot(kd_roll(rng), DisplayName="K_d_{roll}")
+%     plot(kp_pitch(rng), DisplayName="K_p_{pitch}")
+%     plot(ki_pitch(rng), DisplayName="K_i_{pitch}")
+%     plot(kd_pitch(rng), DisplayName="K_d_{pitch}")
+%     hold off
+%     legend();
+%     grid on
+%     title("Gains")
+% 
+%     % Plot PID
+%     figure(6);
+%     hold on
+%     plot(roll_pid(rng), DisplayName="Roll PID");
+%     plot(pitch_pid(rng), DisplayName="Pitch PID");
+%     hold off
+%     legend();
+%     grid on
+%     title("Normalized PID outputs")
+% 
+%     % % Plot Gyro
+%     figure(7);
+%     hold on
+%     plot(GyroX(rng), DisplayName="GyroX");
+%     plot(GyroY(rng), DisplayName="GyroY");
+%     plot(GyroZ(rng), DisplayName="GyroZ");
+%     hold off;
+%     legend();
+%     grid on;
+%     title("Gyro");
+% 
+% %end
 
-    % Plot motor commands
-    figure(2);
-    hold on
-    plot(s1_command(rng), DisplayName="s1", LineWidth=lw);
-    plot(s2_command(rng), DisplayName="s2", LineWidth=lw);
-    plot(s3_command(rng), DisplayName="s3", LineWidth=lw);
-    plot(s4_command(rng), DisplayName="s4", LineWidth=lw);
-    hold off
-    legend();
-    grid on
-    title("Motor Commands")
 
-    % % Plot radio channel data
-    figure(3);
-    hold on
-    plot(radio_ch1(rng), DisplayName="thro", LineWidth=lw)
-    plot(radio_ch2(rng), DisplayName="roll", LineWidth=lw)
-    plot(radio_ch3(rng), DisplayName="pitch", LineWidth=lw)
-    plot(radio_ch4(rng), DisplayName="yaw", LineWidth=lw)
-    hold off
-    legend();
-    grid on
-    title("Recieved Radio Commands")
-
-    % Calculate derivative of radio commands (dt = 1/(100 Hz))
-    ch1_diff = diff(radio_ch1(rng))*100;
-    ch2_diff = diff(radio_ch2(rng))*100;
-    ch3_diff = diff(radio_ch3(rng))*100;
-    ch4_diff = diff(radio_ch4(rng))*100;
-
-    % % Plot radio channel derivatives
-    figure(4);
-    hold on
-    plot(ch1_diff, DisplayName="thro", LineWidth=lw)
-    plot(ch2_diff, DisplayName="roll", LineWidth=lw)
-    plot(ch3_diff, DisplayName="pitch", LineWidth=lw)
-    plot(ch4_diff, DisplayName="yaw", LineWidth=lw)
-    hold off
-    legend();
-    grid on
-    title("Derivative of Recieved Radio Commands (dPWM/dt)")
-
-    % Plot gains
-    figure(5);
-    hold on
-    plot(kp_roll(rng), DisplayName="K_p_{roll}")
-    plot(ki_roll(rng), DisplayName="K_i_{roll}")
-    plot(kd_roll(rng), DisplayName="K_d_{roll}")
-    plot(kp_pitch(rng), DisplayName="K_p_{pitch}")
-    plot(ki_pitch(rng), DisplayName="K_i_{pitch}")
-    plot(kd_pitch(rng), DisplayName="K_d_{pitch}")
-    hold off
-    legend();
-    grid on
-    title("Gains")
-    
-    % Plot PID
-    figure(6);
-    hold on
-    plot(roll_pid(rng), DisplayName="Roll PID");
-    plot(pitch_pid(rng), DisplayName="Pitch PID");
-    hold off
-    legend();
-    grid on
-    title("Normalized PID outputs")
-
-    % % Plot Gyro
-    figure(7);
-    hold on
-    plot(GyroX(rng), DisplayName="GyroX");
-    plot(GyroY(rng), DisplayName="GyroY");
-    plot(GyroZ(rng), DisplayName="GyroZ");
-    hold off;
-    legend();
-    grid on;
-    title("Gyro");
-
-%end
+% subplot(2, 1, 1)
+% plot(rng./100, roll_imu(rng), 'r-', DisplayName="Measured Roll")
+% hold on
+% plot(rng./100, roll_des(rng), 'b-', DisplayName="Desired Roll")
+% hold off
+% grid on
+% ylim([-7, 7])
+% legend();
+% 
+% subplot(2, 1, 2)
+% plot(rng./100, kp_roll(rng), 'r-', DisplayName = "Kp")
+% hold on
+% plot(rng./100, ki_roll(rng), '-', Color=[0 0.5 0], DisplayName = "Ki")
+% plot(rng./100, kd_roll(rng), 'b-', DisplayName = "Kd")
+% hold off
+% grid on
+% legend()
