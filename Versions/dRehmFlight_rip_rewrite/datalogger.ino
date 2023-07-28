@@ -127,6 +127,10 @@ void logData_printCSVHeader() {
 	buffer.print("ki_betaPitch");
 	buffer.write(",");
 	buffer.print("kd_betaPitch");
+	buffer.write(",");
+	buffer.write("ripIMU_roll");
+	buffer.write(",");
+	buffer.write("ripIMU_pitch");
 	buffer.println();
 }
 
@@ -148,11 +152,11 @@ int logData_writeBuffer() {
 			return 1;
 		}
 	}
-	buffer.print(roll_IMU, 4);
+	buffer.print(quadIMU_info.roll_IMU, 4);
 	buffer.write(",");
-	buffer.print(pitch_IMU, 4);
+	buffer.print(quadIMU_info.pitch_IMU, 4);
 	buffer.write(",");
-	buffer.print(yaw_IMU, 4);
+	buffer.print(quadIMU_info.yaw_IMU, 4);
 	buffer.write(",");
 	buffer.print(alpha, 4);
 	buffer.write(",");
@@ -198,17 +202,17 @@ int logData_writeBuffer() {
 	buffer.write(",");
 	buffer.print(channel_13_pwm);
 	buffer.write(",");
-	buffer.print(GyroX, 4);
+	buffer.print(quadIMU_info.GyroX, 4);
 	buffer.write(",");
-	buffer.print(GyroY, 4);
+	buffer.print(quadIMU_info.GyroY, 4);
 	buffer.write(",");
-	buffer.print(GyroZ, 4);
+	buffer.print(quadIMU_info.GyroZ, 4);
 	buffer.write(",");
-	buffer.print(AccX, 4);
+	buffer.print(quadIMU_info.AccX, 4);
 	buffer.write(",");
-	buffer.print(AccY, 4);
+	buffer.print(quadIMU_info.AccY, 4);
 	buffer.write(",");
-	buffer.print(AccZ, 4);
+	buffer.print(quadIMU_info.AccZ, 4);
 	buffer.write(",");
 	buffer.print(s1_command_scaled, 4);
 	buffer.write(",");
@@ -249,6 +253,10 @@ int logData_writeBuffer() {
 	buffer.print(Ki_betaPitch*iScaleBeta, 4);
 	buffer.write(",");
 	buffer.print(Kd_betaPitch*dScaleBeta, 4);
+	buffer.write(",");
+	buffer.print(ripIMU_info.roll_IMU, 4);
+	buffer.write(",");
+	buffer.print(ripIMU_info.pitch_IMU, 4);
 	buffer.println();
 	if (buffer.getWriteError()) {
 		Serial.println("WriteError");

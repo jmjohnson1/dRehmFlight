@@ -14,12 +14,12 @@ data6 = zeros(3000, 1);
 %Set up Plot
 fig = figure('WindowStyle', 'docked');
 hold on;
-plotGraph1 = plot(data1,'-r', DisplayName="\alpha");
-plotGraph2 = plot(data2,'-b', DisplayName="roll");
-plotGraph3 = plot(data3, DisplayName='roll + \alpha');
-plotGraph4 = plot(data4, DisplayName='\beta');
-plotGraph5 = plot(data5, DisplayName='pitch');
-plotGraph6 = plot(data6, DisplayName='pitch + \beta');
+plotGraph1 = plot(data1, DisplayName="alpha");
+plotGraph2 = plot(data2, DisplayName="alphaRoll");
+plotGraph3 = plot(data3, DisplayName='beta');
+plotGraph4 = plot(data4, DisplayName='betaPitch');
+plotGraph5 = plot(data5, DisplayName='ripRoll');
+plotGraph6 = plot(data6, DisplayName='ripPitch');
 hold off
 title("Serial Data",'FontSize',15);
 ylabel("Angle (deg)",'FontSize',15);
