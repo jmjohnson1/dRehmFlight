@@ -55,7 +55,7 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
 
 // Define whether tuning RIP gains or core PID gains
 // #define TUNE_RIP
-// #define TUNE_CORE
+ #define TUNE_CORE
 
 // Defines an extreme rip angle to be at 15 degrees or greater
 #define EXTREME_RIP_ANGLE 14.0f
@@ -255,17 +255,17 @@ float dScalePitch = 1.0f;
 float dScaleYaw = 1.0f;
 
 float Kp_roll_angle = 0.2204;
-float Ki_roll_angle = 0.0082;
+float Ki_roll_angle = 0.03;
 float Kd_roll_angle = 0.0438;
 float Kp_pitch_angle = 0.2204;
-float Ki_pitch_angle = 0.0082;
+float Ki_pitch_angle = 0.03;
 float Kd_pitch_angle = 0.0438;
-// float Kp_roll_angle = 0.3317;
-// float Ki_roll_angle = 0.0082;
-// float Kd_roll_angle = 0.0673;
-// float Kp_pitch_angle = 0.3317;
-// float Ki_pitch_angle = 0.0082;
-// float Kd_pitch_angle = 0.0673;
+ //float Kp_roll_angle = 0.3317;
+ //float Ki_roll_angle = 0.0082;
+ //float Kd_roll_angle = 0.0673;
+ //float Kp_pitch_angle = 0.3317;
+ //float Ki_pitch_angle = 0.0082;
+ //float Kd_pitch_angle = 0.0673;
 
 float Kp_roll_angleOld = 0.3317;
 float Ki_roll_angleOld = 0.0082;
@@ -588,21 +588,20 @@ void setup() {
   // level when powered up Calibration parameters printed to serial monitor.
   // Paste these in the user specified variables section, then comment this out
   // forever.
-  // calculate_IMU_error(&ripIMU_info, &ripIMU);
-  ripIMU_info.AccErrorX = 0.03;
-  ripIMU_info.AccErrorY = 0.01;
-  ripIMU_info.AccErrorZ = 0.05;
-  ripIMU_info.GyroErrorX = -1.09;
-  ripIMU_info.GyroErrorY = 0.95;
-  ripIMU_info.GyroErrorZ = -2.02;
-  // calculate_IMU_error(&quadIMU_info, &quadIMU);
-  quadIMU_info.AccErrorX = 0.04;
-  quadIMU_info.AccErrorY = -0.03;
-  quadIMU_info.AccErrorZ = -0.06;
-  quadIMU_info.GyroErrorX = -2.99;
-  quadIMU_info.GyroErrorY = -0.67;
-  quadIMU_info.GyroErrorZ = -0.04;
-
+  //calculate_IMU_error(&ripIMU_info, &ripIMU);
+	ripIMU_info.AccErrorX = 0.06;
+	ripIMU_info.AccErrorY = -0.01;
+	ripIMU_info.AccErrorZ = -0.01;
+	ripIMU_info.GyroErrorX = -2.19;
+	ripIMU_info.GyroErrorY = -0.01;
+	ripIMU_info.GyroErrorZ = -0.34;
+  //calculate_IMU_error(&quadIMU_info, &quadIMU);
+	quadIMU_info.AccErrorX = 0.04;
+	quadIMU_info.AccErrorY = -0.03;
+	quadIMU_info.AccErrorZ = -0.06;
+	quadIMU_info.GyroErrorX = -3.03;
+	quadIMU_info.GyroErrorY = -0.68;
+	quadIMU_info.GyroErrorZ = 0.01;
   // Arm servo channels
   servo1.write(0); // Command servo angle from 0-180 degrees (1000 to 2000 PWM)
   servo2.write(0); // Set these to 90 for servos if you do not want them to
@@ -677,15 +676,14 @@ void loop() {
   //  Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
   // printRIPAngles();
   //  Prints desired and imu roll state for serial plotter
-  // displayRoll();
+   displayRoll();
   //  Prints desired and imu pitch state for serial plotter
   // displayPitch();
   // printPIDGains();
-
   // printRIPIMUData();
-
   // combination of two rip measurements
   // displayRIPCombo();
+	//displayResponse();
 
   // Check if rotors should be armed
   if (!flightLoopStarted && channel_5_pwm < 1500) {
@@ -1199,9 +1197,9 @@ void performSineSweep(int controlledAxis) {
 void rollStep() {
   float desiredAngle;
   if (channel_9_pwm < 1250) {
-    desiredAngle = 5.0f;
+    desiredAngle = 10.0f;
   } else if (channel_9_pwm > 1750) {
-    desiredAngle = -5.0f;
+    desiredAngle = -10.0f;
   } else {
     desiredAngle = 0.0f;
   }
@@ -1687,7 +1685,7 @@ void armMotors() {
    * other processes that sometimes prevent motors from arming.
    */
   for (int i = 0; i <= 50; i++) {
-    commandMotors();
+    //commandMotors();
     delay(2);
   }
 }
@@ -2032,7 +2030,7 @@ void getPScale() {
   pScaleAlpha = scaleVal;
   pScaleBeta = scaleVal;
 #elif defined TUNE_CORE
-  scaleVal = 1.0f + (channel_10_pwm - 1000.0f) / 1000.0f * 1.0f;
+  scaleVal = 1.0f + (channel_10_pwm - 1000.0f) / 1000.0f * 2.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
@@ -2051,7 +2049,7 @@ void getDScale() {
   dScaleAlpha = scaleVal;
   dScaleBeta = scaleVal;
 #elif defined TUNE_CORE
-  scaleVal = 1.0f + (channel_12_pwm - 1000.0f) / 1000.0f * 1.0f;
+  scaleVal = 1.0f + (channel_12_pwm - 1000.0f) / 1000.0f * 2.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
@@ -2070,7 +2068,7 @@ void getIScale() {
   iScaleAlpha = scaleVal;
   iScaleBeta = scaleVal;
 #elif defined TUNE_CORE
-  scaleVal = 1.0f + (channel_11_pwm - 1000.0f) / 1000.0f * 1.0f;
+  scaleVal = 1.0f + (channel_11_pwm - 1000.0f) / 1000.0f * 10.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }

@@ -131,6 +131,10 @@ void logData_printCSVHeader() {
 	buffer.write("ripIMU_roll");
 	buffer.write(",");
 	buffer.write("ripIMU_pitch");
+	buffer.write(",");
+	buffer.write("ripRoll_des");
+	buffer.write(",");
+	buffer.write("ripPitch_des");
 	buffer.println();
 }
 
@@ -257,6 +261,10 @@ int logData_writeBuffer() {
 	buffer.print(ripIMU_info.roll_IMU, 4);
 	buffer.write(",");
 	buffer.print(ripIMU_info.pitch_IMU, 4);
+	buffer.write(",");
+	buffer.print(alphaRoll_des, 4);
+	buffer.write(",");
+	buffer.print(betaPitch_des, 4);
 	buffer.println();
 	if (buffer.getWriteError()) {
 		Serial.println("WriteError");

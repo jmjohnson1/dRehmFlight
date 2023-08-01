@@ -1,5 +1,5 @@
 %function plotFlightData(filename)
-filename = "flight_data3.csv";
+filename = "flight_data17.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -18,20 +18,20 @@ filename = "flight_data3.csv";
     close all
 
 %     %%% Plot Desired and Measured States %%%
-    % figure(1);
-    % hold on
-    % %plot(roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
-    % %plot(roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
+    figure(1);
+    hold on
+    plot(roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
+    plot(roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
     % plot(pitch_des(rng), DisplayName="Desired pitch", LineWidth=lw);
     % plot(pitch_imu(rng), DisplayName="Measured pitch", LineWidth=lw);
-    % % plot(time(rng), yaw_des(rng), DisplayName="Desired yaw", LineWidth=lw);
-    % % plot(time(rng), yaw_imu(rng), DisplayName="Measured yaw", LineWidth=lw);
-    % 
-    % plot(beta1(rng)+pitch_imu(rng), DisplayName="Beta+pitch", LineWidth=lw);
-    % hold off
-    % legend();
-    % grid on
-    % title("Pitch/Yaw/Roll")
+    % plot(time(rng), yaw_des(rng), DisplayName="Desired yaw", LineWidth=lw);
+    % plot(time(rng), yaw_imu(rng), DisplayName="Measured yaw", LineWidth=lw);
+
+    plot(beta1(rng)+pitch_imu(rng), DisplayName="Beta+pitch", LineWidth=lw);
+    hold off
+    legend();
+    grid on
+    title("Pitch/Yaw/Roll")
 % 
 %     % Plot motor commands
 %     figure(2);
@@ -112,24 +112,24 @@ filename = "flight_data3.csv";
 % 
 % %end
 
+figure()
+subplot(2, 1, 1)
+plot(rng./100, roll_imu(rng), 'r-', DisplayName="Measured Roll")
+hold on
+plot(rng./100, roll_des(rng), 'b-', DisplayName="Desired Roll")
+hold off
+grid on
+ylim([-7, 7])
+legend();
 
-% subplot(2, 1, 1)
-% plot(rng./100, roll_imu(rng), 'r-', DisplayName="Measured Roll")
-% hold on
-% plot(rng./100, roll_des(rng), 'b-', DisplayName="Desired Roll")
-% hold off
-% grid on
-% ylim([-7, 7])
-% legend();
-% 
-% subplot(2, 1, 2)
-% plot(rng./100, kp_roll(rng), 'r-', DisplayName = "Kp")
-% hold on
-% plot(rng./100, ki_roll(rng), '-', Color=[0 0.5 0], DisplayName = "Ki")
-% plot(rng./100, kd_roll(rng), 'b-', DisplayName = "Kd")
-% hold off
-% grid on
-% legend()
+subplot(2, 1, 2)
+plot(rng./100, kp_roll(rng), 'r-', DisplayName = "Kp")
+hold on
+plot(rng./100, ki_roll(rng), '-', Color=[0 0.5 0], DisplayName = "Ki")
+plot(rng./100, kd_roll(rng), 'b-', DisplayName = "Kd")
+hold off
+grid on
+legend()
 
 % figure()
 % plot(time, alpha1, DisplayName="alpha");
@@ -143,54 +143,54 @@ filename = "flight_data3.csv";
 % legend()
 % grid on;
 
-motor.xOffset = 3;
-motor.yOffset = 3;
-motor.radius = 0.25;
-
-
-idx = 5000;
-th = 0:360;
-% Draw iris circle
-plot(cosd(th), sind(th), 'r-', DisplayName="Iris Limits");
-grid on;
-axis equal;
-
-% Draw motors
-hold on;
-m2.plot = plot((motor.radius*cosd(th) + motor.xOffset), ...
-    (motor.radius*sind(th) + motor.yOffset), 'k-');
-
-m1.plot = plot(-(motor.radius*cosd(th) + motor.xOffset), ...
-    (motor.radius*sind(th) + motor.yOffset), 'k-');
-
-m3.plot = plot((motor.radius*cosd(th) + motor.xOffset), ...
-    -(motor.radius*sind(th) + motor.yOffset), 'k-');
-
-m4.plot = plot(-(motor.radius*cosd(th) + motor.xOffset), ...
-    -(motor.radius*sind(th) + motor.yOffset), 'k-');
-hold off;
-
-% Label values in motors
-m1.text = text(motor.xOffset, motor.yOffset, string(s1_command(idx)));
-m2.text = text(motor.xOffset, -motor.yOffset, string(s2_command(idx)));
-m3.text = text(-motor.xOffset, -motor.yOffset, string(s3_command(idx)));
-m4.text = text(-motor.xOffset, motor.yOffset, string(s4_command(idx)));
-
-% Plot iso
-r1 = sind(5)/sind(20);
-r2 = sind(10)/sind(20);
-r3 = sind(15)/sind(20);
-hold on;
-plot(r1*cosd(th), r1*sind(th), 'k--');
-plot(r2*cosd(th), r2*sind(th), 'k--');
-plot(r3*cosd(th), r3*sind(th), 'k--');
-hold off;
-
-% Place the pendulum
-pendY = -sind(alpha1(idx))/sind(20);
-pendX = sind(beta1(idx))/sind(20);
-
-hold on;
-plot(pendX, pendY, 'b.', MarkerSize=20);
-hold off;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% motor.xOffset = 3;
+% motor.yOffset = 3;
+% motor.radius = 0.25;
+% 
+% 
+% idx = 5000;
+% th = 0:360;
+% % Draw iris circle
+% plot(cosd(th), sind(th), 'r-', DisplayName="Iris Limits");
+% grid on;
+% axis equal;
+% 
+% % Draw motors
+% hold on;
+% m2.plot = plot((motor.radius*cosd(th) + motor.xOffset), ...
+%     (motor.radius*sind(th) + motor.yOffset), 'k-');
+% 
+% m1.plot = plot(-(motor.radius*cosd(th) + motor.xOffset), ...
+%     (motor.radius*sind(th) + motor.yOffset), 'k-');
+% 
+% m3.plot = plot((motor.radius*cosd(th) + motor.xOffset), ...
+%     -(motor.radius*sind(th) + motor.yOffset), 'k-');
+% 
+% m4.plot = plot(-(motor.radius*cosd(th) + motor.xOffset), ...
+%     -(motor.radius*sind(th) + motor.yOffset), 'k-');
+% hold off;
+% 
+% % Label values in motors
+% m1.text = text(motor.xOffset, motor.yOffset, string(s1_command(idx)));
+% m2.text = text(motor.xOffset, -motor.yOffset, string(s2_command(idx)));
+% m3.text = text(-motor.xOffset, -motor.yOffset, string(s3_command(idx)));
+% m4.text = text(-motor.xOffset, motor.yOffset, string(s4_command(idx)));
+% 
+% % Plot iso
+% r1 = sind(5)/sind(20);
+% r2 = sind(10)/sind(20);
+% r3 = sind(15)/sind(20);
+% hold on;
+% plot(r1*cosd(th), r1*sind(th), 'k--');
+% plot(r2*cosd(th), r2*sind(th), 'k--');
+% plot(r3*cosd(th), r3*sind(th), 'k--');
+% hold off;
+% 
+% % Place the pendulum
+% pendY = -sind(alpha1(idx))/sind(20);
+% pendX = sind(beta1(idx))/sind(20);
+% 
+% hold on;
+% plot(pendX, pendY, 'b.', MarkerSize=20);
+% hold off;
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
