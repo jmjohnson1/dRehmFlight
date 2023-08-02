@@ -189,7 +189,7 @@ typedef struct attitudeInfo {
   // Filter parameters
   float B_madgwick = 0.04; // Madgwick filter parameter
   float B_accel = 0.14;    // Accelerometer LP filter paramter, (MPU6050 default: 0.14. MPU9250 default: 0.2)
-  float B_gyro = 0.1;      // Gyro LP filter paramter, (MPU6050 default: 0.1. MPU9250 default: 0.17)
+  float B_gyro = 0.05;      // Gyro LP filter paramter, (MPU6050 default: 0.1. MPU9250 default: 0.17)
   float B_mag = 1.0;       // Magnetometer LP filter parameter
 } attInfo;
 
@@ -238,10 +238,6 @@ float maxYaw = 160.0;
 float maxAlphaRoll = 5.0f;
 float maxBetaPitch = 5.0f;
 
-// ANGLE MODE PID GAINS //
-float Kp_scale = 0.75f;
-float Ki_scale = 0.1f;
-float Kd_scale = 1.1f;
 
 // SCALE FACTORS FOR PID //
 float pScaleRoll = 1.0f;
@@ -254,18 +250,18 @@ float dScaleRoll = 1.0f;
 float dScalePitch = 1.0f;
 float dScaleYaw = 1.0f;
 
-float Kp_roll_angle = 0.2204;
-float Ki_roll_angle = 0.03;
-float Kd_roll_angle = 0.0438;
-float Kp_pitch_angle = 0.2204;
-float Ki_pitch_angle = 0.03;
-float Kd_pitch_angle = 0.0438;
- //float Kp_roll_angle = 0.3317;
- //float Ki_roll_angle = 0.0082;
- //float Kd_roll_angle = 0.0673;
- //float Kp_pitch_angle = 0.3317;
- //float Ki_pitch_angle = 0.0082;
- //float Kd_pitch_angle = 0.0673;
+//float Kp_roll_angle = 0.2204;
+//float Ki_roll_angle = 0.03;
+//float Kd_roll_angle = 0.0438;
+//float Kp_pitch_angle = 0.2204;
+//float Ki_pitch_angle = 0.03;
+//float Kd_pitch_angle = 0.0438;
+float Kp_roll_angle = 0.3;
+float Ki_roll_angle = 0.01;
+float Kd_roll_angle = 0.07;
+float Kp_pitch_angle = 0.3;
+float Ki_pitch_angle = 0.01;
+float Kd_pitch_angle = 0.07;
 
 float Kp_roll_angleOld = 0.3317;
 float Ki_roll_angleOld = 0.0082;
@@ -437,7 +433,7 @@ float error_yaw, error_yaw_prev, integral_yaw, integral_yaw_prev, derivative_yaw
 
 // biquadFilter_s pFilter;
 // biquadFilter_s iFilter;
-// biquadFilter_s dFilter;
+ biquadFilter_s dFilter;
 
 // Keep track of last error term
 float errorOld_alpha = 0;
@@ -520,6 +516,8 @@ bool extremeAngleFlag = 0;
 // Flag to check if the flight loop has started yet, prevents lock in main loop when throttle killed
 bool flightLoopStarted = 0;
 
+uint16_t mainLoopCounter = 1;
+
 //========================================================================================================================//
 //                                                      VOID SETUP //
 //========================================================================================================================//
@@ -579,7 +577,7 @@ void setup() {
   channel_14_pwm = channel_14_fs;
 
   // Initialize IMU communication
-  IMUinit(&ripIMU);
+  //IMUinit(&ripIMU);
   IMUinit(&quadIMU);
 
   delay(5);
@@ -633,6 +631,8 @@ void setup() {
   // Initialize the SD card, returns 1 if no sd card is detected or it can't be
   // initialized
   SD_is_present = !logData_setup();
+
+	InitTelemetry();
 
   doneWithSetup = 1;
 }
@@ -827,6 +827,17 @@ void loop() {
   // Serial.print(time);
   // Serial.print(" Max = ");
   // Serial.println(max_loopTime);
+
+	if ((mainLoopCounter % 1000) == 0) {
+		SendAttitude(quadIMU_info.roll_IMU, quadIMU_info.pitch_IMU, quadIMU_info.yaw_IMU,
+							 quadIMU_info.GyroX, quadIMU_info.GyroY, quadIMU_info.GyroZ);
+	}
+
+	if (mainLoopCounter > 2000) {
+		SendHeartbeat();
+		mainLoopCounter = 0;
+	}
+	mainLoopCounter++;
 
   // Regulate loop rate
   loopRate(2000); // Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
@@ -2049,7 +2060,7 @@ void getDScale() {
   dScaleAlpha = scaleVal;
   dScaleBeta = scaleVal;
 #elif defined TUNE_CORE
-  scaleVal = 1.0f + (channel_12_pwm - 1000.0f) / 1000.0f * 2.0f;
+  scaleVal = 1.0f + (channel_12_pwm - 1000.0f) / 1000.0f * 5.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
@@ -2068,7 +2079,7 @@ void getIScale() {
   iScaleAlpha = scaleVal;
   iScaleBeta = scaleVal;
 #elif defined TUNE_CORE
-  scaleVal = 1.0f + (channel_11_pwm - 1000.0f) / 1000.0f * 10.0f;
+  scaleVal = 1.0f + (channel_11_pwm - 1000.0f) / 1000.0f * 50.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }

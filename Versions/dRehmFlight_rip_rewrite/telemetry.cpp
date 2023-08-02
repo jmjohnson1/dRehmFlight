@@ -1,10 +1,5 @@
 #include "telemetry.h"
-
-// Global variables
-unsigned long previousMillis_heartbeat = 0;
-unsigned long previousMillis_corePID = 0;
-unsigned long previousMillis_ripPID = 0;
-unsigned long nextIntervalMavlink = 1000;
+#include "src/mavlink/common/mavlink_msg_attitude.h"
 
 // System information
 uint8_t sysid = 1;
@@ -22,11 +17,14 @@ void InitTelemetry() {
   HWSERIAL.begin(57600);
 }
 
-void SendHeartbeat() {
-  unsigned long currentMillisMavlink = millis();
-  if (currentMillisMavlink - previousMillis_heartbeat >= nextIntervalMavlink) {
-    previousMillis_heartbeat = currentMillisMavlink;
+void SendMessage(uint8_t *msg_buf, mavlink_message_t *msg) {
+	// Copy message to send buffer
+	uint16_t len = mavlink_msg_to_send_buffer(msg_buf, msg);
+	// Send message
+	HWSERIAL.write(msg_buf, len);
+}
 
+void SendHeartbeat() {
     // Buffer
     mavlink_message_t msg;
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
@@ -40,13 +38,9 @@ void SendHeartbeat() {
 
     // Send the message with UART
     HWSERIAL.write(buf, len);
-  }
 }
 
 void SendPIDGains_core(float P, float I, float D) {
-  unsigned long currentMillisMavlink = millis();
-  if (currentMillisMavlink - previousMillis_corePID >= nextIntervalMavlink) {
-    previousMillis_corePID = currentMillisMavlink;
 	// Buffer
   mavlink_message_t pid_msg;
 	uint8_t pid_buf[MAVLINK_MAX_PACKET_LEN];
@@ -59,13 +53,9 @@ void SendPIDGains_core(float P, float I, float D) {
 
 	// Send message
 	HWSERIAL.write(pid_buf, len);
-	}
 }
 
 void SendPIDGains_rip(float P, float I, float D) {
-  unsigned long currentMillisMavlink = millis();
-  if (currentMillisMavlink - previousMillis_ripPID >= nextIntervalMavlink) {
-    previousMillis_ripPID = currentMillisMavlink;
 	// Buffer
   mavlink_message_t pid_msg;
 	uint8_t pid_buf[MAVLINK_MAX_PACKET_LEN];
@@ -78,6 +68,21 @@ void SendPIDGains_rip(float P, float I, float D) {
 
 	// Send message
 	HWSERIAL.write(pid_buf, len);
-	}
 }
+
+void SendAttitude(float roll, float pitch, float yaw, float rollspeed, float pitchspeed, float yawspeed) {
+	// Buffer
+	mavlink_message_t att_msg;
+	uint8_t msg_buf[MAVLINK_MAX_PACKET_LEN];
+
+	// Pack Message
+	mavlink_msg_attitude_pack(sysid, compid_core, &att_msg, 0, roll, pitch, yaw, rollspeed, pitchspeed, yawspeed);
+
+	// Copy message to send buffer
+	uint16_t len = mavlink_msg_to_send_buffer(msg_buf, &att_msg);
+
+	// Send message
+	HWSERIAL.write(msg_buf, len);
+}
+
 
