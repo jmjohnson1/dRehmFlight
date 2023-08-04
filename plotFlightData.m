@@ -1,5 +1,5 @@
 %function plotFlightData(filename)
-filename = "flight_data4.csv";
+filename = "flight_data16.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
