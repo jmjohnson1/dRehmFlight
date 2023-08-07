@@ -269,19 +269,19 @@ float Kp_pitch_angle = 0.8627;
 float Ki_pitch_angle = 0.24;
 float Kd_pitch_angle = 0.1321;
 
-float Kp_roll_angleOld = 0.9832;
-float Ki_roll_angleOld = 0.0385;
-float Kd_roll_angleOld = 0.1353;
-float Kp_pitch_angleOld = 0.9832;
-float Ki_pitch_angleOld = 0.0385;
-float Kd_pitch_angleOld = 0.1353;
+float Kp_roll_angleOld  = 1.8032;
+float Ki_roll_angleOld  = 0.0404;
+float Kd_roll_angleOld  = 0.2698;
+float Kp_pitch_angleOld = 1.8032;
+float Ki_pitch_angleOld = 0.0404;
+float Kd_pitch_angleOld = 0.2698;
 #else
-float Kp_roll_angle = 0.9832;
-float Ki_roll_angle = 0.0385;
-float Kd_roll_angle = 0.1353;
-float Kp_pitch_angle = 0.9832;
-float Ki_pitch_angle = 0.0385;
-float Kd_pitch_angle = 0.1353;
+float Kp_roll_angle     = 1.8032;
+float Ki_roll_angle     = 0.0404;
+float Kd_roll_angle     = 0.2698;
+float Kp_pitch_angle    = 1.8032;
+float Ki_pitch_angle    = 0.0404;
+float Kd_pitch_angle    = 0.2698;
 #endif
 
 // Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
@@ -303,11 +303,11 @@ float Ki_yaw = 0.06;
 float Kd_yaw = 0.00015;
 
 // PID GAINS FOR RIP //
-const float Kp_alphaRoll = -0.3f;
-const float Ki_alphaRoll = -100.0f;
+const float Kp_alphaRoll = -3.3f;
+const float Ki_alphaRoll = -1000.0f;
 const float Kd_alphaRoll = -0.001f;
-const float Kp_betaPitch = -0.3f;
-const float Ki_betaPitch = -100.0f;
+const float Kp_betaPitch = -3.3f;
+const float Ki_betaPitch = -1000.0f;
 const float Kd_betaPitch = -0.001f;
 
 float pScaleAlpha = 1.0f;
@@ -632,19 +632,19 @@ void setup() {
   // Paste these in the user specified variables section, then comment this out
   // forever.
   // calculate_IMU_error(&ripIMU_info, &ripIMU);
-  ripIMU_info.AccErrorX = 0.06;
-  ripIMU_info.AccErrorY = -0.01;
-  ripIMU_info.AccErrorZ = -0.01;
-  ripIMU_info.GyroErrorX = -2.19;
-  ripIMU_info.GyroErrorY = -0.01;
-  ripIMU_info.GyroErrorZ = -0.34;
+	ripIMU_info.AccErrorX = 0.08;
+	ripIMU_info.AccErrorY = -0.01;
+	ripIMU_info.AccErrorZ = -0.02;
+	ripIMU_info.GyroErrorX = -2.02;
+	ripIMU_info.GyroErrorY = 0.61;
+	ripIMU_info.GyroErrorZ = -0.07;
   // calculate_IMU_error(&quadIMU_info, &quadIMU);
-  quadIMU_info.AccErrorX = 0.04;
-  quadIMU_info.AccErrorY = -0.03;
-  quadIMU_info.AccErrorZ = -0.06;
-  quadIMU_info.GyroErrorX = -3.03;
-  quadIMU_info.GyroErrorY = -0.68;
-  quadIMU_info.GyroErrorZ = 0.01;
+	quadIMU_info.AccErrorX = 0.03;
+	quadIMU_info.AccErrorY = -0.04;
+	quadIMU_info.AccErrorZ = -0.05;
+	quadIMU_info.GyroErrorX = -3.23;
+	quadIMU_info.GyroErrorY = -0.74;
+	quadIMU_info.GyroErrorZ = 0.12;
 
   // Arm servo channels
   servo1.write(0); // Command servo angle from 0-180 degrees (1000 to 2000 PWM)
@@ -2155,7 +2155,7 @@ void calibrateJoystick() {
 void getPScale() {
   float scaleVal;
 #ifdef TUNE_RIP
-  scaleVal = 3.0f + (channel_10_pwm - 1000.0f) / 1000.0f * 9.0f;
+  scaleVal = 1.0f + (channel_10_pwm - 1000.0f) / 1000.0f * 9.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }

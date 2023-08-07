@@ -1,9 +1,9 @@
 %function plotFlightData(filename)
-filename = "flight_data16.csv";
+filename = "flight_data33.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    [roll_imu, pitch_imu, yaw_imu, alpha1, beta1, roll_des, pitch_des, yaw_des, throttle_des, roll_pid, pitch_pid, yaw_pid, radio_ch1, radio_ch2, radio_ch3, radio_ch4, radio_ch5, radio_ch6, radio_ch7, radio_ch8, radio_ch9, radio_ch10, radio_ch11, radio_ch12, radio_ch13, GyroX, GyroY, GyroZ, AccX, AccY, AccZ, s1_command, s2_command, s3_command, s4_command, kp_roll, ki_roll, kd_roll, kp_pitch, ki_pitch, kd_pitch, kp_yaw, ki_yaw, kd_yaw, failsafeTriggered, kp_alphaRoll, ki_alphaRoll, kd_alphaRoll, kp_betaPitch, ki_betaPitch, kd_betaPitch, ripIMU_roll, ripIMU_pitch] = importfile(filename);
+    [roll_imu, pitch_imu, yaw_imu, alpha1, beta1, roll_des, pitch_des, yaw_des, throttle_des, roll_pid, pitch_pid, yaw_pid, radio_ch1, radio_ch2, radio_ch3, radio_ch4, radio_ch5, radio_ch6, radio_ch7, radio_ch8, radio_ch9, radio_ch10, radio_ch11, radio_ch12, radio_ch13, GyroX, GyroY, GyroZ, AccX, AccY, AccZ, s1_command, s2_command, s3_command, s4_command, kp_roll, ki_roll, kd_roll, kp_pitch, ki_pitch, kd_pitch, kp_yaw, ki_yaw, kd_yaw, failsafeTriggered, kp_alphaRoll, ki_alphaRoll, kd_alphaRoll, kp_betaPitch, ki_betaPitch, kd_betaPitch, ripIMU_roll, ripIMU_pitch, ripRoll_des, ripPitch_des] = importfile(filename);
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%% END IMPORT %%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -131,66 +131,11 @@ hold off
 grid on
 legend()
 
-% figure()
-% plot(time, alpha1, DisplayName="alpha");
-% hold on
-% plot(time, alpha1+roll_imu, DisplayName="alphaRoll");
-% plot(time, beta1, DisplayName="beta");
-% plot(time, beta1+pitch_imu, DisplayName="betaPitch");
-% plot(time, ripIMU_roll, DisplayName="ripIMU_roll");
-% plot(time, ripIMU_pitch, DisplayName="ripIMU_pitch");
-% hold off
-% legend()
-% grid on;
-
-% motor.xOffset = 3;
-% motor.yOffset = 3;
-% motor.radius = 0.25;
-% 
-% 
-% idx = 5000;
-% th = 0:360;
-% % Draw iris circle
-% plot(cosd(th), sind(th), 'r-', DisplayName="Iris Limits");
-% grid on;
-% axis equal;
-% 
-% % Draw motors
-% hold on;
-% m2.plot = plot((motor.radius*cosd(th) + motor.xOffset), ...
-%     (motor.radius*sind(th) + motor.yOffset), 'k-');
-% 
-% m1.plot = plot(-(motor.radius*cosd(th) + motor.xOffset), ...
-%     (motor.radius*sind(th) + motor.yOffset), 'k-');
-% 
-% m3.plot = plot((motor.radius*cosd(th) + motor.xOffset), ...
-%     -(motor.radius*sind(th) + motor.yOffset), 'k-');
-% 
-% m4.plot = plot(-(motor.radius*cosd(th) + motor.xOffset), ...
-%     -(motor.radius*sind(th) + motor.yOffset), 'k-');
-% hold off;
-% 
-% % Label values in motors
-% m1.text = text(motor.xOffset, motor.yOffset, string(s1_command(idx)));
-% m2.text = text(motor.xOffset, -motor.yOffset, string(s2_command(idx)));
-% m3.text = text(-motor.xOffset, -motor.yOffset, string(s3_command(idx)));
-% m4.text = text(-motor.xOffset, motor.yOffset, string(s4_command(idx)));
-% 
-% % Plot iso
-% r1 = sind(5)/sind(20);
-% r2 = sind(10)/sind(20);
-% r3 = sind(15)/sind(20);
-% hold on;
-% plot(r1*cosd(th), r1*sind(th), 'k--');
-% plot(r2*cosd(th), r2*sind(th), 'k--');
-% plot(r3*cosd(th), r3*sind(th), 'k--');
-% hold off;
-% 
-% % Place the pendulum
-% pendY = -sind(alpha1(idx))/sind(20);
-% pendX = sind(beta1(idx))/sind(20);
-% 
-% hold on;
-% plot(pendX, pendY, 'b.', MarkerSize=20);
-% hold off;
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+figure()
+%subplot(2, 1, 1)
+plot(rng./100, pitch_imu, 'b-', DisplayName="Measured Pitch");
+hold on
+plot(rng./100, ripIMU_pitch, 'r-', DisplayName="Measured RIP Pitch")
+hold off;
+grid on;
+legend();
