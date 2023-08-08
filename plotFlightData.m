@@ -1,7 +1,7 @@
 %function plotFlightData(filename)
 clear
 close all
-filename = "flight_data9.csv";
+filename = "flight_data10.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -165,3 +165,12 @@ plot(rng./100, kd_betaPitch.*derivative_betaPitch, LineStyle='--', Color=[0 0.5 
 plot(rng./100, kp_betaPitch.*error_betaPitch+ki_betaPitch.*integral_betaPitch+kd_betaPitch.*derivative_betaPitch, 'r:');
 hold off;
 grid on;
+
+figure()
+plot(rng./100, kp_alphaRoll, 'r-', DisplayName="Kp");
+hold on;
+plot(rng./100, ki_alphaRoll, Color=[0 0.5 0], DisplayName='Ki');
+plot(rng./100, kd_alphaRoll, 'b-', DisplayName='Kd');
+hold off;
+grid on;
+legend();
