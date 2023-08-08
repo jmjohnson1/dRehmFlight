@@ -135,6 +135,18 @@ void logData_printCSVHeader() {
 	buffer.write("ripRoll_des");
 	buffer.write(",");
 	buffer.write("ripPitch_des");
+	buffer.write(",");
+	buffer.write("error_alphaRoll");
+	buffer.write(",");
+	buffer.write("integral_alphaRoll");
+	buffer.write(",");
+	buffer.write("derivative_alphaRoll");
+	buffer.write(",");
+	buffer.write("error_betaPitch");
+	buffer.write(",");
+	buffer.write("integral_betaPitch");
+	buffer.write(",");
+	buffer.write("derivative_betaPitch");
 	buffer.println();
 }
 
@@ -162,9 +174,9 @@ int logData_writeBuffer() {
 	buffer.write(",");
 	buffer.print(quadIMU_info.yaw_IMU, 4);
 	buffer.write(",");
-	buffer.print(alpha, 4);
+	buffer.print(joyRoll, 4);
 	buffer.write(",");
-	buffer.print(beta, 4);
+	buffer.print(joyPitch, 4);
 	buffer.write(",");
 	buffer.print(roll_des, 4);
 	buffer.write(",");
@@ -246,17 +258,17 @@ int logData_writeBuffer() {
 	buffer.write(",");
 	buffer.print(failureFlag);
 	buffer.write(",");
-	buffer.print(Kp_alphaRoll*pScaleAlpha, 4);
+	buffer.print(Kp_ripRoll*pScaleRipRoll, 4);
 	buffer.write(",");
-	buffer.print(Ki_alphaRoll*iScaleAlpha, 4);
+	buffer.print(Ki_ripRoll*iScaleRipRoll, 4);
 	buffer.write(",");
-	buffer.print(Kd_alphaRoll*dScaleAlpha, 4);
+	buffer.print(Kd_ripRoll*dScaleRipRoll, 4);
 	buffer.write(",");
-	buffer.print(Kp_betaPitch*pScaleBeta, 4);
+	buffer.print(Kp_ripPitch*pScaleRipPitch, 4);
 	buffer.write(",");
-	buffer.print(Ki_betaPitch*iScaleBeta, 4);
+	buffer.print(Ki_ripPitch*iScaleRipPitch, 4);
 	buffer.write(",");
-	buffer.print(Kd_betaPitch*dScaleBeta, 4);
+	buffer.print(Kd_ripPitch*dScaleRipPitch, 4);
 	buffer.write(",");
 	buffer.print(ripIMU_info.roll_IMU, 4);
 	buffer.write(",");
@@ -265,6 +277,18 @@ int logData_writeBuffer() {
 	buffer.print(alphaRoll_des, 4);
 	buffer.write(",");
 	buffer.print(betaPitch_des, 4);
+	buffer.write(",");
+	buffer.print(error_ripRoll, 4);
+	buffer.write(",");
+	buffer.print(integral_ripRoll, 4);
+	buffer.write(",");
+	buffer.print(derivative_ripRoll, 4);
+	buffer.write(",");
+	buffer.print(error_ripPitch, 4);
+	buffer.write(",");
+	buffer.print(integral_ripPitch, 4);
+	buffer.write(",");
+	buffer.print(derivative_ripPitch, 4);
 	buffer.println();
 	if (buffer.getWriteError()) {
 		Serial.println("WriteError");

@@ -175,22 +175,22 @@ void printRIPAngles() {
   if (current_time - print_counter > 10000) {
     print_counter = micros();
     // Serial.print("Alpha: ");
-    Serial.print(alpha);
+    Serial.print(joyRoll);
     Serial.print(" ");
     // Serial.print(" Roll: ");
     Serial.print(quadIMU_info.roll_IMU);
     Serial.print(" ");
     // Serial.print(" Alpha + Roll: ");
-    Serial.print(alpha + quadIMU_info.roll_IMU);
+    Serial.print(joyRoll + quadIMU_info.roll_IMU);
     Serial.print(" ");
     // Serial.print(" Beta: ");
-    Serial.print(beta);
+    Serial.print(joyPitch);
     Serial.print(" ");
     // Serial.print(" Pitch: ");
     Serial.print(quadIMU_info.pitch_IMU);
     Serial.print(" ");
     // Serial.print(" Beta + Pitch: ");
-    Serial.println(beta + quadIMU_info.pitch_IMU);
+    Serial.println(joyPitch + quadIMU_info.pitch_IMU);
     // Serial.print("AlphaCounts: ");
     // Serial.print(alphaCounts);
     // Serial.print(" ");
@@ -251,13 +251,13 @@ void displayRIPCombo() {
 	if (current_time - print_counter > 10000) {
 		print_counter = micros();
 
-		Serial.print(alpha);
+		Serial.print(joyRoll);
 		Serial.print(" ");
-		Serial.print(alphaRoll);
+		Serial.print(ripRoll);
 		Serial.print(" ");
-		Serial.print(beta);
+		Serial.print(joyPitch);
 		Serial.print(" ");
-		Serial.print(betaPitch);
+		Serial.print(ripPitch);
 		Serial.print(" ");
 		Serial.print(ripIMU_info.roll_IMU);
 		Serial.print(" ");

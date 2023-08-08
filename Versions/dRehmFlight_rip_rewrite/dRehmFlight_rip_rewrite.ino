@@ -1,4 +1,4 @@
-// Arduino/Teensy Flight Controller - dRehmFlight
+// ArduinokTeensy Flight Controller - dRehmFlight
 // Author: Nicholas Rehm
 // Project Start: 1/6/2020
 // Last Updated: 7/29/2022
@@ -242,14 +242,10 @@ float maxPitch = 30.0;
 float maxYaw = 160.0;
 
 // MAXIMUM PENULUM ANGLES (INERTIAL) //
-float maxAlphaRoll = 5.0f;
-float maxBetaPitch = 5.0f;
+float maxRipRoll = 5.0f;
+float maxRipPitch = 5.0f;
 
 // ANGLE MODE PID GAINS //
-float Kp_scale = 0.75f;
-float Ki_scale = 0.1f;
-float Kd_scale = 1.1f;
-
 // SCALE FACTORS FOR PID //
 float pScaleRoll = 1.0f;
 float pScalePitch = 1.0f;
@@ -262,6 +258,7 @@ float dScalePitch = 1.0f;
 float dScaleYaw = 1.0f;
 
 #if defined USE_RIP
+// Inner loop gains for fixed RIP
 float Kp_roll_angle = 0.8627;
 float Ki_roll_angle = 0.24;
 float Kd_roll_angle = 0.1321;
@@ -269,12 +266,13 @@ float Kp_pitch_angle = 0.8627;
 float Ki_pitch_angle = 0.24;
 float Kd_pitch_angle = 0.1321;
 
-float Kp_roll_angleOld  = 1.8032;
-float Ki_roll_angleOld  = 0.0404;
-float Kd_roll_angleOld  = 0.2698;
-float Kp_pitch_angleOld = 1.8032;
-float Ki_pitch_angleOld = 0.0404;
-float Kd_pitch_angleOld = 0.2698;
+// Inner loop gains for free RIP
+float Kp_roll_angleFree  = 1.8032;
+float Ki_roll_angleFree  = 0.0404;
+float Kd_roll_angleFree  = 0.2698;
+float Kp_pitch_angleFree = 1.8032;
+float Ki_pitch_angleFree = 0.0404;
+float Kd_pitch_angleFree = 0.2698;
 #else
 float Kp_roll_angle     = 1.8032;
 float Ki_roll_angle     = 0.0404;
@@ -303,31 +301,31 @@ float Ki_yaw = 0.06;
 float Kd_yaw = 0.00015;
 
 // PID GAINS FOR RIP //
-const float Kp_alphaRoll = -3.3f;
-const float Ki_alphaRoll = -1000.0f;
-const float Kd_alphaRoll = -0.001f;
-const float Kp_betaPitch = -3.3f;
-const float Ki_betaPitch = -1000.0f;
-const float Kd_betaPitch = -0.001f;
+const float Kp_ripRoll = -0.5f;
+const float Ki_ripRoll = -100.0f;
+const float Kd_ripRoll = -0.05f;
+const float Kp_ripPitch = -0.5f;
+const float Ki_ripPitch = -100.0f;
+const float Kd_ripPitch = -0.05f;
 
-float pScaleAlpha = 1.0f;
-float iScaleAlpha = 1.0f;
-float dScaleAlpha = 1.0f;
-float pScaleBeta = 1.0f;
-float iScaleBeta = 1.0f;
-float dScaleBeta = 1.0f;
+float pScaleRipRoll = 1.0f;
+float iScaleRipRoll = 1.0f;
+float dScaleRipRoll = 1.0f;
+float pScaleRipPitch = 1.0f;
+float iScaleRipPitch = 1.0f;
+float dScaleRipPitch = 1.0f;
 
 // JOYSTICK ANALOG INPUT RANGES //
-int alphaCounts_min = 104;
-int alphaCounts_max = 828;
-int betaCounts_min = 231;
-int betaCounts_max = 835;
+int joyRollCounts_min = 104;
+int joyRollCounts_max = 828;
+int joyPitchCounts_min = 231;
+int joyPitchCounts_max = 835;
 
 // MAX AND MIN JOYSTICK ANGLES //
-float alpha_min = -30;
-float alpha_max = 30;
-float beta_min = -30;
-float beta_max = 30;
+float joyRollAngle_min = -30;
+float joyRollAngle_max = 30;
+float joyPitchAngle_min = -30;
+float joyPitchAngle_max = 30;
 
 // Options for controlling the quad using user input values written over the
 // serial line Sets whether or not to allow direct input of pitch or roll angles
@@ -385,8 +383,8 @@ const int servo6Pin = 11;
 const int servo7Pin = 12;
 
 // Joystick pins
-const int joyAlphaPin = 41;
-const int joyBetaPin = 40;
+const int joyRollPin = 41;
+const int joyPitchPin = 40;
 
 // Pin and object for iris servo:
 const int irisPin = 24;
@@ -445,17 +443,12 @@ float error_pitch, error_pitch_prev, pitch_des_prev, integral_pitch, integral_pi
     integral_pitch_prev, integral_pitch_prev_il, integral_pitch_prev_ol, derivative_pitch, pitch_PID = 0;
 float error_yaw, error_yaw_prev, integral_yaw, integral_yaw_prev, derivative_yaw, yaw_PID = 0;
 
-// biquadFilter_s pFilter;
-// biquadFilter_s iFilter;
-// biquadFilter_s dFilter;
-
-// Keep track of last error term
-float errorOld_alpha = 0;
-float errorOld_beta = 0;
-
-// Keep track of last integral term
-float integralOld_alpha = 0;
-float integralOld_beta = 0;
+float error_ripRoll = 0;
+float integral_ripRoll = 0;
+float derivative_ripRoll = 0;
+float error_ripPitch = 0;
+float integral_ripPitch = 0;
+float derivative_ripPitch = 0;
 
 // Mixer
 float m1_command_scaled, m2_command_scaled, m3_command_scaled, m4_command_scaled, m5_command_scaled, m6_command_scaled;
@@ -463,9 +456,9 @@ int m1_command_PWM, m2_command_PWM, m3_command_PWM, m4_command_PWM, m5_command_P
 
 // Timers for each motor
 TeensyTimerTool::OneShotTimer m1_timer(TeensyTimerTool::TMR1);
-TeensyTimerTool::OneShotTimer m2_timer(TeensyTimerTool::TMR2);
-TeensyTimerTool::OneShotTimer m3_timer(TeensyTimerTool::TMR3);
-TeensyTimerTool::OneShotTimer m4_timer(TeensyTimerTool::TMR4);
+TeensyTimerTool::OneShotTimer m2_timer(TeensyTimerTool::TMR1);
+TeensyTimerTool::OneShotTimer m3_timer(TeensyTimerTool::TMR1);
+TeensyTimerTool::OneShotTimer m4_timer(TeensyTimerTool::TMR1);
 
 // Flag for whether or not the motors are busy writing
 bool m1_writing = false;
@@ -481,22 +474,21 @@ int s1_command_PWM, s2_command_PWM, s3_command_PWM, s4_command_PWM, s5_command_P
 bool irisFlag = false;
 
 // Joystick values
-int alphaCounts; // Joystick x-axis rotation analog signal
-int betaCounts;  // Joystick y-axis rotation analog signal
-float alpha;     // Joystick x-axis rotation angle
-float beta;      // Joystick x-axis rotation angle
-float alphaRoll;
-float betaPitch;
-float beta_old = 0;
-float alpha_old = 0;
-// Full range of analog input based on calibration
-float fullRange_alpha = alphaCounts_max - alphaCounts_min;
-float fullRange_beta = betaCounts_max - alphaCounts_min;
-float fullRange_alpha_half = fullRange_alpha / 2.0f;
-float fullRange_beta_half = fullRange_beta / 2.0f;
+int joyRollCounts; // Joystick x-axis rotation analog signal
+int joyPitchCounts;  // Joystick y-axis rotation analog signal
+float joyRoll;     // Joystick x-axis rotation angle
+float joyPitch;      // Joystick x-axis rotation angle
+float ripRoll;
+float ripPitch;
 
-float alphaOffset = 0.0f;
-float betaOffset = 0.0f;
+// Full range of analog input based on calibration
+float fullRange_joyRoll = joyRollCounts_max - joyRollCounts_min;
+float fullRange_joyPitch = joyPitchCounts_max - joyRollCounts_min;
+float fullRange_joyRoll_half = fullRange_joyRoll / 2.0f;
+float fullRange_joyPitch_half = fullRange_joyPitch / 2.0f;
+
+float joyRollOffset = 0.0f;
+float joyPitchOffset = 0.0f;
 
 // Values for the setDesStateSerial() function
 float serialInputValue = 0.0f; // User input over the serial line
@@ -583,8 +575,8 @@ void setup() {
   delay(2500);
   Serial.println("Iris closed");
   getJoyAngle();
-  alphaOffset = -alpha;
-  betaOffset = -beta;
+  joyRollOffset = -joyRoll;
+  joyPitchOffset = -joyPitch;
   // Serial.print(F("alphaOffset: "));
   // Serial.print(alphaOffset);
   // Serial.print(F(" "));
@@ -733,14 +725,14 @@ void loop() {
   // printRIPIMUData();
   // combination of two rip measurements
   // displayRIPCombo();
-   displayResponse();
+  // displayResponse();
 
   // Check if rotors should be armed
   if (!flightLoopStarted && channel_5_pwm < 1500) {
     flightLoopStarted = 1;
   }
 
-  //Check for whether or not the iris should be open
+  //Check for whether the iris should be open
   if ((channel_6_pwm < 1750) || extremeAngleFlag) {
     irisFlag = 0;
     closeIris();
@@ -769,19 +761,17 @@ void loop() {
   }
 
   // Get vehicle state
-  getIMUData(&quadIMU_info, &quadIMU); // Pulls raw gyro, accelerometer, and magnetometer data from IMU
-                                       // and LP filters to remove noise
-
+  getIMUData(&quadIMU_info, &quadIMU); // Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
   Madgwick6DOF(&quadIMU_info, dt); // Updates roll_IMU, pitch_IMU, and yaw_IMU angle estimates (degrees)
 
   // Get RIP state
   getIMUData(&ripIMU_info, &ripIMU);
   Madgwick6DOF(&ripIMU_info, dt);
 
-  // Get the joystick angle from their potentiometers
+  // Get the joystick angle from potentiometers
   getJoyAngle();
 
-  // Compute desired state
+  // Compute desired state based on radio inputs
   getDesState(); // Convert raw commands to normalized values based on saturated control limits
 
   if (useSerialAngleCommands) {
@@ -1304,36 +1294,36 @@ void getDesState() {
   pitch_passthru = constrain(pitch_passthru, -0.5, 0.5);
   yaw_passthru = constrain(yaw_passthru, -0.5, 0.5);
 
-  alphaRoll_des = constrain(alphaRoll_des, -1.0, 1.0) * maxAlphaRoll;
-  betaPitch_des = constrain(betaPitch_des, -1.0, 1.0) * maxBetaPitch;
+  alphaRoll_des = constrain(alphaRoll_des, -1.0, 1.0) * maxRipRoll;
+  betaPitch_des = constrain(betaPitch_des, -1.0, 1.0) * maxRipPitch;
 }
 
 void ripPID() {
   // --- Alpha --- //
-  float error_alphaRoll = alphaRoll_des - ripIMU_info.roll_IMU;
-  float integral_alphaRoll = integralOld_alpha + error_alphaRoll * dt;
+  error_ripRoll = alphaRoll_des - ripIMU_info.roll_IMU;
+  integral_ripRoll = integralOld_alpha + error_ripRoll * dt;
   if (channel_1_pwm < 1060) { // Don't let integrator build if throttle is too low
-    integral_alphaRoll = 0;
+    integral_ripRoll = 0;
   }
   // Saturate integrator to prevent unsafe buildup
-  integral_alphaRoll = constrain(integral_alphaRoll, -i_limit, i_limit);
-  float derivative_alphaRoll = -ripIMU_info.GyroX;
+  integral_ripRoll = constrain(integral_ripRoll, -i_limit, i_limit);
+  derivative_ripRoll = -ripIMU_info.GyroX;
 
-  roll_des = (Kp_alphaRoll * pScaleAlpha * error_alphaRoll + Ki_alphaRoll * iScaleAlpha * integral_alphaRoll -
-              Kd_alphaRoll * dScaleAlpha * derivative_alphaRoll);
+  roll_des = (Kp_ripRoll * pScaleRipRoll * error_ripRoll + Ki_ripRoll * iScaleRipRoll * integral_ripRoll +
+              Kd_ripRoll * dScaleRipRoll * derivative_ripRoll);
 
   // --- Beta --- //
-  float error_betaPitch = betaPitch_des - ripIMU_info.pitch_IMU;
-  float integral_betaPitch = integralOld_beta + error_betaPitch * dt;
+  error_ripPitch = betaPitch_des - ripIMU_info.pitch_IMU;
+  integral_ripPitch = integralOld_beta + error_ripPitch * dt;
   if (channel_1_pwm < 1060) { // Don't let integrator build if throttle is too low
-    integral_betaPitch = 0;
+    integral_ripPitch = 0;
   }
   // Saturate integrator to prevent unsafe buildup
-  integral_betaPitch = constrain(integral_betaPitch, -i_limit, i_limit);
-  float derivative_betaPitch = -ripIMU_info.GyroY;
+  integral_ripPitch = constrain(integral_ripPitch, -i_limit, i_limit);
+  derivative_ripPitch = -ripIMU_info.GyroY;
 
-  pitch_des = (Kp_betaPitch * pScaleBeta * error_betaPitch + Ki_betaPitch * iScaleBeta * integral_betaPitch -
-               Kd_betaPitch * dScaleBeta * derivative_betaPitch);
+  pitch_des = (Kp_ripPitch * pScaleRipPitch * error_ripPitch + Ki_ripPitch * iScaleRipPitch * integral_ripPitch +
+               Kd_ripPitch * dScaleRipPitch * derivative_ripPitch);
 }
 
 void controlANGLE() {
@@ -1367,8 +1357,8 @@ void controlANGLE() {
   derivative_roll = quadIMU_info.GyroX;
 #if defined USE_RIP
   if (irisFlag) {
-    roll_PID = 0.01 * (Kp_roll_angleOld * pScaleRoll * error_roll + Ki_roll_angleOld * iScaleRoll * integral_roll -
-                       Kd_roll_angleOld * dScaleRoll * derivative_roll); // Scaled by .01 to bring within -1 to 1 range
+    roll_PID = 0.01 * (Kp_roll_angleFree * pScaleRoll * error_roll + Ki_roll_angleFree * iScaleRoll * integral_roll -
+                       Kd_roll_angleFree * dScaleRoll * derivative_roll); // Scaled by .01 to bring within -1 to 1 range
   } else {
     roll_PID = 0.01 * (Kp_roll_angle * pScaleRoll * error_roll + Ki_roll_angle * iScaleRoll * integral_roll -
                        Kd_roll_angle * dScaleRoll * derivative_roll); // Scaled by .01 to bring within -1 to 1 range
@@ -1393,8 +1383,8 @@ void controlANGLE() {
 #if defined USE_RIP
   if (irisFlag) {
     pitch_PID =
-        0.01 * (Kp_pitch_angleOld * pScalePitch * error_pitch + Ki_pitch_angleOld * iScalePitch * integral_pitch -
-                Kd_pitch_angleOld * dScalePitch * derivative_pitch); // Scaled by .01 to bring within -1 to 1 range
+        0.01 * (Kp_pitch_angleFree * pScalePitch * error_pitch + Ki_pitch_angleFree * iScalePitch * integral_pitch -
+                Kd_pitch_angleFree * dScalePitch * derivative_pitch); // Scaled by .01 to bring within -1 to 1 range
   } else {
     pitch_PID = 0.01 * (Kp_pitch_angle * pScalePitch * error_pitch + Ki_pitch_angle * iScalePitch * integral_pitch -
                         Kd_pitch_angle * dScalePitch * derivative_pitch); // Scaled by .01 to bring within -1 to 1 range
@@ -2087,19 +2077,19 @@ void setupBlink(int numBlinks, int upTime, int downTime) {
 
 void getJoyAngle() {
   // Read the raw analog values (0 to 1023)
-  alphaCounts = analogRead(joyAlphaPin);
-  betaCounts = analogRead(joyBetaPin);
+  joyRollCounts = analogRead(joyRollPin);
+  joyPitchCounts = analogRead(joyPitchPin);
 
-  alpha = (static_cast<float>(alphaCounts) - fullRange_alpha_half - alphaCounts_min) / fullRange_alpha *
-              (alpha_min - alpha_max) +
-          alphaOffset;
-  beta =
-      (static_cast<float>(betaCounts) - fullRange_beta_half - betaCounts_min) / fullRange_beta * (beta_min - beta_max) +
-      betaOffset;
+  joyRoll = (static_cast<float>(joyRollCounts) - fullRange_joyRoll_half - joyRollCounts_min) / fullRange_joyRoll *
+              (joyRollAngle_min - joyRollAngle_max) +
+          joyRollOffset;
+  joyPitch =
+      (static_cast<float>(joyPitchCounts) - fullRange_joyPitch_half - joyPitchCounts_min) / fullRange_joyPitch * (joyPitchAngle_min - joyPitchAngle_max) +
+      joyPitchOffset;
 
   // Determine alpha and pitch in the inertial frame
-  alphaRoll = alpha + quadIMU_info.roll_IMU;
-  betaPitch = beta + quadIMU_info.pitch_IMU;
+  ripRoll = joyRoll + quadIMU_info.roll_IMU;
+  ripPitch = joyPitch + quadIMU_info.pitch_IMU;
 }
 
 void openIris() {
@@ -2117,38 +2107,38 @@ void closeIris() {
 }
 
 void calibrateJoystick() {
-  alphaCounts_max = 0;
-  alphaCounts_min = 1000;
-  betaCounts_max = 0;
-  betaCounts_min = 1000;
+  joyRollCounts_max = 0;
+  joyRollCounts_min = 1000;
+  joyPitchCounts_max = 0;
+  joyPitchCounts_min = 1000;
 
   while (1) {
-    alphaCounts = analogRead(joyAlphaPin);
-    betaCounts = analogRead(joyBetaPin);
+    joyRollCounts = analogRead(joyRollPin);
+    joyPitchCounts = analogRead(joyPitchPin);
 
-    if (alphaCounts < alphaCounts_min) {
-      alphaCounts_min = alphaCounts;
+    if (joyRollCounts < joyRollCounts_min) {
+      joyRollCounts_min = joyRollCounts;
     }
-    if (alphaCounts > alphaCounts_max) {
-      alphaCounts_max = alphaCounts;
+    if (joyRollCounts > joyRollCounts_max) {
+      joyRollCounts_max = joyRollCounts;
     }
-    if (betaCounts < betaCounts_min) {
-      betaCounts_min = betaCounts;
+    if (joyPitchCounts < joyPitchCounts_min) {
+      joyPitchCounts_min = joyPitchCounts;
     }
-    if (betaCounts > betaCounts_max) {
-      betaCounts_max = betaCounts;
+    if (joyPitchCounts > joyPitchCounts_max) {
+      joyPitchCounts_max = joyPitchCounts;
     }
-    Serial.print("alphaCounts_max = ");
-    Serial.print(alphaCounts_max);
+    Serial.print("joyRollCounts_max = ");
+    Serial.print(joyRollCounts_max);
     Serial.print("\t");
-    Serial.print("alphaCounts_min = ");
-    Serial.print(alphaCounts_min);
+    Serial.print("joyRollCounts_min = ");
+    Serial.print(joyRollCounts_min);
     Serial.print("\t");
-    Serial.print("betaCounts_max = ");
-    Serial.print(betaCounts_max);
+    Serial.print("joyPitchCounts_max = ");
+    Serial.print(joyPitchCounts_max);
     Serial.print("\t");
-    Serial.print("betaCounts_min = ");
-    Serial.println(betaCounts_min);
+    Serial.print("joyRollCounts_min = ");
+    Serial.println(joyPitchCounts_min);
   }
 }
 
@@ -2159,8 +2149,8 @@ void getPScale() {
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
-  pScaleAlpha = scaleVal;
-  pScaleBeta = scaleVal;
+  pScaleRipRoll = scaleVal;
+  pScaleRipPitch = scaleVal;
 #elif defined TUNE_CORE
   scaleVal = 1.0f + (channel_10_pwm - 1000.0f) / 1000.0f * 2.0f;
   if (scaleVal < 0.0f) {
@@ -2174,12 +2164,12 @@ void getPScale() {
 void getDScale() {
   float scaleVal;
 #ifdef TUNE_RIP
-  scaleVal = 1 + (channel_12_pwm - 1000.0f) / 1000.0f * 10.0f;
+  scaleVal = 0 + (channel_12_pwm - 1000.0f) / 1000.0f * 10.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
-  dScaleAlpha = scaleVal;
-  dScaleBeta = scaleVal;
+  dScaleRipRoll = scaleVal;
+  dScaleRipPitch = scaleVal;
 #elif defined TUNE_CORE
   scaleVal = 1.0f + (channel_12_pwm - 1000.0f) / 1000.0f * 2.0f;
   if (scaleVal < 0.0f) {
@@ -2197,8 +2187,8 @@ void getIScale() {
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
-  iScaleAlpha = scaleVal;
-  iScaleBeta = scaleVal;
+  iScaleRipRoll = scaleVal;
+  iScaleRipPitch = scaleVal;
 #elif defined TUNE_CORE
   scaleVal = 1.0f + (channel_11_pwm - 1000.0f) / 1000.0f * 10.0f;
   if (scaleVal < 0.0f) {
@@ -2219,7 +2209,7 @@ void scaleBoth() {
 }
 
 void ripExtremeAngleCheck() {
-  if (abs(acos(cos(alpha * PI / 180.0f) * cos(beta * PI / 180.0f))) > EXTREME_RIP_ANGLE * PI / 180.0f) {
+  if (abs(acos(cos(joyRoll * PI / 180.0f) * cos(joyPitch * PI / 180.0f))) > EXTREME_RIP_ANGLE * PI / 180.0f) {
     closeIris();
     extremeAngleFlag = 1;
   }
