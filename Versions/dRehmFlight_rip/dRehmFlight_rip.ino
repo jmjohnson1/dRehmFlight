@@ -54,14 +54,14 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
                  // #define ACCEL_16G
 
 // Define whether tuning RIP gains or core PID gains
-#define TUNE_RIP
-//#define TUNE_CORE
+//#define TUNE_RIP
+#define TUNE_CORE
 
 // Use OneShot125 or PWM
 #define USE_ONESHOT
 
 // Indicate if using rigid inverted pendulum (RIP)
-#define USE_RIP
+//#define USE_RIP
 
 // Defines an extreme rip angle to be at 15 degrees or greater
 #define EXTREME_RIP_ANGLE 14.0f
@@ -274,12 +274,12 @@ float Kp_pitch_angleFree = 1.8032;
 float Ki_pitch_angleFree = 0.0404;
 float Kd_pitch_angleFree = 0.2698;
 #else
-float Kp_roll_angle     = 1.8032;
-float Ki_roll_angle     = 0.0404;
-float Kd_roll_angle     = 0.2698;
-float Kp_pitch_angle    = 1.8032;
-float Ki_pitch_angle    = 0.0404;
-float Kd_pitch_angle    = 0.2698;
+float Kp_roll_angle     = 1.8032/2.0f;
+float Ki_roll_angle     = 0.0404/2.0f;
+float Kd_roll_angle     = 0.2698/2.0f;
+float Kp_pitch_angle    = 1.8032/2.0f;
+float Ki_pitch_angle    = 0.0404/2.0f;
+float Kd_pitch_angle    = 0.2698/2.0f;
 #endif
 
 // Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
@@ -434,7 +434,7 @@ attInfo ripIMU_info;
 // Normalized desired state:
 float thro_des, roll_des, pitch_des, yaw_des;
 float roll_passthru, pitch_passthru, yaw_passthru;
-float alphaRoll_des, betaPitch_des;
+float ripRoll_des, ripPitch_des;
 
 // Controller:
 float error_roll, error_roll_prev, roll_des_prev, integral_roll, integral_roll_il, integral_roll_ol, integral_roll_prev,
@@ -443,6 +443,8 @@ float error_pitch, error_pitch_prev, pitch_des_prev, integral_pitch, integral_pi
     integral_pitch_prev, integral_pitch_prev_il, integral_pitch_prev_ol, derivative_pitch, pitch_PID = 0;
 float error_yaw, error_yaw_prev, integral_yaw, integral_yaw_prev, derivative_yaw, yaw_PID = 0;
 
+float integralOld_ripRoll = 0;
+float integralOld_ripPitch = 0;
 float error_ripRoll = 0;
 float integral_ripRoll = 0;
 float derivative_ripRoll = 0;
@@ -577,11 +579,11 @@ void setup() {
   getJoyAngle();
   joyRollOffset = -joyRoll;
   joyPitchOffset = -joyPitch;
-  // Serial.print(F("alphaOffset: "));
-  // Serial.print(alphaOffset);
+  // Serial.print(F("joyRollOffset: "));
+  // Serial.print(joyRollOffset);
   // Serial.print(F(" "));
-  // Serial.print(F("betaOffset: "));
-  // Serial.println(betaOffset);
+  // Serial.print(F("joyPitchOffset: "));
+  // Serial.println(joyPitchOffset);
 
   // Set built in LED to turn on to signal startup
   digitalWrite(13, HIGH);
@@ -690,13 +692,12 @@ void loop() {
 
   loopBlink(); // Indicate we are in main loop with short blink every 1.5 seconds
 
-  //  Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE: Prints radio pwm values (expected:
-  //  1000 to 2000)
+  //  Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE: 
+  //  Prints radio pwm values (expected: 1000 to 2000)
   // printRadioData();
-  //  Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0
-  //  to 1 for throttle)
+  //  Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0 to 1 for throttle)
   // printDesiredState();
-  // Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
+  //  Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
   // printGyroData();
   //  Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1 when level)
   // printAccelData();
@@ -704,9 +705,6 @@ void loop() {
   // printMagData();
   //  Prints roll, pitch, and yaw angles in degrees from Madgwick filter (expected: degrees, 0 when level)
   // printRollPitchYaw();
-  //  Combines printRollPitchYaw() with printDesiredState() and prints in tab separted values in the order specified in
-  //  the function.
-  // printRollPitchYawAndDesired();
   //  Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1 to 1)
   // printPIDoutput();
   //  Prints the values being written to the motors (expected: 120 to 250)
@@ -717,15 +715,11 @@ void loop() {
   // printLoopRate();
   //  Prints the angles alpha, beta, pitch, roll, alpha + roll, beta + pitch
   // printRIPAngles();
+
   //  Prints desired and imu roll state for serial plotter
-  // displayRoll();
+   displayRoll();
   //  Prints desired and imu pitch state for serial plotter
   // displayPitch();
-  // printPIDGains();
-  // printRIPIMUData();
-  // combination of two rip measurements
-  // displayRIPCombo();
-  // displayResponse();
 
   // Check if rotors should be armed
   if (!flightLoopStarted && channel_5_pwm < 1500) {
@@ -1282,8 +1276,8 @@ void getDesState() {
   pitch_passthru = pitch_des / 2.0;             // Between -0.5 and 0.5
   yaw_passthru = yaw_des / 2.0;                 // Between -0.5 and 0.5
 
-  alphaRoll_des = roll_des;
-  betaPitch_des = pitch_des;
+  ripRoll_des = roll_des;
+  ripPitch_des = pitch_des;
 
   // Constrain within normalized bounds
   thro_des = constrain(thro_des, 0.0, 1.0);               // Between 0 and 1
@@ -1294,14 +1288,14 @@ void getDesState() {
   pitch_passthru = constrain(pitch_passthru, -0.5, 0.5);
   yaw_passthru = constrain(yaw_passthru, -0.5, 0.5);
 
-  alphaRoll_des = constrain(alphaRoll_des, -1.0, 1.0) * maxRipRoll;
-  betaPitch_des = constrain(betaPitch_des, -1.0, 1.0) * maxRipPitch;
+  ripRoll_des = constrain(ripRoll_des, -1.0, 1.0) * maxRipRoll;
+  ripPitch_des = constrain(ripPitch_des, -1.0, 1.0) * maxRipPitch;
 }
 
 void ripPID() {
-  // --- Alpha --- //
-  error_ripRoll = alphaRoll_des - ripIMU_info.roll_IMU;
-  integral_ripRoll = integralOld_alpha + error_ripRoll * dt;
+  // --- Rip Roll --- //
+  error_ripRoll = ripRoll_des - ripIMU_info.roll_IMU;
+  integral_ripRoll = integralOld_ripRoll + error_ripRoll * dt;
   if (channel_1_pwm < 1060) { // Don't let integrator build if throttle is too low
     integral_ripRoll = 0;
   }
@@ -1313,8 +1307,8 @@ void ripPID() {
               Kd_ripRoll * dScaleRipRoll * derivative_ripRoll);
 
   // --- Beta --- //
-  error_ripPitch = betaPitch_des - ripIMU_info.pitch_IMU;
-  integral_ripPitch = integralOld_beta + error_ripPitch * dt;
+  error_ripPitch = ripPitch_des - ripIMU_info.pitch_IMU;
+  integral_ripPitch = integralOld_ripPitch + error_ripPitch * dt;
   if (channel_1_pwm < 1060) { // Don't let integrator build if throttle is too low
     integral_ripPitch = 0;
   }
@@ -2087,7 +2081,7 @@ void getJoyAngle() {
       (static_cast<float>(joyPitchCounts) - fullRange_joyPitch_half - joyPitchCounts_min) / fullRange_joyPitch * (joyPitchAngle_min - joyPitchAngle_max) +
       joyPitchOffset;
 
-  // Determine alpha and pitch in the inertial frame
+  // Determine ripRoll and ripPitch in the inertial frame based on joystick angle
   ripRoll = joyRoll + quadIMU_info.roll_IMU;
   ripPitch = joyPitch + quadIMU_info.pitch_IMU;
 }

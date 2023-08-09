@@ -145,32 +145,42 @@ legend()
 
 
 figure()
+ax_ripRoll = subplot(2,1,1);
 plot(rng./100, error_alphaRoll, 'k-', DisplayName="Measured RIP Roll Error");
 hold on
-plot(rng./100, ripIMU_roll, 'k:');
-plot(rng./100, kp_alphaRoll.*error_alphaRoll, 'r--', DisplayName="pTerm");
-plot(rng./100, ki_alphaRoll.*integral_alphaRoll, 'b--', DisplayName="iTerm");
-plot(rng./100, kd_alphaRoll.*derivative_alphaRoll, LineStyle='--', Color=[0 0.5 0], DisplayName="dTerm");
-plot(rng./100, kp_alphaRoll.*error_alphaRoll + ki_alphaRoll.*integral_alphaRoll + kd_alphaRoll.*derivative_alphaRoll, 'r:')
-hold off;
-grid on;
-
-figure()
-plot(rng./100, error_betaPitch, 'k-', DisplayName="Measured RIP Pitch Error");
-hold on
-plot(rng./100, ripIMU_pitch, 'k:');
-plot(rng./100, kp_betaPitch.*error_betaPitch, 'r--', DisplayName="pTerm");
-plot(rng./100, ki_betaPitch.*integral_betaPitch, 'b--', DisplayName="iTerm");
-plot(rng./100, kd_betaPitch.*derivative_betaPitch, LineStyle='--', Color=[0 0.5 0], DisplayName="dTerm");
-plot(rng./100, kp_betaPitch.*error_betaPitch+ki_betaPitch.*integral_betaPitch+kd_betaPitch.*derivative_betaPitch, 'r:');
-hold off;
-grid on;
-
-figure()
-plot(rng./100, kp_alphaRoll, 'r-', DisplayName="Kp");
-hold on;
-plot(rng./100, ki_alphaRoll, Color=[0 0.5 0], DisplayName='Ki');
-plot(rng./100, kd_alphaRoll, 'b-', DisplayName='Kd');
+plot(rng./100, kp_alphaRoll.*error_alphaRoll, 'r-', DisplayName="pTerm");
+plot(rng./100, ki_alphaRoll.*integral_alphaRoll, 'b-', DisplayName="iTerm");
+plot(rng./100, kd_alphaRoll.*derivative_alphaRoll, LineStyle='-', Color=[0 0.5 0], DisplayName="dTerm");
+plot(rng./100, kp_alphaRoll.*error_alphaRoll + ki_alphaRoll.*integral_alphaRoll + kd_alphaRoll.*derivative_alphaRoll, 'r--', DisplayName="Sum");
 hold off;
 grid on;
 legend();
+
+ax_ripPitch = subplot(2,1,2);
+plot(rng./100, error_betaPitch, 'k-', DisplayName="Measured RIP Pitch Error");
+hold on
+plot(rng./100, kp_betaPitch.*error_betaPitch, 'r-', DisplayName="pTerm");
+plot(rng./100, ki_betaPitch.*integral_betaPitch, 'b-', DisplayName="iTerm");
+plot(rng./100, kd_betaPitch.*derivative_betaPitch, LineStyle='-', Color=[0 0.5 0], DisplayName="dTerm");
+plot(rng./100, kp_betaPitch.*error_betaPitch+ki_betaPitch.*integral_betaPitch+kd_betaPitch.*derivative_betaPitch, 'r--', DisplayName="Sum");
+hold off;
+grid on;
+legend();
+linkaxes([ax_ripRoll, ax_ripPitch], 'xy');
+
+figure()
+ax1 = subplot(3, 1, 1);
+plot(rng./100, kp_alphaRoll, 'r-', DisplayName="Kp");
+ylabel("Kp");
+grid on;
+
+ax2 = subplot(3,1,2);
+plot(rng./100, ki_alphaRoll, Color=[0 0.5 0], DisplayName='Ki');
+ylabel("Ki");
+grid on;
+
+ax3 = subplot(3,1,3);
+plot(rng./100, kd_alphaRoll, 'b-');
+ylabel("Kd");
+grid on;
+linkaxes([ax1, ax2, ax3], 'x');

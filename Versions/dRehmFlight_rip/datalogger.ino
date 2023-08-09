@@ -274,9 +274,9 @@ int logData_writeBuffer() {
 	buffer.write(",");
 	buffer.print(ripIMU_info.pitch_IMU, 4);
 	buffer.write(",");
-	buffer.print(alphaRoll_des, 4);
+	buffer.print(ripRoll_des, 4);
 	buffer.write(",");
-	buffer.print(betaPitch_des, 4);
+	buffer.print(ripPitch_des, 4);
 	buffer.write(",");
 	buffer.print(error_ripRoll, 4);
 	buffer.write(",");

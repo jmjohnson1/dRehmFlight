@@ -269,7 +269,7 @@ void displayRIPCombo() {
 
 void displayResponse() {
 	if (current_time - print_counter > 10000) {
-		Serial.print(alphaRoll_des);
+		Serial.print(ripRoll_des);
 		Serial.print(" ");
 		Serial.print(quadIMU_info.roll_IMU);
 		Serial.println();
