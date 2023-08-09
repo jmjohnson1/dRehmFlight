@@ -1,3 +1,6 @@
 [submodule "Versions/oneshotTest/src/TeensyTimerTool"]
 	path = Versions/oneshotTest/src/TeensyTimerTool
 	url = https://github.com/luni64/TeensyTimerTool.git
+[submodule "Versions/Versions/dRehmFlight_rip/src/mavlink"]
+	path = Versions/Versions/dRehmFlight_rip/src/mavlink
+	url = https://github.com/mavlink/mavlink.git
