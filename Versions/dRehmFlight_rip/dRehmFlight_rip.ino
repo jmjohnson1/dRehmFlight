@@ -34,8 +34,7 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 #define USE_SBUS_RX
 // #define USE_DSM_RX
 static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to match the number of
-// 																					 transmitter
-// channels you have
+// transmitter channels you have
 
 // Uncomment only one IMU
 #define USE_MPU6050_I2C // Default
@@ -55,7 +54,7 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
 
 // Define whether tuning RIP gains or core PID gains
 #define TUNE_RIP
-//#define TUNE_CORE
+// #define TUNE_CORE
 
 // Use OneShot125 or PWM
 #define USE_ONESHOT
@@ -73,13 +72,13 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
 // REQUIRED LIBRARIES (included with download in main sketch folder)
 #include "RingBuf.h" // Ring buffer used to store values for SD card
 #include "SdFat.h"   // Library used for SD card
-#include "filter.h"  // For data filtering
+#include "TeensyTimerTool.h"
+#include "filter.h" // For data filtering
 #include "telemetry.h"
 #include <PWMServo.h> //Commanding any extra actuators, installed with teensyduino installer
 #include <SPI.h>      //SPI communication
 #include <Wire.h>     //I2c communication
 #include <string>
-#include "TeensyTimerTool.h"
 
 #if defined USE_SBUS_RX
 #include "src/SBUS/SBUS.h" //sBus interface
@@ -245,7 +244,7 @@ float maxPitch = 30.0;
 float maxYaw = 160.0;
 
 // MAXIMUM PENULUM ANGLES (INERTIAL) //
-float maxRipRoll  = 10.0f;
+float maxRipRoll = 10.0f;
 float maxRipPitch = 10.0f;
 
 // ANGLE MODE PID GAINS //
@@ -270,19 +269,19 @@ float Ki_pitch_angle = 0.24;
 float Kd_pitch_angle = 0.1321;
 
 // Inner loop gains for free RIP
-float Kp_roll_angleFree  = 1.8032;
-float Ki_roll_angleFree  = 0.0404;
-float Kd_roll_angleFree  = 0.2698;
+float Kp_roll_angleFree = 1.8032;
+float Ki_roll_angleFree = 0.0404;
+float Kd_roll_angleFree = 0.2698;
 float Kp_pitch_angleFree = 1.8032;
 float Ki_pitch_angleFree = 0.0404;
 float Kd_pitch_angleFree = 0.2698;
 #else
-float Kp_roll_angle     = 1.8032/2.0f;
-float Ki_roll_angle     = 0.0404;
-float Kd_roll_angle     = 0.2698;
-float Kp_pitch_angle    = 1.8032/2.0f;
-float Ki_pitch_angle    = 0.0404;
-float Kd_pitch_angle    = 0.2698;
+float Kp_roll_angle = 1.8032;
+float Ki_roll_angle = 0.0404;
+float Kd_roll_angle = 0.2698;
+float Kp_pitch_angle = 1.8032;
+float Ki_pitch_angle = 0.0404;
+float Kd_pitch_angle = 0.2698;
 #endif
 
 // Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
@@ -303,7 +302,7 @@ float Kp_yaw = 0.3;
 float Ki_yaw = 0.06;
 float Kd_yaw = 0.00015;
 
-// PID GAINS FOR RIP // 
+// PID GAINS FOR RIP //
 // Here lies the first set of working gains. Take in their glory.
 const float Kp_ripRoll = -8.2347f;
 const float Ki_ripRoll = -429.13f;
@@ -350,9 +349,10 @@ bool useSineWave = 1;
 // axisToRotate being removed, and a sine sweep conducted between the maximum
 // and minimum frequencies specified.
 bool conductSineSweep = 0;
-float maxFreq = 3.0f;  // Maximum frequency of the sine sweep in Hz
-float minFreq = 0.5f; // Minimum frequency of the sine sweep in Hz
-float sweepTime = 120;  // How long to run the sweep for in seconds
+float maxFreq = 3.0f;  // Maximum frequency of the sine sweep in Hz 		FIXME: Goes slightly beyond
+											 // 																											maxFreq
+float minFreq = 0.5f;  // Minimum frequency of the sine sweep in Hz
+float sweepTime = 120; // How long to run the sweep for in seconds
 
 //================================================================================================//
 //                                      DECLARE PINS //
@@ -371,6 +371,7 @@ const int ch4Pin = 20; // rudd
 const int ch5Pin = 21; // gear (throttle cut)
 const int ch6Pin = 22; // aux1 (free aux channel)
 const int PPM_Pin = 23;
+// TODO: Make the switch between oneshot and PWM servo happen with a precompile definition
 // OneShot125 ESC pin outputs:
 const int m1Pin = 6;
 const int m2Pin = 7;
@@ -481,10 +482,10 @@ int s1_command_PWM, s2_command_PWM, s3_command_PWM, s4_command_PWM, s5_command_P
 bool irisFlag = false;
 
 // Joystick values
-int joyRollCounts; // Joystick x-axis rotation analog signal
-int joyPitchCounts;  // Joystick y-axis rotation analog signal
-float joyRoll;     // Joystick x-axis rotation angle
-float joyPitch;      // Joystick x-axis rotation angle
+int joyRollCounts;  // Joystick x-axis rotation analog signal
+int joyPitchCounts; // Joystick y-axis rotation analog signal
+float joyRoll;      // Joystick x-axis rotation angle
+float joyPitch;     // Joystick x-axis rotation angle
 float ripRoll;
 float ripPitch;
 
@@ -545,10 +546,10 @@ bool flightLoopStarted = 0;
 int loopCount = 0;
 
 // RIP D-gain filter
-biquadFilter_t ripRollDFilter; 
+biquadFilter_t ripRollDFilter;
 biquadFilter_t ripPitchDFilter;
 
-// Telemetry Module
+// Telemetry
 Telemetry telem;
 
 //========================================================================================================================//
@@ -593,11 +594,6 @@ void setup() {
   getJoyAngle();
   joyRollOffset = -joyRoll;
   joyPitchOffset = -joyPitch;
-  // Serial.print(F("joyRollOffset: "));
-  // Serial.print(joyRollOffset);
-  // Serial.print(F(" "));
-  // Serial.print(F("joyPitchOffset: "));
-  // Serial.println(joyPitchOffset);
 
   // Set built in LED to turn on to signal startup
   digitalWrite(13, HIGH);
@@ -632,8 +628,8 @@ void setup() {
 #endif
   IMUinit(&quadIMU);
 
-	biquadFilter_init(&ripRollDFilter, 1000, 2000);
-	biquadFilter_init(&ripPitchDFilter, 1000, 2000);
+  biquadFilter_init(&ripRollDFilter, 1000, 2000);
+  biquadFilter_init(&ripPitchDFilter, 1000, 2000);
 
   // Initialize the SD card, returns 1 if no sd card is detected or it can't be
   // initialized
@@ -645,20 +641,20 @@ void setup() {
   // level when powered up Calibration parameters printed to serial monitor.
   // Paste these in the user specified variables section, then comment this out
   // forever.
-  //calculate_IMU_error(&ripIMU_info, &ripIMU);
-	ripIMU_info.AccErrorX = 0.04;
-	ripIMU_info.AccErrorY = 0.02;
-	ripIMU_info.AccErrorZ = -0.02;
-	ripIMU_info.GyroErrorX = -2.20;
-	ripIMU_info.GyroErrorY = 0.55;
-	ripIMU_info.GyroErrorZ = 0.06;
-  //calculate_IMU_error(&quadIMU_info, &quadIMU);
-	quadIMU_info.AccErrorX = -0.02;
-	quadIMU_info.AccErrorY = 0.02;
-	quadIMU_info.AccErrorZ = 0.01;
-	quadIMU_info.GyroErrorX = 2.44;
-	quadIMU_info.GyroErrorY = 1.16;
-	quadIMU_info.GyroErrorZ = 0.85;
+  // calculate_IMU_error(&ripIMU_info, &ripIMU);
+  ripIMU_info.AccErrorX = 0.04;
+  ripIMU_info.AccErrorY = 0.02;
+  ripIMU_info.AccErrorZ = -0.02;
+  ripIMU_info.GyroErrorX = -2.20;
+  ripIMU_info.GyroErrorY = 0.55;
+  ripIMU_info.GyroErrorZ = 0.06;
+  // calculate_IMU_error(&quadIMU_info, &quadIMU);
+  quadIMU_info.AccErrorX = -0.02;
+  quadIMU_info.AccErrorY = 0.02;
+  quadIMU_info.AccErrorZ = 0.01;
+  quadIMU_info.GyroErrorX = 2.44;
+  quadIMU_info.GyroErrorY = 1.16;
+  quadIMU_info.GyroErrorZ = 0.85;
 
   // Arm servo channels
   servo1.write(0); // Command servo angle from 0-180 degrees (1000 to 2000 PWM)
@@ -674,7 +670,7 @@ void setup() {
 
   // PROPS OFF. Uncomment this to calibrate your ESCs by setting throttle stick
   // to max, powering on, and lowering throttle to zero after the beeps
-   //calibrateESCs();
+  // calibrateESCs();
   // Code will not proceed past here if this function is uncommented!
 
   // Arm OneShot125 motors
@@ -697,7 +693,6 @@ void setup() {
   // factors to be pasted in user-specified variables section
   // calibrateMagnetometer();
 
-
   doneWithSetup = 1;
 }
 
@@ -712,10 +707,11 @@ void loop() {
 
   loopBlink(); // Indicate we are in main loop with short blink every 1.5 seconds
 
-  //  Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE: 
+  //  Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE:
   //  Prints radio pwm values (expected: 1000 to 2000)
   // printRadioData();
-  //  Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0 to 1 for throttle)
+  //  Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0
+  //  to 1 for throttle)
   // printDesiredState();
   //  Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
   // printGyroData();
@@ -737,18 +733,18 @@ void loop() {
   // printRIPAngles();
 
   //  Prints desired and imu roll state for serial plotter
-  //displayRoll();
+  // displayRoll();
   //  Prints desired and imu pitch state for serial plotter
-  //displayPitch();
+  // displayPitch();
 
   // Check if rotors should be armed
   if (!flightLoopStarted && channel_5_pwm < 1500) {
     flightLoopStarted = 1;
-		telem.SetSystemState(MAV_STATE_ACTIVE);
-		telem.SetSystemMode(MAV_MODE_MANUAL_ARMED);
+    telem.SetSystemState(MAV_STATE_ACTIVE);
+    telem.SetSystemMode(MAV_MODE_MANUAL_ARMED);
   }
 
-  //Check for whether the iris should be open
+  // Check for whether the iris should be open
   if ((channel_6_pwm < 1750) || extremeAngleFlag) {
     irisFlag = 0;
     closeIris();
@@ -776,24 +772,23 @@ void loop() {
     logData_writeBuffer();
   }
 
-if (loopCount > 2000) {
-	telem.SendHeartbeat();
-	loopCount = 0;
-}
-if ((loopCount % 250) == 0) {
-	//SendAttitude(quadIMU_info.roll_IMU, quadIMU_info.pitch_IMU, quadIMU_info.yaw_IMU,
-  //							quadIMU_info.GyroX, quadIMU_info.GyroY, quadIMU_info.GyroZ);
-	telem.SendAttitude(quadIMU_info.roll_IMU, quadIMU_info.pitch_IMU, 0.0f,
-							quadIMU_info.GyroX, quadIMU_info.GyroY, 0.0f);
-	telem.SendPIDGains_rip(Kp_ripRoll*pScaleRipRoll, Ki_ripRoll*iScaleRipRoll, Kd_ripRoll*dScaleRipRoll);
-	telem.SendPIDGains_core(Kp_roll_angle*pScaleRoll, Ki_roll_angle*iScaleRoll, Kd_roll_angle*dScaleRoll);
-}
-loopCount++;
-
-	
+  if (loopCount > 2000) {
+    telem.SendHeartbeat();
+    loopCount = 0;
+  }
+  if ((loopCount % 250) == 0) {
+    // SendAttitude(quadIMU_info.roll_IMU, quadIMU_info.pitch_IMU, quadIMU_info.yaw_IMU,
+    //							quadIMU_info.GyroX, quadIMU_info.GyroY, quadIMU_info.GyroZ);
+    telem.SendAttitude(quadIMU_info.roll_IMU, quadIMU_info.pitch_IMU, 0.0f, quadIMU_info.GyroX, quadIMU_info.GyroY,
+                       0.0f);
+    telem.SendPIDGains_rip(Kp_ripRoll * pScaleRipRoll, Ki_ripRoll * iScaleRipRoll, Kd_ripRoll * dScaleRipRoll);
+    telem.SendPIDGains_core(Kp_roll_angle * pScaleRoll, Ki_roll_angle * iScaleRoll, Kd_roll_angle * dScaleRoll);
+  }
+  loopCount++;
 
   // Get vehicle state
-  getIMUData(&quadIMU_info, &quadIMU); // Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
+  getIMUData(&quadIMU_info,
+             &quadIMU); // Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
   Madgwick6DOF(&quadIMU_info, dt); // Updates roll_IMU, pitch_IMU, and yaw_IMU angle estimates (degrees)
 
   // Get RIP state
@@ -827,7 +822,7 @@ loopCount++;
   getPScale();
   getIScale();
   getDScale();
- 	scaleBoth();
+  scaleBoth();
 
 #if defined USE_RIP
   // RIP PID (Sets/overwrites roll_des and pitch_des)
@@ -895,14 +890,14 @@ loopCount++;
     throttleCutCount = 0;
   }
 
-   //unsigned long time = micros() - current_time;
-   //if (time > max_loopTime) {
-   //  max_loopTime = time;
-   //}
-   //Serial.print("Time = ");
-   //Serial.print(time);
-   //Serial.print(" Max = ");
-   //Serial.println(max_loopTime);
+  // unsigned long time = micros() - current_time;
+  // if (time > max_loopTime) {
+  //   max_loopTime = time;
+  // }
+  // Serial.print("Time = ");
+  // Serial.print(time);
+  // Serial.print(" Max = ");
+  // Serial.println(max_loopTime);
 
   // Regulate loop rate
   loopRate(2000); // Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
@@ -1280,7 +1275,7 @@ void rollStep() {
   } else {
     desiredAngle = 0.0f;
   }
-  //roll_des = desiredAngle;
+  // roll_des = desiredAngle;
 }
 void pitchStep() {
   float desiredAngle;
@@ -1291,8 +1286,8 @@ void pitchStep() {
   } else {
     desiredAngle = 0.0f;
   }
-  //pitch_des = desiredAngle;
-	ripPitch_des = desiredAngle;
+  // pitch_des = desiredAngle;
+  ripPitch_des = desiredAngle;
 }
 
 void getDesState() {
@@ -1342,7 +1337,7 @@ void ripPID() {
   integral_ripRoll = constrain(integral_ripRoll, -i_limit, i_limit);
   derivative_ripRoll = -ripIMU_info.GyroX;
 #if defined FILTER_D
-	derivative_ripRoll = biquadFilter_apply(&ripRollDFilter, derivative_ripRoll);
+  derivative_ripRoll = biquadFilter_apply(&ripRollDFilter, derivative_ripRoll);
 #endif
 
   roll_des = (Kp_ripRoll * pScaleRipRoll * error_ripRoll + Ki_ripRoll * iScaleRipRoll * integral_ripRoll +
@@ -1358,7 +1353,7 @@ void ripPID() {
   integral_ripPitch = constrain(integral_ripPitch, -i_limit, i_limit);
   derivative_ripPitch = -ripIMU_info.GyroY;
 #if defined FILTER_D
-	derivative_ripPitch = biquadFilter_apply(&ripPitchDFilter, derivative_ripPitch);
+  derivative_ripPitch = biquadFilter_apply(&ripPitchDFilter, derivative_ripPitch);
 #endif
 
   pitch_des = (Kp_ripPitch * pScaleRipPitch * error_ripPitch + Ki_ripPitch * iScaleRipPitch * integral_ripPitch +
@@ -1803,14 +1798,14 @@ void m4_EndPulse() {
 }
 
 void commandMotors() {
-	//Serial.print("M1: ");
-	//Serial.print(m1_command_PWM);
-	//Serial.print(" M2: ");
-	//Serial.print(m2_command_PWM);
-	//Serial.print(" M3: ");
-	//Serial.print(m3_command_PWM);
-	//Serial.print(" M4: ");
-	//Serial.println(m4_command_PWM);
+  // Serial.print("M1: ");
+  // Serial.print(m1_command_PWM);
+  // Serial.print(" M2: ");
+  // Serial.print(m2_command_PWM);
+  // Serial.print(" M3: ");
+  // Serial.print(m3_command_PWM);
+  // Serial.print(" M4: ");
+  // Serial.println(m4_command_PWM);
 
   digitalWrite(m1Pin, HIGH);
   m1_writing = true;
@@ -1893,7 +1888,6 @@ void calibrateESCs() {
     servo5.write(s5_command_PWM);
     servo6.write(s6_command_PWM);
     servo7.write(s7_command_PWM);
-	
 
     // printRadioData(); //Radio pwm values (expected: 1000 to 2000)
 
@@ -2120,11 +2114,11 @@ void getJoyAngle() {
   joyPitchCounts = analogRead(joyPitchPin);
 
   joyRoll = (static_cast<float>(joyRollCounts) - fullRange_joyRoll_half - joyRollCounts_min) / fullRange_joyRoll *
-              (joyRollAngle_min - joyRollAngle_max) +
-          joyRollOffset;
-  joyPitch =
-      (static_cast<float>(joyPitchCounts) - fullRange_joyPitch_half - joyPitchCounts_min) / fullRange_joyPitch * (joyPitchAngle_min - joyPitchAngle_max) +
-      joyPitchOffset;
+                (joyRollAngle_min - joyRollAngle_max) +
+            joyRollOffset;
+  joyPitch = (static_cast<float>(joyPitchCounts) - fullRange_joyPitch_half - joyPitchCounts_min) / fullRange_joyPitch *
+                 (joyPitchAngle_min - joyPitchAngle_max) +
+             joyPitchOffset;
 
   // Determine ripRoll and ripPitch in the inertial frame based on joystick angle
   ripRoll = joyRoll + quadIMU_info.roll_IMU;
@@ -2241,22 +2235,21 @@ void getIScale() {
 void scaleBoth() {
   float scaleMultiplier;
   scaleMultiplier = 1.0f + (channel_13_pwm - 1015.0f) / 1000.0f * 0.25f;
-	#ifdef TUNE_RIP
-	pScaleRipRoll *= scaleMultiplier;
-	iScaleRipRoll *= scaleMultiplier;
-	dScaleRipRoll *= scaleMultiplier;
-	pScaleRipPitch *= scaleMultiplier;
-	iScaleRipPitch *= scaleMultiplier;
-	dScaleRipPitch *= scaleMultiplier;
+#ifdef TUNE_RIP
+  pScaleRipRoll *= scaleMultiplier;
+  iScaleRipRoll *= scaleMultiplier;
+  dScaleRipRoll *= scaleMultiplier;
+  pScaleRipPitch *= scaleMultiplier;
+  iScaleRipPitch *= scaleMultiplier;
+  dScaleRipPitch *= scaleMultiplier;
 #elif defined TUNE_CORE
-	pScaleRoll *= scaleMultiplier;
-	iScaleRoll *= scaleMultiplier;
-	dScaleRoll *= scaleMultiplier;
-	pScalePitch *= scaleMultiplier;
-	iScalePitch *= scaleMultiplier;
-	dScalePitch *= scaleMultiplier;
+  pScaleRoll *= scaleMultiplier;
+  iScaleRoll *= scaleMultiplier;
+  dScaleRoll *= scaleMultiplier;
+  pScalePitch *= scaleMultiplier;
+  iScalePitch *= scaleMultiplier;
+  dScalePitch *= scaleMultiplier;
 #endif
-
 }
 
 void ripExtremeAngleCheck() {
