@@ -54,17 +54,20 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
                  // #define ACCEL_16G
 
 // Define whether tuning RIP gains or core PID gains
-//#define TUNE_RIP
-#define TUNE_CORE
+#define TUNE_RIP
+//#define TUNE_CORE
 
 // Use OneShot125 or PWM
 #define USE_ONESHOT
 
 // Indicate if using rigid inverted pendulum (RIP)
-//#define USE_RIP
+#define USE_RIP
 
 // Defines an extreme rip angle to be at 15 degrees or greater
 #define EXTREME_RIP_ANGLE 14.0f
+
+// Use a biquad filter on the RIP D term
+#define FILTER_D
 //================================================================================================//
 
 // REQUIRED LIBRARIES (included with download in main sketch folder)
@@ -242,8 +245,8 @@ float maxPitch = 30.0;
 float maxYaw = 160.0;
 
 // MAXIMUM PENULUM ANGLES (INERTIAL) //
-float maxRipRoll = 5.0f;
-float maxRipPitch = 5.0f;
+float maxRipRoll  = 10.0f;
+float maxRipPitch = 10.0f;
 
 // ANGLE MODE PID GAINS //
 // SCALE FACTORS FOR PID //
@@ -275,11 +278,11 @@ float Ki_pitch_angleFree = 0.0404;
 float Kd_pitch_angleFree = 0.2698;
 #else
 float Kp_roll_angle     = 1.8032/2.0f;
-float Ki_roll_angle     = 0.0404/2.0f;
-float Kd_roll_angle     = 0.2698/2.0f;
+float Ki_roll_angle     = 0.0404;
+float Kd_roll_angle     = 0.2698;
 float Kp_pitch_angle    = 1.8032/2.0f;
-float Ki_pitch_angle    = 0.0404/2.0f;
-float Kd_pitch_angle    = 0.2698/2.0f;
+float Ki_pitch_angle    = 0.0404;
+float Kd_pitch_angle    = 0.2698;
 #endif
 
 // Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
@@ -300,13 +303,15 @@ float Kp_yaw = 0.3;
 float Ki_yaw = 0.06;
 float Kd_yaw = 0.00015;
 
-// PID GAINS FOR RIP //
-const float Kp_ripRoll = -0.5f;
-const float Ki_ripRoll = -100.0f;
-const float Kd_ripRoll = -0.05f;
-const float Kp_ripPitch = -0.5f;
-const float Ki_ripPitch = -100.0f;
-const float Kd_ripPitch = -0.05f;
+// PID GAINS FOR RIP // 
+// Here lies the first set of working gains. Take in their glory.
+const float Kp_ripRoll = -8.2347f;
+const float Ki_ripRoll = -429.13f;
+const float Kd_ripRoll = -2.8501f;
+const float Kp_ripPitch = -8.2347f;
+const float Ki_ripPitch = -429.13f;
+const float Kd_ripPitch = -2.8501f;
+///////////////////////
 
 float pScaleRipRoll = 1.0f;
 float iScaleRipRoll = 1.0f;
@@ -345,9 +350,9 @@ bool useSineWave = 1;
 // axisToRotate being removed, and a sine sweep conducted between the maximum
 // and minimum frequencies specified.
 bool conductSineSweep = 0;
-float maxFreq = 1.5f;  // Maximum frequency of the sine sweep in Hz
-float minFreq = 0.05f; // Minimum frequency of the sine sweep in Hz
-float sweepTime = 60;  // How long to run the sweep for in seconds
+float maxFreq = 3.0f;  // Maximum frequency of the sine sweep in Hz
+float minFreq = 0.5f; // Minimum frequency of the sine sweep in Hz
+float sweepTime = 120;  // How long to run the sweep for in seconds
 
 //================================================================================================//
 //                                      DECLARE PINS //
@@ -457,10 +462,10 @@ float m1_command_scaled, m2_command_scaled, m3_command_scaled, m4_command_scaled
 int m1_command_PWM, m2_command_PWM, m3_command_PWM, m4_command_PWM, m5_command_PWM, m6_command_PWM;
 
 // Timers for each motor
-TeensyTimerTool::OneShotTimer m1_timer(TeensyTimerTool::TMR1);
-TeensyTimerTool::OneShotTimer m2_timer(TeensyTimerTool::TMR1);
-TeensyTimerTool::OneShotTimer m3_timer(TeensyTimerTool::TMR1);
-TeensyTimerTool::OneShotTimer m4_timer(TeensyTimerTool::TMR1);
+TeensyTimerTool::OneShotTimer m1_timer(TeensyTimerTool::TCK);
+TeensyTimerTool::OneShotTimer m2_timer(TeensyTimerTool::TCK);
+TeensyTimerTool::OneShotTimer m3_timer(TeensyTimerTool::TCK);
+TeensyTimerTool::OneShotTimer m4_timer(TeensyTimerTool::TCK);
 
 // Flag for whether or not the motors are busy writing
 bool m1_writing = false;
@@ -537,6 +542,15 @@ bool extremeAngleFlag = 0;
 // Flag to check if the flight loop has started yet, prevents lock in main loop when throttle killed
 bool flightLoopStarted = 0;
 
+int loopCount = 0;
+
+// RIP D-gain filter
+biquadFilter_t ripRollDFilter; 
+biquadFilter_t ripPitchDFilter;
+
+// Telemetry Module
+Telemetry telem;
+
 //========================================================================================================================//
 //                                                      VOID SETUP //
 //========================================================================================================================//
@@ -593,6 +607,9 @@ void setup() {
   // Initialize radio communication (defined in header file)
   radioSetup();
 
+  // Begin mavlink telemetry module
+  telem.InitTelemetry();
+
   // Set radio channels to default (safe) values before entering main loop
   channel_1_pwm = channel_1_fs;
   channel_2_pwm = channel_2_fs;
@@ -615,6 +632,9 @@ void setup() {
 #endif
   IMUinit(&quadIMU);
 
+	biquadFilter_init(&ripRollDFilter, 1000, 2000);
+	biquadFilter_init(&ripPitchDFilter, 1000, 2000);
+
   // Initialize the SD card, returns 1 if no sd card is detected or it can't be
   // initialized
   SD_is_present = !logData_setup();
@@ -625,20 +645,20 @@ void setup() {
   // level when powered up Calibration parameters printed to serial monitor.
   // Paste these in the user specified variables section, then comment this out
   // forever.
-  // calculate_IMU_error(&ripIMU_info, &ripIMU);
-	ripIMU_info.AccErrorX = 0.08;
-	ripIMU_info.AccErrorY = -0.01;
+  //calculate_IMU_error(&ripIMU_info, &ripIMU);
+	ripIMU_info.AccErrorX = 0.04;
+	ripIMU_info.AccErrorY = 0.02;
 	ripIMU_info.AccErrorZ = -0.02;
-	ripIMU_info.GyroErrorX = -2.02;
-	ripIMU_info.GyroErrorY = 0.61;
-	ripIMU_info.GyroErrorZ = -0.07;
-  // calculate_IMU_error(&quadIMU_info, &quadIMU);
-	quadIMU_info.AccErrorX = 0.03;
-	quadIMU_info.AccErrorY = -0.04;
-	quadIMU_info.AccErrorZ = -0.05;
-	quadIMU_info.GyroErrorX = -3.23;
-	quadIMU_info.GyroErrorY = -0.74;
-	quadIMU_info.GyroErrorZ = 0.12;
+	ripIMU_info.GyroErrorX = -2.20;
+	ripIMU_info.GyroErrorY = 0.55;
+	ripIMU_info.GyroErrorZ = 0.06;
+  //calculate_IMU_error(&quadIMU_info, &quadIMU);
+	quadIMU_info.AccErrorX = -0.02;
+	quadIMU_info.AccErrorY = 0.02;
+	quadIMU_info.AccErrorZ = 0.01;
+	quadIMU_info.GyroErrorX = 2.44;
+	quadIMU_info.GyroErrorY = 1.16;
+	quadIMU_info.GyroErrorZ = 0.85;
 
   // Arm servo channels
   servo1.write(0); // Command servo angle from 0-180 degrees (1000 to 2000 PWM)
@@ -717,13 +737,15 @@ void loop() {
   // printRIPAngles();
 
   //  Prints desired and imu roll state for serial plotter
-   displayRoll();
+  //displayRoll();
   //  Prints desired and imu pitch state for serial plotter
-  // displayPitch();
+  //displayPitch();
 
   // Check if rotors should be armed
   if (!flightLoopStarted && channel_5_pwm < 1500) {
     flightLoopStarted = 1;
+		telem.SetSystemState(MAV_STATE_ACTIVE);
+		telem.SetSystemMode(MAV_MODE_MANUAL_ARMED);
   }
 
   //Check for whether the iris should be open
@@ -753,6 +775,22 @@ void loop() {
     print_counterSD = micros();
     logData_writeBuffer();
   }
+
+if (loopCount > 2000) {
+	telem.SendHeartbeat();
+	loopCount = 0;
+}
+if ((loopCount % 250) == 0) {
+	//SendAttitude(quadIMU_info.roll_IMU, quadIMU_info.pitch_IMU, quadIMU_info.yaw_IMU,
+  //							quadIMU_info.GyroX, quadIMU_info.GyroY, quadIMU_info.GyroZ);
+	telem.SendAttitude(quadIMU_info.roll_IMU, quadIMU_info.pitch_IMU, 0.0f,
+							quadIMU_info.GyroX, quadIMU_info.GyroY, 0.0f);
+	telem.SendPIDGains_rip(Kp_ripRoll*pScaleRipRoll, Ki_ripRoll*iScaleRipRoll, Kd_ripRoll*dScaleRipRoll);
+	telem.SendPIDGains_core(Kp_roll_angle*pScaleRoll, Ki_roll_angle*iScaleRoll, Kd_roll_angle*dScaleRoll);
+}
+loopCount++;
+
+	
 
   // Get vehicle state
   getIMUData(&quadIMU_info, &quadIMU); // Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
@@ -789,7 +827,7 @@ void loop() {
   getPScale();
   getIScale();
   getDScale();
-  scaleBoth();
+ 	scaleBoth();
 
 #if defined USE_RIP
   // RIP PID (Sets/overwrites roll_des and pitch_des)
@@ -1242,18 +1280,19 @@ void rollStep() {
   } else {
     desiredAngle = 0.0f;
   }
-  roll_des = desiredAngle;
+  //roll_des = desiredAngle;
 }
 void pitchStep() {
   float desiredAngle;
   if (channel_9_pwm < 1250) {
-    desiredAngle = 5.0f;
+    desiredAngle = 3.0f;
   } else if (channel_9_pwm > 1750) {
-    desiredAngle = -5.0f;
+    desiredAngle = -3.0f;
   } else {
     desiredAngle = 0.0f;
   }
-  pitch_des = desiredAngle;
+  //pitch_des = desiredAngle;
+	ripPitch_des = desiredAngle;
 }
 
 void getDesState() {
@@ -1302,6 +1341,9 @@ void ripPID() {
   // Saturate integrator to prevent unsafe buildup
   integral_ripRoll = constrain(integral_ripRoll, -i_limit, i_limit);
   derivative_ripRoll = -ripIMU_info.GyroX;
+#if defined FILTER_D
+	derivative_ripRoll = biquadFilter_apply(&ripRollDFilter, derivative_ripRoll);
+#endif
 
   roll_des = (Kp_ripRoll * pScaleRipRoll * error_ripRoll + Ki_ripRoll * iScaleRipRoll * integral_ripRoll +
               Kd_ripRoll * dScaleRipRoll * derivative_ripRoll);
@@ -1315,6 +1357,9 @@ void ripPID() {
   // Saturate integrator to prevent unsafe buildup
   integral_ripPitch = constrain(integral_ripPitch, -i_limit, i_limit);
   derivative_ripPitch = -ripIMU_info.GyroY;
+#if defined FILTER_D
+	derivative_ripPitch = biquadFilter_apply(&ripPitchDFilter, derivative_ripPitch);
+#endif
 
   pitch_des = (Kp_ripPitch * pScaleRipPitch * error_ripPitch + Ki_ripPitch * iScaleRipPitch * integral_ripPitch +
                Kd_ripPitch * dScaleRipPitch * derivative_ripPitch);
@@ -2139,14 +2184,14 @@ void calibrateJoystick() {
 void getPScale() {
   float scaleVal;
 #ifdef TUNE_RIP
-  scaleVal = 1.0f + (channel_10_pwm - 1000.0f) / 1000.0f * 9.0f;
+  scaleVal = 1.0f + (channel_10_pwm - 1500.0f) / 1000.0f * 0.25f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
   pScaleRipRoll = scaleVal;
   pScaleRipPitch = scaleVal;
 #elif defined TUNE_CORE
-  scaleVal = 1.0f + (channel_10_pwm - 1000.0f) / 1000.0f * 2.0f;
+  scaleVal = 1.0f + (channel_10_pwm - 1000.0f) / 1000.0f * 1.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
@@ -2158,7 +2203,7 @@ void getPScale() {
 void getDScale() {
   float scaleVal;
 #ifdef TUNE_RIP
-  scaleVal = 0 + (channel_12_pwm - 1000.0f) / 1000.0f * 10.0f;
+  scaleVal = 1.0f + (channel_12_pwm - 1500.0f) / 1000.0f * 0.25f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
@@ -2177,7 +2222,7 @@ void getDScale() {
 void getIScale() {
   float scaleVal;
 #ifdef TUNE_RIP
-  scaleVal = (channel_11_pwm - 1000.0f) / 1000.0f * 7.0f;
+  scaleVal = 1.0f + (channel_11_pwm - 1500.0f) / 1000.0f * 0.25f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
@@ -2194,12 +2239,24 @@ void getIScale() {
 }
 
 void scaleBoth() {
-  float scaleAdd;
-  //	scaleAdd = (channel_13_pwm - 1000.0f) / 1000.0f * 1.0f;
-  //	pScaleRoll  += scaleAdd;
-  // 	pScalePitch += scaleAdd;
-  //	dScaleRoll  += scaleAdd;
-  // 	dScalePitch += scaleAdd;
+  float scaleMultiplier;
+  scaleMultiplier = 1.0f + (channel_13_pwm - 1015.0f) / 1000.0f * 0.25f;
+	#ifdef TUNE_RIP
+	pScaleRipRoll *= scaleMultiplier;
+	iScaleRipRoll *= scaleMultiplier;
+	dScaleRipRoll *= scaleMultiplier;
+	pScaleRipPitch *= scaleMultiplier;
+	iScaleRipPitch *= scaleMultiplier;
+	dScaleRipPitch *= scaleMultiplier;
+#elif defined TUNE_CORE
+	pScaleRoll *= scaleMultiplier;
+	iScaleRoll *= scaleMultiplier;
+	dScaleRoll *= scaleMultiplier;
+	pScalePitch *= scaleMultiplier;
+	iScalePitch *= scaleMultiplier;
+	dScalePitch *= scaleMultiplier;
+#endif
+
 }
 
 void ripExtremeAngleCheck() {

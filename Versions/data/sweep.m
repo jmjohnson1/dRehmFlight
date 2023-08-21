@@ -4,6 +4,7 @@ close all
 dataSet = importdata("quad_145554.log");
 idx_min = 110;
 idx_max = 5828;
+sampleFrequency = 100;
 
 
 Wn = 5/(sampleFrequency/2);

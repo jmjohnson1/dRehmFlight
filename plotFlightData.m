@@ -1,7 +1,7 @@
 %function plotFlightData(filename)
 clear
 close all
-filename = "flight_data10.csv";
+filename = "flight_data32.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -19,44 +19,42 @@ filename = "flight_data10.csv";
     
 
 %     %%% Plot Desired and Measured States %%%
-    figure(1);
-    hold on
-    plot(roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
-    plot(roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
-    % plot(pitch_des(rng), DisplayName="Desired pitch", LineWidth=lw);
-    % plot(pitch_imu(rng), DisplayName="Measured pitch", LineWidth=lw);
-    % plot(time(rng), yaw_des(rng), DisplayName="Desired yaw", LineWidth=lw);
-    % plot(time(rng), yaw_imu(rng), DisplayName="Measured yaw", LineWidth=lw);
-
-    % plot(beta1(rng)+pitch_imu(rng), DisplayName="Beta+pitch", LineWidth=lw);
-    hold off
-    legend();
-    grid on
-    title("Pitch/Yaw/Roll")
+    % figure(1);
+    % hold on
+    % plot(time(rng), roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
+    % plot(time(rng), roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
+    % % plot(pitch_des(rng), DisplayName="Desired pitch", LineWidth=lw);
+    % % plot(pitch_imu(rng), DisplayName="Measured pitch", LineWidth=lw);
+    % % plot(time(rng), yaw_des(rng), DisplayName="Desired yaw", LineWidth=lw);
+    % % plot(time(rng), yaw_imu(rng), DisplayName="Measured yaw", LineWidth=lw);
+    % hold off
+    % legend();
+    % grid on
+    % title("Pitch/Yaw/Roll")
 % 
     % Plot motor commands
-    figure(2);
-    hold on
-    plot(s1_command(rng), DisplayName="s1", LineWidth=lw);
-    plot(s2_command(rng), DisplayName="s2", LineWidth=lw);
-    plot(s3_command(rng), DisplayName="s3", LineWidth=lw);
-    plot(s4_command(rng), DisplayName="s4", LineWidth=lw);
-    hold off
-    legend();
-    grid on
-    title("Motor Commands")
+    % figure(2);
+    % hold on
+    % plot(s1_command(rng), DisplayName="s1", LineWidth=lw);
+    % plot(s2_command(rng), DisplayName="s2", LineWidth=lw);
+    % plot(s3_command(rng), DisplayName="s3", LineWidth=lw);
+    % plot(s4_command(rng), DisplayName="s4", LineWidth=lw);
+    % hold off
+    % legend();
+    % grid on
+    % title("Motor Commands")
 % 
     % % Plot radio channel data
-    figure(3);
-    hold on
-    plot(radio_ch1(rng), DisplayName="thro", LineWidth=lw)
-    plot(radio_ch2(rng), DisplayName="roll", LineWidth=lw)
-    plot(radio_ch3(rng), DisplayName="pitch", LineWidth=lw)
-    %plot(radio_ch4(rng), DisplayName="yaw", LineWidth=lw)
-    hold off
-    legend();
-    grid on
-    title("Recieved Radio Commands")
+    % figure(3);
+    % hold on
+    % plot(radio_ch1(rng), DisplayName="thro", LineWidth=lw)
+    % plot(radio_ch2(rng), DisplayName="roll", LineWidth=lw)
+    % plot(radio_ch3(rng), DisplayName="pitch", LineWidth=lw)
+    % %plot(radio_ch4(rng), DisplayName="yaw", LineWidth=lw)
+    % hold off
+    % legend();
+    % grid on
+    % title("Recieved Radio Commands")
 % 
 %     % Calculate derivative of radio commands (dt = 1/(100 Hz))
 %     ch1_diff = diff(radio_ch1(rng))*100;
@@ -91,14 +89,14 @@ filename = "flight_data10.csv";
 %     title("Gains")
 % 
     % Plot PID
-    figure(6);
-    hold on
-    plot(roll_pid(rng), DisplayName="Roll PID");
-    plot(pitch_pid(rng), DisplayName="Pitch PID");
-    hold off
-    legend();
-    grid on
-    title("Normalized PID outputs")
+    % figure(6);
+    % hold on
+    % plot(roll_pid(rng), DisplayName="Roll PID");
+    % plot(pitch_pid(rng), DisplayName="Pitch PID");
+    % hold off
+    % legend();
+    % grid on
+    % title("Normalized PID outputs")
 % 
 %     % % Plot Gyro
 %     figure(7);
@@ -114,7 +112,7 @@ filename = "flight_data10.csv";
 % %end
 
 figure()
-subplot(2, 1, 1)
+ax_roll = subplot(2, 1, 1);
 plot(rng./100, roll_imu(rng), 'r-', DisplayName="Measured Roll")
 hold on
 plot(rng./100, roll_des(rng), 'b-', DisplayName="Desired Roll")
@@ -123,7 +121,7 @@ grid on
 ylim([-7, 7])
 legend();
 
-subplot(2, 1, 2)
+ax_gains = subplot(2, 1, 2);
 plot(rng./100, kp_roll(rng), 'r-', DisplayName = "Kp")
 hold on
 plot(rng./100, ki_roll(rng), '-', Color=[0 0.5 0], DisplayName = "Ki")
@@ -131,15 +129,16 @@ plot(rng./100, kd_roll(rng), 'b-', DisplayName = "Kd")
 hold off
 grid on
 legend()
+linkaxes([ax_roll, ax_gains], 'x')
 
-% figure()
-% %subplot(2, 1, 1)
-% plot(rng./100, pitch_imu, 'b-', DisplayName="Measured Pitch");
-% hold on
-% plot(rng./100, ripIMU_pitch, 'r-', DisplayName="Measured RIP Pitch")
-% hold off;
-% grid on;
-% legend();
+figure()
+%subplot(2, 1, 1)
+plot(rng./100, ripPitch_des, 'b-', DisplayName="Desired RIP Pitch");
+hold on
+plot(rng./100, ripIMU_pitch, 'r-', DisplayName="Measured RIP Pitch")
+hold off;
+grid on;
+legend();
 
 
 
@@ -183,4 +182,6 @@ plot(rng./100, kd_alphaRoll, 'b-');
 ylabel("Kd");
 grid on;
 linkaxes([ax1, ax2, ax3], 'x');
->>>>>>> master
+
+
+
