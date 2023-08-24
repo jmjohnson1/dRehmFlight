@@ -20,6 +20,8 @@ public:
 	void SendPIDGains_rip(float P, float I, float D);
 	void SendAttitude(float roll, float pitch, float yaw, float rollspeed, float pitchspeed, float yawspeed);
 	void SendMessage(mavlink_message_t *msg);
+	void UpdateReceived();
+	void HandleMessage(mavlink_message_t msg);
 
 	// Setters
 	void SetSystemMode(uint8_t mode);

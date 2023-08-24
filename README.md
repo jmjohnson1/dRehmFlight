@@ -1,3 +1,8 @@
+## CRQSFlight
+### Description
+This is a fork of the dRehmFlight flight controller created by Nick Rehm. It has been developed to work with the 
+
+## Original dRehmFlight Readme
 ![dRehmFlight Logo](https://github.com/nickrehm/dRehmFlight/blob/master/dRehmFlight%20Logo.png)
 
 [Intro Video](https://www.youtube.com/watch?v=tlD0C5CrWcA&lc=Ugx6m02xjHk8QH19vd94AaABAg)

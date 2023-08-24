@@ -1,5 +1,6 @@
 #include "telemetry.h"
 #include "src/mavlink/common/mavlink_msg_attitude.h"
+#include "src/mavlink/mavlink_helpers.h"
 
 Telemetry::Telemetry() {
 }
@@ -63,3 +64,26 @@ void Telemetry::SetSystemState(uint8_t state) {
 	systemState = state;
 }
 
+void Telemetry::UpdateReceived() {
+	mavlink_message_t msg;
+	mavlink_status_t status;
+	int chan = 0;
+
+	while (HWSERIAL.available()) {
+		uint8_t byte = HWSERIAL.read();
+
+		if (mavlink_parse_char(chan, byte, &msg, &status)) {
+			HandleMessage(msg)
+		}
+	}
+}
+
+void Telemetry::HandleMessage(mavlink_message_t msg) {
+	switch (msg.msgid) {
+		case MAVLINK_MSG_ID_COMMAND_LONG:
+			HandleCommandLong()
+			break;
+		default:
+			break;
+	}
+}
