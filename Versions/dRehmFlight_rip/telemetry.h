@@ -21,7 +21,6 @@ public:
 	void SendAttitude(float roll, float pitch, float yaw, float rollspeed, float pitchspeed, float yawspeed);
 	void SendMessage(mavlink_message_t *msg);
 	void UpdateReceived();
-	void HandleMessage(mavlink_message_t msg);
 
 	// Setters
 	void SetSystemMode(uint8_t mode);
@@ -31,6 +30,9 @@ public:
 	uint8_t GetSystemState() {return systemState;}
 	
 private:
+	void HandleMessage(mavlink_message_t *msg);
+	void HandleCommandLong(mavlink_message_t *msg);
+
 	uint8_t systemID = 1;
 	uint8_t componentID_core = 1;
 	uint8_t componentID_RIP = 2;

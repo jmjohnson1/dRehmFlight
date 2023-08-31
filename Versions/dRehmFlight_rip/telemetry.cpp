@@ -73,17 +73,42 @@ void Telemetry::UpdateReceived() {
 		uint8_t byte = HWSERIAL.read();
 
 		if (mavlink_parse_char(chan, byte, &msg, &status)) {
-			HandleMessage(msg)
+			HandleMessage(&msg);
+			Serial.println("Message received");
 		}
 	}
 }
 
-void Telemetry::HandleMessage(mavlink_message_t msg) {
-	switch (msg.msgid) {
+void Telemetry::HandleMessage(mavlink_message_t *msg) {
+	Serial.print("Message ID: ");
+	Serial.println(msg->msgid);
+	switch (msg->msgid) {
 		case MAVLINK_MSG_ID_COMMAND_LONG:
-			HandleCommandLong()
+			HandleCommandLong(msg);
 			break;
 		default:
 			break;
 	}
+}
+
+void Telemetry::HandleCommandLong(mavlink_message_t *msg) {
+	mavlink_command_long_t packet;
+	mavlink_msg_command_long_decode(msg, &packet);
+
+	Serial.print("Packet: ");
+	Serial.println(packet.command);
+	Serial.print("Param 1: ");
+	Serial.println(packet.param1);
+	Serial.print("Param 2: ");
+	Serial.println(packet.param2);
+	Serial.print("Param 3: ");
+	Serial.println(packet.param3);
+	Serial.print("Param 4: ");
+	Serial.println(packet.param4);
+	Serial.print("Param 5: ");
+	Serial.println(packet.param5);
+	Serial.print("Param 6: ");
+	Serial.println(packet.param6);
+	Serial.print("Param 7: ");
+	Serial.println(packet.param7);
 }

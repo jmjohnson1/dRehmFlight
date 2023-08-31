@@ -777,7 +777,7 @@ void loop() {
     loopCount = 0;
   }
   if ((loopCount % 250) == 0) {
-		//telem.UpdateReceived();
+		telem.UpdateReceived();
     // SendAttitude(quadIMU_info.roll_IMU, quadIMU_info.pitch_IMU, quadIMU_info.yaw_IMU,
     //							quadIMU_info.GyroX, quadIMU_info.GyroY, quadIMU_info.GyroZ);
     telem.SendAttitude(quadIMU_info.roll_IMU, quadIMU_info.pitch_IMU, 0.0f, quadIMU_info.GyroX, quadIMU_info.GyroY,
@@ -891,14 +891,14 @@ void loop() {
     throttleCutCount = 0;
   }
 
-  unsigned long time = micros() - current_time;
-  if (time > max_loopTime) {
-    max_loopTime = time;
-  }
-  Serial.print("Time = ");
-  Serial.print(time);
-  Serial.print(" Max = ");
-  Serial.println(max_loopTime);
+  //unsigned long time = micros() - current_time;
+  //if (time > max_loopTime) {
+  //  max_loopTime = time;
+  //}
+  //Serial.print("Time = ");
+  //Serial.print(time);
+  //Serial.print(" Max = ");
+  //Serial.println(max_loopTime);
 
   // Regulate loop rate
   loopRate(2000); // Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
