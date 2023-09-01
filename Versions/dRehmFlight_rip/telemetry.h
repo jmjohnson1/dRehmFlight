@@ -32,6 +32,7 @@ public:
 private:
 	void HandleMessage(mavlink_message_t *msg);
 	void HandleCommandLong(mavlink_message_t *msg);
+	void HandleParamRequest(mavlink_message_t *msg);
 
 	uint8_t systemID = 1;
 	uint8_t componentID_core = 1;
