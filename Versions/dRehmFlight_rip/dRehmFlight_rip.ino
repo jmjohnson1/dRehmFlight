@@ -1,4 +1,4 @@
-// Arduino Teensy Flight Controller - dRehmFlight
+// Arduino/Teensy Flight Controller - dRehmFlight
 // Author: Nicholas Rehm
 // Project Start: 1/6/2020
 // Last Updated: 7/29/2022
@@ -78,7 +78,7 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
 #include <PWMServo.h> //Commanding any extra actuators, installed with teensyduino installer
 #include <SPI.h>      //SPI communication
 #include <Wire.h>     //I2c communication
-#include <string>
+#include "parameters.h"
 
 #if defined USE_SBUS_RX
 #include "src/SBUS/SBUS.h" //sBus interface

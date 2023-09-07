@@ -1,7 +1,7 @@
 #ifndef _TELEM_H_
 #define _TELEM_H_
 
-#include "arduino.h"
+#include "Arduino.h"
 
 #define HWSERIAL Serial1
 
