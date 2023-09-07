@@ -1,4 +1,4 @@
-// ArduinokTeensy Flight Controller - dRehmFlight
+// Arduino Teensy Flight Controller - dRehmFlight
 // Author: Nicholas Rehm
 // Project Start: 1/6/2020
 // Last Updated: 7/29/2022
