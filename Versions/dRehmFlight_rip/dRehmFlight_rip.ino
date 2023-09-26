@@ -53,14 +53,14 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
                  // #define ACCEL_16G
 
 // Define whether tuning RIP gains or core PID gains
-#define TUNE_RIP
-// #define TUNE_CORE
+// #define TUNE_RIP
+ #define TUNE_CORE
 
 // Use OneShot125 or PWM
 #define USE_ONESHOT
 
 // Indicate if using rigid inverted pendulum (RIP)
-#define USE_RIP
+//#define USE_RIP
 
 // Defines an extreme rip angle to be at 15 degrees or greater
 #define EXTREME_RIP_ANGLE 14.0f
