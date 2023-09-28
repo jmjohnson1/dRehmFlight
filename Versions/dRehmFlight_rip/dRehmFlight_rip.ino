@@ -60,7 +60,7 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
 #define USE_ONESHOT
 
 // Indicate if using rigid inverted pendulum (RIP)
-#define USE_RIP
+//#define USE_RIP
 
 // Defines an extreme rip angle to be at 15 degrees or greater
 #define EXTREME_RIP_ANGLE 14.0f
