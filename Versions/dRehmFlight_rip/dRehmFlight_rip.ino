@@ -373,10 +373,10 @@ const int ch6Pin = 22; // aux1 (free aux channel)
 const int PPM_Pin = 23;
 // TODO: Make the switch between oneshot and PWM servo happen with a precompile definition
 // OneShot125 ESC pin outputs:
-const int m1Pin = 6;
-const int m2Pin = 7;
-const int m3Pin = 10;
-const int m4Pin = 9;
+const int m1Pin = 0;
+const int m2Pin = 1;
+const int m3Pin = 2;
+const int m4Pin = 3;
 const int m5Pin = 4;
 const int m6Pin = 5;
 // PWM servo or ESC outputs:
@@ -463,10 +463,10 @@ float m1_command_scaled, m2_command_scaled, m3_command_scaled, m4_command_scaled
 int m1_command_PWM, m2_command_PWM, m3_command_PWM, m4_command_PWM, m5_command_PWM, m6_command_PWM;
 
 // Timers for each motor
-TeensyTimerTool::OneShotTimer m1_timer(TeensyTimerTool::TCK);
-TeensyTimerTool::OneShotTimer m2_timer(TeensyTimerTool::TCK);
-TeensyTimerTool::OneShotTimer m3_timer(TeensyTimerTool::TCK);
-TeensyTimerTool::OneShotTimer m4_timer(TeensyTimerTool::TCK);
+TeensyTimerTool::OneShotTimer m1_timer(TeensyTimerTool::TMR1);
+TeensyTimerTool::OneShotTimer m2_timer(TeensyTimerTool::TMR1);
+TeensyTimerTool::OneShotTimer m3_timer(TeensyTimerTool::TMR1);
+TeensyTimerTool::OneShotTimer m4_timer(TeensyTimerTool::TMR1);
 
 // Flag for whether or not the motors are busy writing
 bool m1_writing = false;
@@ -670,7 +670,7 @@ void setup() {
 
   // PROPS OFF. Uncomment this to calibrate your ESCs by setting throttle stick
   // to max, powering on, and lowering throttle to zero after the beeps
-  // calibrateESCs();
+   calibrateESCs();
   // Code will not proceed past here if this function is uncommented!
 
   // Arm OneShot125 motors
@@ -709,7 +709,7 @@ void loop() {
 
   //  Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE:
   //  Prints radio pwm values (expected: 1000 to 2000)
-  // printRadioData();
+   //printRadioData();
   //  Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0
   //  to 1 for throttle)
   // printDesiredState();
@@ -724,7 +724,7 @@ void loop() {
   //  Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1 to 1)
   // printPIDoutput();
   //  Prints the values being written to the motors (expected: 120 to 250)
-  // printMotorCommands();
+  printMotorCommands();
   //  Prints the values being written to the servos (expected: 0 to 180)
   // printServoCommands();
   //  Prints the time between loops in microseconds (expected: microseconds between loop iterations)
@@ -891,14 +891,14 @@ void loop() {
     throttleCutCount = 0;
   }
 
-  //unsigned long time = micros() - current_time;
-  //if (time > max_loopTime) {
+  // unsigned long time = micros() - current_time;
+  // if (time > max_loopTime) {
   //  max_loopTime = time;
-  //}
-  //Serial.print("Time = ");
-  //Serial.print(time);
-  //Serial.print(" Max = ");
-  //Serial.println(max_loopTime);
+  // }
+  // Serial.print("Time = ");
+  // Serial.print(time);
+  // Serial.print(" Max = ");
+  // Serial.println(max_loopTime);
 
   // Regulate loop rate
   loopRate(2000); // Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
@@ -1781,8 +1781,9 @@ void failSafe() {
 void m1_EndPulse() {
   digitalWrite(m1Pin, LOW);
   m1_writing = false;
+  //Serial.println("Timer triggered");
 }
-
+ 
 void m2_EndPulse() {
   digitalWrite(m2Pin, LOW);
   m2_writing = false;
@@ -1799,14 +1800,17 @@ void m4_EndPulse() {
 }
 
 void commandMotors() {
-  // Serial.print("M1: ");
-  // Serial.print(m1_command_PWM);
-  // Serial.print(" M2: ");
-  // Serial.print(m2_command_PWM);
-  // Serial.print(" M3: ");
-  // Serial.print(m3_command_PWM);
-  // Serial.print(" M4: ");
-  // Serial.println(m4_command_PWM);
+   if (current_time - print_counter > 10000) {
+    print_counter = micros();
+    Serial.print("M1: ");
+    Serial.print(m1_command_PWM);
+    Serial.print(" M2: ");
+    Serial.print(m2_command_PWM);
+    Serial.print(" M3: ");
+    Serial.print(m3_command_PWM);
+    Serial.print(" M4: ");
+    Serial.println(m4_command_PWM);
+   }
 
   digitalWrite(m1Pin, HIGH);
   m1_writing = true;

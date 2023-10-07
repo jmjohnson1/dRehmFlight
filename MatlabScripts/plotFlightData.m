@@ -1,7 +1,7 @@
 %function plotFlightData(filename)
 clear
 close all
-filename = "flight_data32.csv";
+filename = "flight_data22.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -45,7 +45,7 @@ filename = "flight_data32.csv";
     % title("Motor Commands")
 % 
     % % Plot radio channel data
-    % figure(3);
+    % figure();
     % hold on
     % plot(radio_ch1(rng), DisplayName="thro", LineWidth=lw)
     % plot(radio_ch2(rng), DisplayName="roll", LineWidth=lw)

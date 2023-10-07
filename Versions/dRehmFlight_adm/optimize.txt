@@ -1,0 +1,22 @@
+Normal:
+	avg = 409
+	max = 455
+
+without CommandMotors();
+	avg = 205
+	max = 215
+
+without controlaANGLE():
+	avg = 330
+	max = 341
+
+without IF statements for serial, sweep, step
+	avg = 409
+	max = 455
+
+without getJoyAngle():
+	avg = 375
+	max = 422
+
+
+Removed commandMotors();
