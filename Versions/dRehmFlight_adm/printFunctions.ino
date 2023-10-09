@@ -136,30 +136,7 @@ void printMotorCommands() {
     Serial.print(m3_command_PWM);
     Serial.print(F(" m4_command: "));
     Serial.print(m4_command_PWM);
-    Serial.print(F(" m5_command: "));
-    Serial.print(m5_command_PWM);
-    Serial.print(F(" m6_command: "));
-    Serial.println(m6_command_PWM);
-  }
-}
-
-void printServoCommands() {
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    Serial.print(F("s1_command: "));
-    Serial.print(s1_command_PWM);
-    Serial.print(F(" s2_command: "));
-    Serial.print(s2_command_PWM);
-    Serial.print(F(" s3_command: "));
-    Serial.print(s3_command_PWM);
-    Serial.print(F(" s4_command: "));
-    Serial.print(s4_command_PWM);
-    Serial.print(F(" s5_command: "));
-    Serial.print(s5_command_PWM);
-    Serial.print(F(" s6_command: "));
-    Serial.print(s6_command_PWM);
-    Serial.print(F(" s7_command: "));
-    Serial.println(s7_command_PWM);
+		Serial.println();
   }
 }
 
@@ -168,34 +145,6 @@ void printLoopRate() {
     print_counter = micros();
     Serial.print(F("dt = "));
     Serial.println(dt * 1000000.0);
-  }
-}
-
-void printRIPAngles() {
-  if (current_time - print_counter > 10000) {
-    print_counter = micros();
-    // Serial.print("Alpha: ");
-    Serial.print(joyRoll);
-    Serial.print(" ");
-    // Serial.print(" Roll: ");
-    Serial.print(quadIMU_info.roll_IMU);
-    Serial.print(" ");
-    // Serial.print(" Alpha + Roll: ");
-    Serial.print(joyRoll + quadIMU_info.roll_IMU);
-    Serial.print(" ");
-    // Serial.print(" Beta: ");
-    Serial.print(joyPitch);
-    Serial.print(" ");
-    // Serial.print(" Pitch: ");
-    Serial.print(quadIMU_info.pitch_IMU);
-    Serial.print(" ");
-    // Serial.print(" Beta + Pitch: ");
-    Serial.println(joyPitch + quadIMU_info.pitch_IMU);
-    // Serial.print("AlphaCounts: ");
-    // Serial.print(alphaCounts);
-    // Serial.print(" ");
-    // Serial.print("BetaCounts: ");
-    // Serial.println(betaCounts);
   }
 }
 
@@ -230,49 +179,3 @@ void printPIDGains() {
     Serial.println();
   }
 }
-void printRIPIMUData() {
-	if (current_time - print_counter > 10000) {
-		print_counter = micros();
-
-		Serial.print("Roll: ");
-		Serial.print(ripIMU_info.roll_IMU);
-		
-		Serial.print(" Pitch: ");
-		Serial.print(ripIMU_info.pitch_IMU);
-
-		Serial.print(" Yaw: ");
-		Serial.print(ripIMU_info.yaw_IMU);
-
-		Serial.println();
-	}
-}
-
-void displayRIPCombo() {
-	if (current_time - print_counter > 10000) {
-		print_counter = micros();
-
-		Serial.print(joyRoll);
-		Serial.print(" ");
-		Serial.print(ripRoll);
-		Serial.print(" ");
-		Serial.print(joyPitch);
-		Serial.print(" ");
-		Serial.print(ripPitch);
-		Serial.print(" ");
-		Serial.print(ripIMU_info.roll_IMU);
-		Serial.print(" ");
-		Serial.print(ripIMU_info.pitch_IMU);
-		
-		Serial.println();
-	}
-}
-
-void displayResponse() {
-	if (current_time - print_counter > 10000) {
-		Serial.print(ripRoll_des);
-		Serial.print(" ");
-		Serial.print(quadIMU_info.roll_IMU);
-		Serial.println();
-	}
-}
-

@@ -1,7 +1,4 @@
 #include "telemetry.h"
-#include "src/mavlink/common/mavlink_msg_attitude.h"
-#include "src/mavlink/common/mavlink_msg_param_request_list.h"
-#include "src/mavlink/mavlink_helpers.h"
 
 Telemetry::Telemetry() {
 }

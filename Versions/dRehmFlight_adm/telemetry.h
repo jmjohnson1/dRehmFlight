@@ -5,10 +5,8 @@
 
 #define HWSERIAL Serial7
 
-#include "src/mavlink/ardupilotmega/mavlink.h"
+#include "src/mavlink/common/mavlink.h"
 #include "src/mavlink/ardupilotmega/mavlink_msg_pid_tuning.h"
-#include "src/mavlink/mavlink_helpers.h"
-#include "src/mavlink/minimal/mavlink_msg_heartbeat.h"
 #include <cstdint>
 
 class Telemetry {

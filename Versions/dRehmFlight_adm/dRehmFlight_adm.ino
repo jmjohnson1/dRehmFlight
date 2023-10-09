@@ -59,14 +59,6 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
 // Use OneShot125 or PWM
 #define USE_ONESHOT
 
-// Indicate if using rigid inverted pendulum (RIP)
-//#define USE_RIP
-
-// Defines an extreme rip angle to be at 15 degrees or greater
-#define EXTREME_RIP_ANGLE 14.0f
-
-// Use a biquad filter on the RIP D term
-#define FILTER_D
 //================================================================================================//
 
 // REQUIRED LIBRARIES (included with download in main sketch folder)
@@ -223,16 +215,6 @@ unsigned long channel_12_fs = 1500; // D gain scale
 unsigned long channel_13_fs = 1500; // Pitch and roll pid offset
 unsigned long channel_14_fs = 1000; // Reset switch
 
-// Magnetometer calibration parameters - if using MPU9250, uncomment
-// calibrateMagnetometer() in void setup() to get these values, else just ignore
-// these
-float MagErrorX = 0.0;
-float MagErrorY = 0.0;
-float MagErrorZ = 0.0;
-float MagScaleX = 1.0;
-float MagScaleY = 1.0;
-float MagScaleZ = 1.0;
-
 // Controller parameters (take note of defaults before modifying!):
 // Integrator saturation level, mostly for safety (default 25.0)
 float i_limit = 25.0;
@@ -242,10 +224,6 @@ float maxRoll = 30.0;
 float maxPitch = 30.0;
 // Max yaw rate in deg/sec
 float maxYaw = 160.0;
-
-// MAXIMUM PENULUM ANGLES (INERTIAL) //
-float maxRipRoll = 10.0f;
-float maxRipPitch = 10.0f;
 
 // ANGLE MODE PID GAINS //
 // SCALE FACTORS FOR PID //
@@ -259,30 +237,12 @@ float dScaleRoll = 1.0f;
 float dScalePitch = 1.0f;
 float dScaleYaw = 1.0f;
 
-#if defined USE_RIP
-// Inner loop gains for fixed RIP
-float Kp_roll_angle = 0.8627;
-float Ki_roll_angle = 0.24;
-float Kd_roll_angle = 0.1321;
-float Kp_pitch_angle = 0.8627;
-float Ki_pitch_angle = 0.24;
-float Kd_pitch_angle = 0.1321;
-
-// Inner loop gains for free RIP
-float Kp_roll_angleFree = 1.8032;
-float Ki_roll_angleFree = 0.0404;
-float Kd_roll_angleFree = 0.2698;
-float Kp_pitch_angleFree = 1.8032;
-float Ki_pitch_angleFree = 0.0404;
-float Kd_pitch_angleFree = 0.2698;
-#else
 float Kp_roll_angle = 1.8032;
 float Ki_roll_angle = 0.0404;
 float Kd_roll_angle = 0.2698;
 float Kp_pitch_angle = 1.8032;
 float Ki_pitch_angle = 0.0404;
 float Kd_pitch_angle = 0.2698;
-#endif
 
 // Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 float B_loop_roll = 0.9;
@@ -301,35 +261,6 @@ float Kd_pitch_rate = 0.0002;
 float Kp_yaw = 0.3;
 float Ki_yaw = 0.06;
 float Kd_yaw = 0.00015;
-
-// PID GAINS FOR RIP //
-// Here lies the first set of working gains. Take in their glory.
-const float Kp_ripRoll = -8.2347f;
-const float Ki_ripRoll = -429.13f;
-const float Kd_ripRoll = -2.8501f;
-const float Kp_ripPitch = -8.2347f;
-const float Ki_ripPitch = -429.13f;
-const float Kd_ripPitch = -2.8501f;
-///////////////////////
-
-float pScaleRipRoll = 1.0f;
-float iScaleRipRoll = 1.0f;
-float dScaleRipRoll = 1.0f;
-float pScaleRipPitch = 1.0f;
-float iScaleRipPitch = 1.0f;
-float dScaleRipPitch = 1.0f;
-
-// JOYSTICK ANALOG INPUT RANGES //
-int joyRollCounts_min = 104;
-int joyRollCounts_max = 828;
-int joyPitchCounts_min = 231;
-int joyPitchCounts_max = 835;
-
-// MAX AND MIN JOYSTICK ANGLES //
-float joyRollAngle_min = -30;
-float joyRollAngle_max = 30;
-float joyPitchAngle_min = -30;
-float joyPitchAngle_max = 30;
 
 // Options for controlling the quad using user input values written over the
 // serial line Sets whether or not to allow direct input of pitch or roll angles
@@ -377,33 +308,14 @@ const int m1Pin = 0;
 const int m2Pin = 1;
 const int m3Pin = 2;
 const int m4Pin = 3;
-const int m5Pin = 4;
-const int m6Pin = 5;
-// PWM servo or ESC outputs:
-const int servo1Pin = 9;
-const int servo2Pin = 9;
-const int servo3Pin = 9;
-const int servo4Pin = 9;
-const int servo5Pin = 9;
-const int servo6Pin = 11;
-const int servo7Pin = 12;
-
-// Joystick pins
-const int joyRollPin = 41;
-const int joyPitchPin = 40;
-
-// Pin and object for iris servo:
-const int irisPin = 24;
-PWMServo iris;
 
 // Create servo objects to control a servo or ESC with PWM
+#ifndef USE_ONESHOT
 PWMServo servo1;
 PWMServo servo2;
 PWMServo servo3;
 PWMServo servo4;
-PWMServo servo5;
-PWMServo servo6;
-PWMServo servo7;
+#endif
 
 //================================================================================================//
 
@@ -435,12 +347,10 @@ DSM1024 DSM;
 #endif
 
 attInfo quadIMU_info;
-attInfo ripIMU_info;
 
 // Normalized desired state:
 float thro_des, roll_des, pitch_des, yaw_des;
 float roll_passthru, pitch_passthru, yaw_passthru;
-float ripRoll_des, ripPitch_des;
 
 // Controller:
 float error_roll, error_roll_prev, roll_des_prev, integral_roll, integral_roll_il, integral_roll_ol, integral_roll_prev,
@@ -449,18 +359,9 @@ float error_pitch, error_pitch_prev, pitch_des_prev, integral_pitch, integral_pi
     integral_pitch_prev, integral_pitch_prev_il, integral_pitch_prev_ol, derivative_pitch, pitch_PID = 0;
 float error_yaw, error_yaw_prev, integral_yaw, integral_yaw_prev, derivative_yaw, yaw_PID = 0;
 
-float integralOld_ripRoll = 0;
-float integralOld_ripPitch = 0;
-float error_ripRoll = 0;
-float integral_ripRoll = 0;
-float derivative_ripRoll = 0;
-float error_ripPitch = 0;
-float integral_ripPitch = 0;
-float derivative_ripPitch = 0;
-
 // Mixer
-float m1_command_scaled, m2_command_scaled, m3_command_scaled, m4_command_scaled, m5_command_scaled, m6_command_scaled;
-int m1_command_PWM, m2_command_PWM, m3_command_PWM, m4_command_PWM, m5_command_PWM, m6_command_PWM;
+float m1_command_scaled, m2_command_scaled, m3_command_scaled, m4_command_scaled;
+int m1_command_PWM, m2_command_PWM, m3_command_PWM, m4_command_PWM;
 
 // Timers for each motor
 TeensyTimerTool::OneShotTimer m1_timer(TeensyTimerTool::TMR1);
@@ -473,30 +374,6 @@ bool m1_writing = false;
 bool m2_writing = false;
 bool m3_writing = false;
 bool m4_writing = false;
-
-float s1_command_scaled, s2_command_scaled, s3_command_scaled, s4_command_scaled, s5_command_scaled, s6_command_scaled,
-    s7_command_scaled;
-int s1_command_PWM, s2_command_PWM, s3_command_PWM, s4_command_PWM, s5_command_PWM, s6_command_PWM, s7_command_PWM;
-
-// Flag for whether or not Iris is open
-bool irisFlag = false;
-
-// Joystick values
-int joyRollCounts;  // Joystick x-axis rotation analog signal
-int joyPitchCounts; // Joystick y-axis rotation analog signal
-float joyRoll;      // Joystick x-axis rotation angle
-float joyPitch;     // Joystick x-axis rotation angle
-float ripRoll;
-float ripPitch;
-
-// Full range of analog input based on calibration
-float fullRange_joyRoll = joyRollCounts_max - joyRollCounts_min;
-float fullRange_joyPitch = joyPitchCounts_max - joyRollCounts_min;
-float fullRange_joyRoll_half = fullRange_joyRoll / 2.0f;
-float fullRange_joyPitch_half = fullRange_joyPitch / 2.0f;
-
-float joyRollOffset = 0.0f;
-float joyPitchOffset = 0.0f;
 
 // Values for the setDesStateSerial() function
 float serialInputValue = 0.0f; // User input over the serial line
@@ -537,17 +414,10 @@ int throttleCutCount = 0;
 // For keeping track of loop times
 float max_loopTime = 0;
 
-// Activates if the RIP angle is too large
-bool extremeAngleFlag = 0;
-
 // Flag to check if the flight loop has started yet, prevents lock in main loop when throttle killed
 bool flightLoopStarted = 0;
 
 int loopCount = 0;
-
-// RIP D-gain filter
-biquadFilter_t ripRollDFilter;
-biquadFilter_t ripPitchDFilter;
 
 // Telemetry
 Telemetry telem;
@@ -567,33 +437,19 @@ void setup() {
   pinMode(m2Pin, OUTPUT);
   pinMode(m3Pin, OUTPUT);
   pinMode(m4Pin, OUTPUT);
-  pinMode(m5Pin, OUTPUT);
-  pinMode(m6Pin, OUTPUT);
 
+	#ifdef USE_ONESHOT
   // Initialize timers for OneShot125
   m1_timer.begin(m1_EndPulse);
   m2_timer.begin(m2_EndPulse);
   m3_timer.begin(m3_EndPulse);
   m4_timer.begin(m4_EndPulse);
-
-  servo1.attach(servo1Pin, 1000, 2100); // Pin, min PWM value, max PWM value
-  servo2.attach(servo2Pin, 1000, 2100);
-  servo3.attach(servo3Pin, 1000, 2100);
-  servo4.attach(servo4Pin, 1000, 2100);
-  servo5.attach(servo5Pin, 1000, 2100);
-  servo6.attach(servo6Pin, 1000, 2100);
-  servo7.attach(servo7Pin, 1000, 2100);
-
-  // Attach the iris servo and close it
-  iris.attach(irisPin);
-
-  // Tare the joystick angle
-  // closeIris();
-  // delay(2500);
-  // Serial.println("Iris closed");
-  // getJoyAngle();
-  // joyRollOffset = -joyRoll;
-  // joyPitchOffset = -joyPitch;
+	#else
+  servo1.attach(m1Pin, 1000, 2100); // Pin, min PWM value, max PWM value
+  servo2.attach(m2Pin, 1000, 2100);
+  servo3.attach(m3Pin, 1000, 2100);
+  servo4.attach(m4Pin, 1000, 2100);
+	#endif
 
   // Set built in LED to turn on to signal startup
   digitalWrite(13, HIGH);
@@ -622,32 +478,18 @@ void setup() {
   channel_13_pwm = channel_13_fs;
   channel_14_pwm = channel_14_fs;
 
-  // Initialize IMU communication
-#if defined USE_RIP
-  IMUinit(&ripIMU);
-#endif
   IMUinit(&quadIMU);
-
-  biquadFilter_init(&ripRollDFilter, 1000, 2000);
-  biquadFilter_init(&ripPitchDFilter, 1000, 2000);
 
   // Initialize the SD card, returns 1 if no sd card is detected or it can't be
   // initialized
   SD_is_present = !logData_setup();
 
-  delay(2500);
 
   // Get IMU error to zero accelerometer and gyro readings, assuming vehicle is
   // level when powered up Calibration parameters printed to serial monitor.
   // Paste these in the user specified variables section, then comment this out
   // forever.
-  // calculate_IMU_error(&ripIMU_info, &ripIMU);
-  ripIMU_info.AccErrorX = 0.04;
-  ripIMU_info.AccErrorY = 0.02;
-  ripIMU_info.AccErrorZ = -0.02;
-  ripIMU_info.GyroErrorX = -2.20;
-  ripIMU_info.GyroErrorY = 0.55;
-  ripIMU_info.GyroErrorZ = 0.06;
+
   // calculate_IMU_error(&quadIMU_info, &quadIMU);
   quadIMU_info.AccErrorX = 0.01;
   quadIMU_info.AccErrorY = 0.01;
@@ -657,14 +499,13 @@ void setup() {
   quadIMU_info.GyroErrorZ = -0.67;
 
   // Arm servo channels
+	#ifndef USE_ONESHOT
   servo1.write(0); // Command servo angle from 0-180 degrees (1000 to 2000 PWM)
   servo2.write(0); // Set these to 90 for servos if you do not want them to
                    // briefly max out on startup
   servo3.write(0); // Keep these at 0 if you are using servo outputs for motors
   servo4.write(0);
-  servo5.write(0);
-  servo6.write(0);
-  servo7.write(0);
+	#endif
 
   delay(5);
 
@@ -673,25 +514,17 @@ void setup() {
    //calibrateESCs();
   // Code will not proceed past here if this function is uncommented!
 
+	#ifdef USE_ONESHOT
   // Arm OneShot125 motors
   m1_command_PWM = 125; // Command OneShot125 ESC from 125 to 250us pulse length
   m2_command_PWM = 125;
   m3_command_PWM = 125;
   m4_command_PWM = 125;
-  m5_command_PWM = 125;
-  m6_command_PWM = 125;
   armMotors(); // Loop over commandMotors() until ESCs happily arm
-
-  // Calibrate the joystick. Will be in an infinite loop.
-  // calibrateJoystick();
+	#endif
 
   // Indicate entering main loop with 3 quick blinks
   setupBlink(3, 160, 70); // numBlinks, upTime (ms), downTime (ms)
-
-  // If using MPU9250 IMU, uncomment for one-time magnetometer calibration (may
-  // need to repeat for new locations) Generates magentometer error and scale
-  // factors to be pasted in user-specified variables section
-  // calibrateMagnetometer();
 
   doneWithSetup = 1;
 }
@@ -720,7 +553,7 @@ void loop() {
   //  Prints filtered magnetometer data direct from IMU (expected: ~ -300 to 300)
   // printMagData();
   //  Prints roll, pitch, and yaw angles in degrees from Madgwick filter (expected: degrees, 0 when level)
-   printRollPitchYaw();
+  // printRollPitchYaw();
   //  Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1 to 1)
   // printPIDoutput();
   //  Prints the values being written to the motors (expected: 120 to 250)
@@ -742,20 +575,6 @@ void loop() {
     flightLoopStarted = 1;
     telem.SetSystemState(MAV_STATE_ACTIVE);
     telem.SetSystemMode(MAV_MODE_MANUAL_ARMED);
-  }
-
-  // Check for whether the iris should be open
-  if ((channel_6_pwm < 1750) || extremeAngleFlag) {
-    irisFlag = 0;
-    closeIris();
-  } else {
-    irisFlag = 1;
-    openIris();
-  }
-
-  ripExtremeAngleCheck();
-  if (channel_6_pwm < 1750) {
-    extremeAngleFlag = 0;
   }
 
   // Sine sweep check
@@ -782,22 +601,13 @@ void loop() {
     //							quadIMU_info.GyroX, quadIMU_info.GyroY, quadIMU_info.GyroZ);
     telem.SendAttitude(quadIMU_info.roll_IMU, quadIMU_info.pitch_IMU, 0.0f, quadIMU_info.GyroX, quadIMU_info.GyroY,
                        0.0f);
-    telem.SendPIDGains_rip(Kp_ripRoll * pScaleRipRoll, Ki_ripRoll * iScaleRipRoll, Kd_ripRoll * dScaleRipRoll);
     telem.SendPIDGains_core(Kp_roll_angle * pScaleRoll, Ki_roll_angle * iScaleRoll, Kd_roll_angle * dScaleRoll);
   }
   loopCount++;
 
   // Get vehicle state
-  getIMUData(&quadIMU_info,
-             &quadIMU); // Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
+  getIMUData(&quadIMU_info, &quadIMU); // Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
   Madgwick6DOF(&quadIMU_info, dt); // Updates roll_IMU, pitch_IMU, and yaw_IMU angle estimates (degrees)
-
-  // Get RIP state
-  getIMUData(&ripIMU_info, &ripIMU);
-  Madgwick6DOF(&ripIMU_info, dt);
-
-  // Get the joystick angle from potentiometers
-  getJoyAngle();
 
   // Compute desired state based on radio inputs
   getDesState(); // Convert raw commands to normalized values based on saturated control limits
@@ -825,13 +635,6 @@ void loop() {
   getDScale();
   scaleBoth();
 
-#if defined USE_RIP
-  // RIP PID (Sets/overwrites roll_des and pitch_des)
-  if (irisFlag) {
-    ripPID();
-  }
-#endif
-
   // PID Controller - SELECT ONE:
   controlANGLE();
   // controlANGLE2(); //Stabilize on angle setpoint using cascaded method. Rate controller must be tuned well first!
@@ -848,12 +651,15 @@ void loop() {
   bool killThrottle = throttleCut(); // Directly sets motor commands to low
                                      // based on state of ch5
 
+	#ifdef USE_ONESHOT
   commandMotors(); // Sends command pulses to each motor pin using OneShot125 protocol
   // Command actuators
-  servo1.write(s1_command_PWM); // Writes PWM value to servo object
-  servo2.write(s2_command_PWM);
-  servo3.write(s3_command_PWM);
-  servo4.write(s4_command_PWM);
+	#else
+  servo1.write(m1_command_PWM); // Writes PWM value to servo object
+  servo2.write(m2_command_PWM);
+  servo3.write(m3_command_PWM);
+  servo4.write(m4_command_PWM);
+	#endif
 
   // Get vehicle commands for next loop iteration
   getCommands(); // Pulls current available radio commands
@@ -864,20 +670,15 @@ void loop() {
     logData_endProcess();
     while (1) {
       getCommands();
-      commandMotors();
-      servo1.write(s1_command_PWM); // Writes PWM value to servo object
-      servo2.write(s2_command_PWM);
-      servo3.write(s3_command_PWM);
-      servo4.write(s4_command_PWM);
-
-      // Check for whether or not the iris should be open
-      if (channel_6_pwm < 1500) {
-        irisFlag = 0;
-        closeIris();
-      } else {
-        irisFlag = 1;
-        openIris();
-      }
+			#ifdef USE_ONESHOT
+			commandMotors(); // Sends command pulses to each motor pin using OneShot125 protocol
+			// Command actuators
+			#else
+			servo1.write(m1_command_PWM); // Writes PWM value to servo object
+			servo2.write(m2_command_PWM);
+			servo3.write(m3_command_PWM);
+			servo4.write(m4_command_PWM);
+			#endif
 
       if (channel_14_pwm > 1500) {
         CPU_RESTART;
@@ -933,13 +734,6 @@ void controlMixer() {
   m2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; // Front Right
   m3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; // Back Right
   m4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; // Back Left
-  s1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; // Front Left
-  s2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; // Front Right
-  s3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; // Back Right
-  s4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; // Back Left
-  s5_command_scaled = 0;
-  s6_command_scaled = 0;
-  s7_command_scaled = 0;
 }
 
 void IMUinit(MPU6050 *imuObj) {
@@ -1085,8 +879,7 @@ void calculate_IMU_error(attInfo *imu, MPU6050 *mpu6050) {
 
   Serial.println("Paste these values in user specified variables section and "
                  "comment out calculate_IMU_error() in void setup.");
-  for (;;)
-    ;
+  for (;;);
 }
 
 void calibrateAttitude() {
@@ -1276,7 +1069,7 @@ void rollStep() {
   } else {
     desiredAngle = 0.0f;
   }
-  // roll_des = desiredAngle;
+  roll_des = desiredAngle;
 }
 void pitchStep() {
   float desiredAngle;
@@ -1287,8 +1080,7 @@ void pitchStep() {
   } else {
     desiredAngle = 0.0f;
   }
-  // pitch_des = desiredAngle;
-  ripPitch_des = desiredAngle;
+  pitch_des = desiredAngle;
 }
 
 void getDesState() {
@@ -1311,9 +1103,6 @@ void getDesState() {
   pitch_passthru = pitch_des / 2.0;             // Between -0.5 and 0.5
   yaw_passthru = yaw_des / 2.0;                 // Between -0.5 and 0.5
 
-  ripRoll_des = roll_des;
-  ripPitch_des = pitch_des;
-
   // Constrain within normalized bounds
   thro_des = constrain(thro_des, 0.0, 1.0);               // Between 0 and 1
   roll_des = constrain(roll_des, -1.0, 1.0) * maxRoll;    // Between -maxRoll and +maxRoll
@@ -1322,43 +1111,6 @@ void getDesState() {
   roll_passthru = constrain(roll_passthru, -0.5, 0.5);
   pitch_passthru = constrain(pitch_passthru, -0.5, 0.5);
   yaw_passthru = constrain(yaw_passthru, -0.5, 0.5);
-
-  ripRoll_des = constrain(ripRoll_des, -1.0, 1.0) * maxRipRoll;
-  ripPitch_des = constrain(ripPitch_des, -1.0, 1.0) * maxRipPitch;
-}
-
-void ripPID() {
-  // --- Rip Roll --- //
-  error_ripRoll = ripRoll_des - ripIMU_info.roll_IMU;
-  integral_ripRoll = integralOld_ripRoll + error_ripRoll * dt;
-  if (channel_1_pwm < 1060) { // Don't let integrator build if throttle is too low
-    integral_ripRoll = 0;
-  }
-  // Saturate integrator to prevent unsafe buildup
-  integral_ripRoll = constrain(integral_ripRoll, -i_limit, i_limit);
-  derivative_ripRoll = -ripIMU_info.GyroX;
-#if defined FILTER_D
-  derivative_ripRoll = biquadFilter_apply(&ripRollDFilter, derivative_ripRoll);
-#endif
-
-  roll_des = (Kp_ripRoll * pScaleRipRoll * error_ripRoll + Ki_ripRoll * iScaleRipRoll * integral_ripRoll +
-              Kd_ripRoll * dScaleRipRoll * derivative_ripRoll);
-
-  // --- Beta --- //
-  error_ripPitch = ripPitch_des - ripIMU_info.pitch_IMU;
-  integral_ripPitch = integralOld_ripPitch + error_ripPitch * dt;
-  if (channel_1_pwm < 1060) { // Don't let integrator build if throttle is too low
-    integral_ripPitch = 0;
-  }
-  // Saturate integrator to prevent unsafe buildup
-  integral_ripPitch = constrain(integral_ripPitch, -i_limit, i_limit);
-  derivative_ripPitch = -ripIMU_info.GyroY;
-#if defined FILTER_D
-  derivative_ripPitch = biquadFilter_apply(&ripPitchDFilter, derivative_ripPitch);
-#endif
-
-  pitch_des = (Kp_ripPitch * pScaleRipPitch * error_ripPitch + Ki_ripPitch * iScaleRipPitch * integral_ripPitch +
-               Kd_ripPitch * dScaleRipPitch * derivative_ripPitch);
 }
 
 void controlANGLE() {
@@ -1390,18 +1142,8 @@ void controlANGLE() {
       constrain(integral_roll, -i_limit, i_limit); // Saturate integrator to prevent unsafe buildup integral_roll =
                                                    // biquadFilter_apply(&iFilter, integral_roll);
   derivative_roll = quadIMU_info.GyroX;
-#if defined USE_RIP
-  if (irisFlag) {
-    roll_PID = 0.01 * (Kp_roll_angleFree * pScaleRoll * error_roll + Ki_roll_angleFree * iScaleRoll * integral_roll -
-                       Kd_roll_angleFree * dScaleRoll * derivative_roll); // Scaled by .01 to bring within -1 to 1 range
-  } else {
-    roll_PID = 0.01 * (Kp_roll_angle * pScaleRoll * error_roll + Ki_roll_angle * iScaleRoll * integral_roll -
-                       Kd_roll_angle * dScaleRoll * derivative_roll); // Scaled by .01 to bring within -1 to 1 range
-  }
-#else
   roll_PID = 0.01 * (Kp_roll_angle * pScaleRoll * error_roll + Ki_roll_angle * iScaleRoll * integral_roll -
                      Kd_roll_angle * dScaleRoll * derivative_roll); // Scaled by .01 to bring within -1 to 1 range
-#endif
 
   // --- Pitch --- //
   error_pitch = pitch_des - quadIMU_info.pitch_IMU;
@@ -1415,19 +1157,8 @@ void controlANGLE() {
                                                                  // integral_pitch);
   derivative_pitch = quadIMU_info.GyroY;
 
-#if defined USE_RIP
-  if (irisFlag) {
-    pitch_PID =
-        0.01 * (Kp_pitch_angleFree * pScalePitch * error_pitch + Ki_pitch_angleFree * iScalePitch * integral_pitch -
-                Kd_pitch_angleFree * dScalePitch * derivative_pitch); // Scaled by .01 to bring within -1 to 1 range
-  } else {
-    pitch_PID = 0.01 * (Kp_pitch_angle * pScalePitch * error_pitch + Ki_pitch_angle * iScalePitch * integral_pitch -
-                        Kd_pitch_angle * dScalePitch * derivative_pitch); // Scaled by .01 to bring within -1 to 1 range
-  }
-#else
   pitch_PID = 0.01 * (Kp_pitch_angle * pScalePitch * error_pitch + Ki_pitch_angle * iScalePitch * integral_pitch -
                       Kd_pitch_angle * dScalePitch * derivative_pitch); // Scaled by .01 to bring within -1 to 1 range
-#endif
 
   // --- Yaw, stablize on rate from GyroZ --- //
   error_yaw = yaw_des - quadIMU_info.GyroZ;
@@ -1615,37 +1346,30 @@ void scaleCommands() {
    * commandMotors(). sX_command_PWM are updated which are used to command the
    * servos.
    */
+#ifdef USE_ONESHOT
   // Scaled to 125us - 250us for oneshot125 protocol
   m1_command_PWM = m1_command_scaled * 125 + 125;
   m2_command_PWM = m2_command_scaled * 125 + 125;
   m3_command_PWM = m3_command_scaled * 125 + 125;
   m4_command_PWM = m4_command_scaled * 125 + 125;
-  m5_command_PWM = m5_command_scaled * 125 + 125;
-  m6_command_PWM = m6_command_scaled * 125 + 125;
   // Constrain commands to motors within oneshot125 bounds
   m1_command_PWM = constrain(m1_command_PWM, 125, 250);
   m2_command_PWM = constrain(m2_command_PWM, 125, 250);
   m3_command_PWM = constrain(m3_command_PWM, 125, 250);
   m4_command_PWM = constrain(m4_command_PWM, 125, 250);
-  m5_command_PWM = constrain(m5_command_PWM, 125, 250);
-  m6_command_PWM = constrain(m6_command_PWM, 125, 250);
+#else
   // Scaled to 0-180 for servo library
-  s1_command_PWM = s1_command_scaled * 180;
-  s2_command_PWM = s2_command_scaled * 180;
-  s3_command_PWM = s3_command_scaled * 180;
-  s4_command_PWM = s4_command_scaled * 180;
-  s5_command_PWM = s5_command_scaled * 180;
-  s6_command_PWM = s6_command_scaled * 180;
-  s7_command_PWM = s7_command_scaled * 180;
+  m1_command_PWM = m1_command_scaled * 180;
+  m2_command_PWM = m2_command_scaled * 180;
+  m3_command_PWM = m3_command_scaled * 180;
+  m4_command_PWM = m4_command_scaled * 180;
 
   // Constrain commands to servos within servo library bounds
-  s1_command_PWM = constrain(s1_command_PWM, 0, 180);
-  s2_command_PWM = constrain(s2_command_PWM, 0, 180);
-  s3_command_PWM = constrain(s3_command_PWM, 0, 180);
-  s4_command_PWM = constrain(s4_command_PWM, 0, 180);
-  s5_command_PWM = constrain(s5_command_PWM, 0, 180);
-  s6_command_PWM = constrain(s6_command_PWM, 0, 180);
-  s7_command_PWM = constrain(s7_command_PWM, 0, 180);
+  m1_command_PWM = constrain(m1_command_PWM, 0, 180);
+  m2_command_PWM = constrain(m2_command_PWM, 0, 180);
+  m3_command_PWM = constrain(m3_command_PWM, 0, 180);
+  m4_command_PWM = constrain(m4_command_PWM, 0, 180);
+#endif
 }
 
 void getCommands() {
@@ -1872,27 +1596,20 @@ void calibrateESCs() {
     m2_command_scaled = thro_des;
     m3_command_scaled = thro_des;
     m4_command_scaled = thro_des;
-    s1_command_scaled = thro_des;
-    s2_command_scaled = thro_des;
-    s3_command_scaled = thro_des;
-    s4_command_scaled = thro_des;
-    s5_command_scaled = thro_des;
-    s6_command_scaled = thro_des;
-    s7_command_scaled = thro_des;
     scaleCommands(); // Scales motor commands to 125 to 250 range (oneshot125
                      // protocol) and servo PWM commands to 0 to 180 (for servo
                      // library)
 
     // throttleCut(); //Directly sets motor commands to low based on state of ch5
 
+		#ifdef USE_ONESHOT
     commandMotors();
-    servo1.write(s1_command_PWM);
-    servo2.write(s2_command_PWM);
-    servo3.write(s3_command_PWM);
-    servo4.write(s4_command_PWM);
-    servo5.write(s5_command_PWM);
-    servo6.write(s6_command_PWM);
-    servo7.write(s7_command_PWM);
+		#else
+    servo1.write(m1_command_PWM);
+    servo2.write(m2_command_PWM);
+    servo3.write(m3_command_PWM);
+    servo4.write(m4_command_PWM);
+		#endif
 
     // printRadioData(); //Radio pwm values (expected: 1000 to 2000)
 
@@ -1996,17 +1713,17 @@ int throttleCut() {
    * motors to anything other than minimum value. Safety first.
    */
   if (channel_5_pwm > 1500) {
+		#ifdef USE_ONESHOT
     m1_command_PWM = 125;
     m2_command_PWM = 125;
     m3_command_PWM = 125;
     m4_command_PWM = 125;
-    s1_command_PWM = 0;
-    s2_command_PWM = 0;
-    s3_command_PWM = 0;
-    s4_command_PWM = 0;
-    s5_command_PWM = 0;
-    s6_command_PWM = 0;
-    s7_command_PWM = 0;
+		#else
+    m1_command_PWM = 0;
+    m2_command_PWM = 0;
+    m3_command_PWM = 0;
+    m4_command_PWM = 0;
+		#endif
     return 1;
   }
   return 0;
@@ -2113,156 +1830,47 @@ void setupBlink(int numBlinks, int upTime, int downTime) {
   }
 }
 
-void getJoyAngle() {
-  // Read the raw analog values (0 to 1023)
-  joyRollCounts = analogRead(joyRollPin);
-  joyPitchCounts = analogRead(joyPitchPin);
-
-  joyRoll = (static_cast<float>(joyRollCounts) - fullRange_joyRoll_half - joyRollCounts_min) / fullRange_joyRoll *
-                (joyRollAngle_min - joyRollAngle_max) +
-            joyRollOffset;
-  joyPitch = (static_cast<float>(joyPitchCounts) - fullRange_joyPitch_half - joyPitchCounts_min) / fullRange_joyPitch *
-                 (joyPitchAngle_min - joyPitchAngle_max) +
-             joyPitchOffset;
-
-  // Determine ripRoll and ripPitch in the inertial frame based on joystick angle
-  ripRoll = joyRoll + quadIMU_info.roll_IMU;
-  ripPitch = joyPitch + quadIMU_info.pitch_IMU;
-}
-
-void openIris() {
-  iris.write(70);
-  servoLoopCounter = 0;
-}
-
-void closeIris() {
-  if (servoLoopCounter < 500) {
-    iris.write(146);
-    servoLoopCounter++;
-  } else {
-    iris.write(146);
-  }
-}
-
-void calibrateJoystick() {
-  joyRollCounts_max = 0;
-  joyRollCounts_min = 1000;
-  joyPitchCounts_max = 0;
-  joyPitchCounts_min = 1000;
-
-  while (1) {
-    joyRollCounts = analogRead(joyRollPin);
-    joyPitchCounts = analogRead(joyPitchPin);
-
-    if (joyRollCounts < joyRollCounts_min) {
-      joyRollCounts_min = joyRollCounts;
-    }
-    if (joyRollCounts > joyRollCounts_max) {
-      joyRollCounts_max = joyRollCounts;
-    }
-    if (joyPitchCounts < joyPitchCounts_min) {
-      joyPitchCounts_min = joyPitchCounts;
-    }
-    if (joyPitchCounts > joyPitchCounts_max) {
-      joyPitchCounts_max = joyPitchCounts;
-    }
-    Serial.print("joyRollCounts_max = ");
-    Serial.print(joyRollCounts_max);
-    Serial.print("\t");
-    Serial.print("joyRollCounts_min = ");
-    Serial.print(joyRollCounts_min);
-    Serial.print("\t");
-    Serial.print("joyPitchCounts_max = ");
-    Serial.print(joyPitchCounts_max);
-    Serial.print("\t");
-    Serial.print("joyRollCounts_min = ");
-    Serial.println(joyPitchCounts_min);
-  }
-}
-
 void getPScale() {
   float scaleVal;
-#ifdef TUNE_RIP
-  scaleVal = 1.0f + (channel_10_pwm - 1500.0f) / 1000.0f * 0.25f;
-  if (scaleVal < 0.0f) {
-    scaleVal = 0.0f;
-  }
-  pScaleRipRoll = scaleVal;
-  pScaleRipPitch = scaleVal;
-#elif defined TUNE_CORE
   scaleVal = 1.0f + (channel_10_pwm - 1000.0f) / 1000.0f * 1.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
   pScaleRoll = scaleVal;
   pScalePitch = scaleVal;
-#endif
 }
 
 void getDScale() {
   float scaleVal;
-#ifdef TUNE_RIP
-  scaleVal = 1.0f + (channel_12_pwm - 1500.0f) / 1000.0f * 0.25f;
-  if (scaleVal < 0.0f) {
-    scaleVal = 0.0f;
-  }
-  dScaleRipRoll = scaleVal;
-  dScaleRipPitch = scaleVal;
-#elif defined TUNE_CORE
   scaleVal = 1.0f + (channel_12_pwm - 1000.0f) / 1000.0f * 2.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
   dScaleRoll = scaleVal;
   dScalePitch = scaleVal;
-#endif
 }
 
 void getIScale() {
   float scaleVal;
-#ifdef TUNE_RIP
-  scaleVal = 1.0f + (channel_11_pwm - 1500.0f) / 1000.0f * 0.25f;
-  if (scaleVal < 0.0f) {
-    scaleVal = 0.0f;
-  }
-  iScaleRipRoll = scaleVal;
-  iScaleRipPitch = scaleVal;
-#elif defined TUNE_CORE
   scaleVal = 1.0f + (channel_11_pwm - 1000.0f) / 1000.0f * 10.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }
   iScaleRoll = scaleVal;
   iScalePitch = scaleVal;
-#endif
 }
 
 void scaleBoth() {
   float scaleMultiplier;
   scaleMultiplier = 1.0f + (channel_13_pwm - 1015.0f) / 1000.0f * 0.25f;
-#ifdef TUNE_RIP
-  pScaleRipRoll *= scaleMultiplier;
-  iScaleRipRoll *= scaleMultiplier;
-  dScaleRipRoll *= scaleMultiplier;
-  pScaleRipPitch *= scaleMultiplier;
-  iScaleRipPitch *= scaleMultiplier;
-  dScaleRipPitch *= scaleMultiplier;
-#elif defined TUNE_CORE
   pScaleRoll *= scaleMultiplier;
   iScaleRoll *= scaleMultiplier;
   dScaleRoll *= scaleMultiplier;
   pScalePitch *= scaleMultiplier;
   iScalePitch *= scaleMultiplier;
   dScalePitch *= scaleMultiplier;
-#endif
 }
 
-void ripExtremeAngleCheck() {
-  if (abs(acos(cos(joyRoll * PI / 180.0f) * cos(joyPitch * PI / 180.0f))) > EXTREME_RIP_ANGLE * PI / 180.0f) {
-    closeIris();
-    extremeAngleFlag = 1;
-  }
-}
 //=========================================================================================//
 
 // HELPER FUNCTIONS
