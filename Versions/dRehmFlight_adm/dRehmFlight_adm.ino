@@ -58,7 +58,7 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
 
 // Use OneShot125 or PWM
 #define USE_ONESHOT
-
+ 
 //================================================================================================//
 
 // REQUIRED LIBRARIES (included with download in main sketch folder)
@@ -71,6 +71,7 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
 #include <SPI.h>      //SPI communication
 #include <Wire.h>     //I2c communication
 #include "parameters.h"
+#include "commonDefinitions.h"
 
 #if defined USE_SBUS_RX
 #include "src/SBUS/SBUS.h" //sBus interface
@@ -168,31 +169,6 @@ RingBuf<FsFile, RING_BUF_CAPACITY> buffer;
 #define ACCEL_SCALE_FACTOR 2048.0
 #endif
 
-typedef struct attitudeInfo {
-  float AccX, AccY, AccZ;
-  float AccX_prev, AccY_prev, AccZ_prev;
-  float GyroX, GyroY, GyroZ;
-  float GyroX_prev, GyroY_prev, GyroZ_prev;
-  float MagX, MagY, MagZ;
-  float MagX_prev, MagY_prev, MagZ_prev;
-  float roll_IMU, pitch_IMU, yaw_IMU;
-  float roll_IMU_prev, pitch_IMU_prev;
-  float q0 = 1.0f;
-  float q1 = 0.0f;
-  float q2 = 0.0f;
-  float q3 = 0.0f;
-  float AccErrorX = 0.0f;
-  float AccErrorY = 0.0f;
-  float AccErrorZ = 0.0f;
-  float GyroErrorX = 0.0f;
-  float GyroErrorY = 0.0f;
-  float GyroErrorZ = 0.0f;
-  // Filter parameters
-  float B_madgwick = 0.04; // Madgwick filter parameter
-  float B_accel = 0.14;    // Accelerometer LP filter paramter, (MPU6050 default: 0.14. MPU9250 default: 0.2)
-  float B_gyro = 0.1;      // Gyro LP filter paramter, (MPU6050 default: 0.1. MPU9250 default: 0.17)
-  float B_mag = 1.0;       // Magnetometer LP filter parameter
-} attInfo;
 
 //================================================================================================//
 //                                     USER-SPECIFIED VARIABLES //
@@ -237,12 +213,12 @@ float dScaleRoll = 1.0f;
 float dScalePitch = 1.0f;
 float dScaleYaw = 1.0f;
 
-float Kp_roll_angle = 1.8032;
-float Ki_roll_angle = 0.0404;
-float Kd_roll_angle = 0.2698;
-float Kp_pitch_angle = 1.8032;
-float Ki_pitch_angle = 0.0404;
-float Kd_pitch_angle = 0.2698;
+float Kp_roll_angle = 0.3;
+float Ki_roll_angle = 0.05;
+float Kd_roll_angle = 0.05;
+float Kp_pitch_angle = 0.3;
+float Ki_pitch_angle = 0.05;
+float Kd_pitch_angle = 0.05;
 
 // Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 float B_loop_roll = 0.9;
@@ -494,9 +470,9 @@ void setup() {
   quadIMU_info.AccErrorX = 0.01;
   quadIMU_info.AccErrorY = 0.01;
   quadIMU_info.AccErrorZ = 0.08;
-  quadIMU_info.GyroErrorX = -4.46;
-  quadIMU_info.GyroErrorY = -2.04;
-  quadIMU_info.GyroErrorZ = -0.67;
+  quadIMU_info.GyroErrorX = -4.72;
+  quadIMU_info.GyroErrorY = -2.18;
+  quadIMU_info.GyroErrorZ = -0.7;
 
   // Arm servo channels
 	#ifndef USE_ONESHOT
@@ -511,7 +487,7 @@ void setup() {
 
   // PROPS OFF. Uncomment this to calibrate your ESCs by setting throttle stick
   // to max, powering on, and lowering throttle to zero after the beeps
-   //calibrateESCs();
+  // calibrateESCs();
   // Code will not proceed past here if this function is uncommented!
 
 	#ifdef USE_ONESHOT
@@ -566,7 +542,7 @@ void loop() {
   // printRIPAngles();
 
   //  Prints desired and imu roll state for serial plotter
-  // displayRoll();
+   displayRoll();
   //  Prints desired and imu pitch state for serial plotter
   // displayPitch();
 
@@ -1852,7 +1828,7 @@ void getDScale() {
 
 void getIScale() {
   float scaleVal;
-  scaleVal = 1.0f + (channel_11_pwm - 1000.0f) / 1000.0f * 10.0f;
+  scaleVal = 1.0f + (channel_11_pwm - 1000.0f) / 1000.0f * 2.0f;
   if (scaleVal < 0.0f) {
     scaleVal = 0.0f;
   }

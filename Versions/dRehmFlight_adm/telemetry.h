@@ -3,20 +3,23 @@
 
 #include "Arduino.h"
 
-#define HWSERIAL Serial7
+#define HWSERIAL Serial2
 
 #include "src/mavlink/common/mavlink.h"
 #include "src/mavlink/ardupilotmega/mavlink_msg_pid_tuning.h"
 #include <cstdint>
+#include "commonDefinitions.h"
 
 class Telemetry {
 public:
 	Telemetry();
 	void InitTelemetry();
+
 	void SendHeartbeat();
 	void SendPIDGains_core(float P, float I, float D);
 	void SendPIDGains_rip(float P, float I, float D);
 	void SendAttitude(float roll, float pitch, float yaw, float rollspeed, float pitchspeed, float yawspeed);
+	void SendScaledIMU(uint64_t timeSinceBoot, attInfo *imuInfo);
 	void SendMessage(mavlink_message_t *msg);
 	void UpdateReceived();
 

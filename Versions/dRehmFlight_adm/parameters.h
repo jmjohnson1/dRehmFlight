@@ -27,7 +27,7 @@ public:
 		value = parameterValue;
 		mavParamType = parameterType;
 	}
-}
+};
 
 // Devine a class to manage an array of parameters
 class ParameterManager {

@@ -1,7 +1,7 @@
 %function plotFlightData(filename)
 clear
 close all
-filename = "flight_data22.csv";
+filename = "/Users/james/Documents/MotionCaptureTransmitter/flight_data0.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -10,12 +10,18 @@ filename = "flight_data22.csv";
     %%%%%%%% END IMPORT %%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+    t0 = 59;
 
     lw = 1;
-     rng = 1:length(radio_ch1);
-    %rng = 5.10E04:5.15E04;
-    time = rng/100;
+    %rng = 1:length(radio_ch1);
+    rng = 5900:36000;
+    time_imu = rng/100 - t0;
     %
+
+    imu_data = [AccX, AccY, AccZ, GyroX, GyroY, GyroZ];
+    imu_data = imu_data(rng, :);
+
+    save("processedIMU.mat", "imu_data", "time_imu");
     
 
 %     %%% Plot Desired and Measured States %%%
@@ -33,17 +39,17 @@ filename = "flight_data22.csv";
     % title("Pitch/Yaw/Roll")
 % 
     % Plot motor commands
-    % figure(2);
-    % hold on
-    % plot(s1_command(rng), DisplayName="s1", LineWidth=lw);
-    % plot(s2_command(rng), DisplayName="s2", LineWidth=lw);
-    % plot(s3_command(rng), DisplayName="s3", LineWidth=lw);
-    % plot(s4_command(rng), DisplayName="s4", LineWidth=lw);
-    % hold off
-    % legend();
-    % grid on
-    % title("Motor Commands")
-% 
+%     figure(2);
+%     hold on
+%     plot(time, s1_command(rng), DisplayName="s1", LineWidth=lw);
+%     plot(time, s2_command(rng), DisplayName="s2", LineWidth=lw);
+%     plot(time, s3_command(rng), DisplayName="s3", LineWidth=lw);
+%     plot(time, s4_command(rng), DisplayName="s4", LineWidth=lw);
+%     hold off
+%     legend();
+%     grid on
+%     title("Motor Commands")
+% % 
     % % Plot radio channel data
     % figure();
     % hold on
@@ -113,75 +119,66 @@ filename = "flight_data22.csv";
 
 figure()
 ax_roll = subplot(2, 1, 1);
-plot(rng./100, roll_imu(rng), 'r-', DisplayName="Measured Roll")
+plot(time_imu, roll_imu(rng), 'r-', DisplayName="Measured Roll")
 hold on
-plot(rng./100, roll_des(rng), 'b-', DisplayName="Desired Roll")
+plot(time_imu, roll_des(rng), 'b-', DisplayName="Desired Roll")
 hold off
 grid on
 ylim([-7, 7])
 legend();
 
 ax_gains = subplot(2, 1, 2);
-plot(rng./100, kp_roll(rng), 'r-', DisplayName = "Kp")
+plot(time_imu, kp_roll(rng), 'r-', DisplayName = "Kp")
 hold on
-plot(rng./100, ki_roll(rng), '-', Color=[0 0.5 0], DisplayName = "Ki")
-plot(rng./100, kd_roll(rng), 'b-', DisplayName = "Kd")
+plot(time_imu, ki_roll(rng), '-', Color=[0 0.5 0], DisplayName = "Ki")
+plot(time_imu, kd_roll(rng), 'b-', DisplayName = "Kd")
 hold off
 grid on
 legend()
 linkaxes([ax_roll, ax_gains], 'x')
 
-figure()
-%subplot(2, 1, 1)
-plot(rng./100, ripPitch_des, 'b-', DisplayName="Desired RIP Pitch");
-hold on
-plot(rng./100, ripIMU_pitch, 'r-', DisplayName="Measured RIP Pitch")
-hold off;
-grid on;
-legend();
 
 
-
-figure()
-ax_ripRoll = subplot(2,1,1);
-plot(rng./100, error_alphaRoll, 'k-', DisplayName="Measured RIP Roll Error");
-hold on
-plot(rng./100, kp_alphaRoll.*error_alphaRoll, 'r-', DisplayName="pTerm");
-plot(rng./100, ki_alphaRoll.*integral_alphaRoll, 'b-', DisplayName="iTerm");
-plot(rng./100, kd_alphaRoll.*derivative_alphaRoll, LineStyle='-', Color=[0 0.5 0], DisplayName="dTerm");
-plot(rng./100, kp_alphaRoll.*error_alphaRoll + ki_alphaRoll.*integral_alphaRoll + kd_alphaRoll.*derivative_alphaRoll, 'r--', DisplayName="Sum");
-hold off;
-grid on;
-legend();
-
-ax_ripPitch = subplot(2,1,2);
-plot(rng./100, error_betaPitch, 'k-', DisplayName="Measured RIP Pitch Error");
-hold on
-plot(rng./100, kp_betaPitch.*error_betaPitch, 'r-', DisplayName="pTerm");
-plot(rng./100, ki_betaPitch.*integral_betaPitch, 'b-', DisplayName="iTerm");
-plot(rng./100, kd_betaPitch.*derivative_betaPitch, LineStyle='-', Color=[0 0.5 0], DisplayName="dTerm");
-plot(rng./100, kp_betaPitch.*error_betaPitch+ki_betaPitch.*integral_betaPitch+kd_betaPitch.*derivative_betaPitch, 'r--', DisplayName="Sum");
-hold off;
-grid on;
-legend();
-linkaxes([ax_ripRoll, ax_ripPitch], 'xy');
-
-figure()
-ax1 = subplot(3, 1, 1);
-plot(rng./100, kp_alphaRoll, 'r-', DisplayName="Kp");
-ylabel("Kp");
-grid on;
-
-ax2 = subplot(3,1,2);
-plot(rng./100, ki_alphaRoll, Color=[0 0.5 0], DisplayName='Ki');
-ylabel("Ki");
-grid on;
-
-ax3 = subplot(3,1,3);
-plot(rng./100, kd_alphaRoll, 'b-');
-ylabel("Kd");
-grid on;
-linkaxes([ax1, ax2, ax3], 'x');
+% figure()
+% ax_ripRoll = subplot(2,1,1);
+% plot(time, error_alphaRoll, 'k-', DisplayName="Measured RIP Roll Error");
+% hold on
+% plot(rng./100, kp_alphaRoll.*error_alphaRoll, 'r-', DisplayName="pTerm");
+% plot(rng./100, ki_alphaRoll.*integral_alphaRoll, 'b-', DisplayName="iTerm");
+% plot(rng./100, kd_alphaRoll.*derivative_alphaRoll, LineStyle='-', Color=[0 0.5 0], DisplayName="dTerm");
+% plot(rng./100, kp_alphaRoll.*error_alphaRoll + ki_alphaRoll.*integral_alphaRoll + kd_alphaRoll.*derivative_alphaRoll, 'r--', DisplayName="Sum");
+% hold off;
+% grid on;
+% legend();
+% 
+% ax_ripPitch = subplot(2,1,2);
+% plot(rng./100, error_betaPitch, 'k-', DisplayName="Measured RIP Pitch Error");
+% hold on
+% plot(rng./100, kp_betaPitch.*error_betaPitch, 'r-', DisplayName="pTerm");
+% plot(rng./100, ki_betaPitch.*integral_betaPitch, 'b-', DisplayName="iTerm");
+% plot(rng./100, kd_betaPitch.*derivative_betaPitch, LineStyle='-', Color=[0 0.5 0], DisplayName="dTerm");
+% plot(rng./100, kp_betaPitch.*error_betaPitch+ki_betaPitch.*integral_betaPitch+kd_betaPitch.*derivative_betaPitch, 'r--', DisplayName="Sum");
+% hold off;
+% grid on;
+% legend();
+% linkaxes([ax_ripRoll, ax_ripPitch], 'xy');
+% 
+% figure()
+% ax1 = subplot(3, 1, 1);
+% plot(rng./100, kp_alphaRoll, 'r-', DisplayName="Kp");
+% ylabel("Kp");
+% grid on;
+% 
+% ax2 = subplot(3,1,2);
+% plot(rng./100, ki_alphaRoll, Color=[0 0.5 0], DisplayName='Ki');
+% ylabel("Ki");
+% grid on;
+% 
+% ax3 = subplot(3,1,3);
+% plot(rng./100, kd_alphaRoll, 'b-');
+% ylabel("Kd");
+% grid on;
+% linkaxes([ax1, ax2, ax3], 'x');
 
 
 
