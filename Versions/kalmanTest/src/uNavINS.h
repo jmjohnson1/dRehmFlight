@@ -120,7 +120,7 @@ class uNavINS {
     Matrix<float,3,15> H_; // Observation matrix
     Matrix<float,3,3> R_;// Covariance of the Observation Noise (associated with MeasUpdate())
     Matrix<float,12,12> Rw_; // Covariance of the Sensor Noise (associated with TimeUpdate())
-    Matrix<float,6,6> S_; // Innovation covariance
+    Matrix<float,3,3> S_; // Innovation covariance
     Matrix<float,15,15> P_; // Covariance estimate
 
     // Global variables
