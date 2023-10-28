@@ -34,7 +34,7 @@ class uNavINS {
   public:
     uNavINS() {};
     void Configure();
-    void Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3f magMeas_B_uT, Vector3d pMeas_NED_m);
+    void Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d pMeas_NED_m);
     bool Initialized() { return initialized_; } // returns whether the INS has been initialized
     void Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d pMeas_NED_m);
 
@@ -76,6 +76,9 @@ class uNavINS {
     // Get Innovation
     inline Vector3f Get_InnovationPos() { return S_.block(0,0,3,3).diagonal(); }
     inline Vector3f Get_InnovationVel() { return S_.block(3,3,3,3).diagonal(); }
+
+    // Get State
+    inline Vector<float, 15> Get_State() { return state_; }
 
   private:
     // Model Constants
@@ -133,7 +136,11 @@ class uNavINS {
     Vector3f vEst_NED_mps_; // Estimated velocity in NED
     Vector3d pEst_NED_m_; // Estimated position in NED
 
+    // State Vector
+    Vector<float, 15> state_;
+
     // Methods
     void TimeUpdate();
     void MeasUpdate(Vector3d pMeas_D_rrm);
+    void UpdateStateVector();
 };

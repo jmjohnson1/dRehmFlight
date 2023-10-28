@@ -51,7 +51,7 @@ void uNavINS::Configure() {
   P_.block(12,12,3,3) = (wBiasSigma_Init_rps * wBiasSigma_Init_rps) * I3;
 }
 
-void uNavINS::Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3f magMeas_B_uT, Vector3d pMeas_NED_m) {
+void uNavINS::Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d pMeas_NED_m) {
   // Initialize Position and Velocity
   pEst_NED_m_ = pMeas_NED_m; // Position in NED
   vEst_NED_mps_.setZero(); // Velocity in NED
@@ -69,15 +69,25 @@ void uNavINS::Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3f m
   euler_BL_rad_(1) = asinf(aEst_B_nd(0));
   euler_BL_rad_(0) = -asinf(aEst_B_nd(1) / cosf(euler_BL_rad_(1)));
 
-
   // Estimate initial heading
   euler_BL_rad_(2) = 0.0f;
 
   // Euler to quaternion
   quat_BL_ = Euler2Quat(euler_BL_rad_);
 
+  // State vector
+  UpdateStateVector();
+
   // set initialized flag
   initialized_ = true;
+}
+
+void uNavINS::UpdateStateVector() {
+  state_(seq(0,2)) = pEst_NED_m_.cast <float> ();
+  state_(seq(3, 5)) = vEst_NED_mps_;
+  state_(seq(6, 8)) = euler_BL_rad_;
+  state_(seq(9, 11)) = aBias_mps2_;
+  state_(seq(12,14)) = wBias_rps_;
 }
 
 
@@ -110,6 +120,8 @@ void uNavINS::Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_B_rps
 
   // Euler angles from quaternion
   euler_BL_rad_ = Quat2Euler(quat_BL_);
+
+  UpdateStateVector();
 }
 
 void uNavINS::TimeUpdate() {
@@ -128,7 +140,7 @@ void uNavINS::TimeUpdate() {
 
   // Velocity Update
   Vector3f aGrav_mps2 = Vector3f(0.0, 0.0, G);
-	pEst_NED_m_ += dt_s_*vEst_NED_mps_ + 0.5f*dt_s_*dt_s_*(T_B2NED*aEst_B_mps2_ + aGrav_mps2);
+	pEst_NED_m_ += (dt_s_*vEst_NED_mps_ + 0.5f*dt_s_*dt_s_*(T_B2NED*aEst_B_mps2_ + aGrav_mps2)).cast <double> ();
   vEst_NED_mps_ += dt_s_ * (T_B2NED * aEst_B_mps2_ + aGrav_mps2);
 
   // Position Update
@@ -171,7 +183,7 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   // Position Error, converted to NED
   //Matrix3f T_E2NED = TransE2NED(pEst_NED_m_).cast <float> (); // Compute ECEF to NED with double precision, cast to float
   //Vector3f pErr_NED_m = T_E2NED * (D2E(pMeas_D_rrm) - D2E(pEst_D_rrm_)).cast <float> ();// Compute position error double precision, cast to float, apply transformation
-  Vector3f pErr_NED_m = pMeas_NED_m - pEst_NED_m_;
+  Vector3f pErr_NED_m = (pMeas_NED_m - pEst_NED_m_).cast <float> ();
 
   // Create measurement Y, as Error between Measures and Outputs
   Matrix<float,3,1> y; y.setZero();
@@ -200,7 +212,7 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   Vector3f wBiasDelta = x.segment(12,3); // Rotation Rate Bias Deltas
 
   // Position update
-  pEst_NED_m_ += x.segment(0,3);
+  pEst_NED_m_ += x.segment(0,3).cast <double> ();
 
   // Velocity update
   vEst_NED_mps_ += vDeltaEst_L;
