@@ -95,18 +95,18 @@ class uNavINS {
 
     // Sensor variances (as standard deviation) and models (tau)
     float aNoiseSigma_mps2 = 0.05f; // Std dev of Accelerometer Wide Band Noise (m/s^2)
-    float aMarkovSigma_mps2 = 0.01f; // Std dev of Accelerometer Markov Bias
+    float aMarkovSigma_mps2 = 0.0002942f; // Std dev of Accelerometer Markov Bias
     float aMarkovTau_s = 100.0f; // Correlation time or time constant
 
-    float wNoiseSigma_rps = 0.00175f; // Std dev of rotation rate output noise (rad/s)
-    float wMarkovSigma_rps = 0.00025; // Std dev of correlated rotation rate bias
-    float wMarkovTau_s = 50.0f; // Correlation time or time constant
+    float wNoiseSigma_rps = 0.00087266f; // Std dev of rotation rate output noise (rad/s)
+    float wMarkovSigma_rps = 0.000048481; // Std dev of correlated rotation rate bias
+    float wMarkovTau_s = 300.0f; // Correlation time or time constant
 
-    float pNoiseSigma_NE_m = 3.0f; // GPS measurement noise std dev (m)
-    float pNoiseSigma_D_m = 6.0f; // GPS measurement noise std dev (m)
+    float pNoiseSigma_NE_m = 0.03f; // GPS measurement noise std dev (m)
+    float pNoiseSigma_D_m = 0.03f; // GPS measurement noise std dev (m)
 
     // Initial set of covariance
-    float pErrSigma_Init_m = 10.0f; // Std dev of initial position error (m)
+    float pErrSigma_Init_m = 1.0f; // Std dev of initial position error (m)
     float vErrSigma_Init_mps = 1.0f; // Std dev of initial velocity error (m/s)
     float attErrSigma_Init_rad = 0.34906f; // Std dev of initial attitude (phi and theta) error (rad)
     float hdgErrSigma_Init_rad = 3.14159f; // Std dev of initial Heading (psi) error (rad)

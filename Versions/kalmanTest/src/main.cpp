@@ -11,7 +11,7 @@ template <typename Derived>
 int find(const MatrixBase<Derived> &A, float val) {
 	
 	int idx = 0;
-	float minValue = A(idx);
+	float minValue = abs(A(idx));
 	for (int i = 0; i < A.size(); i++) {
 		float currentValue = abs(A(i) - val);
 		if (currentValue < minValue) {
@@ -49,15 +49,32 @@ int main() {
 	// Convert accelerometer data to m/s/s
 	imuData.block(0, 0, imuData.rows(), 3) = imuData.block(0, 0, imuData.rows(), 3)*9.807f;
 
+	// Put it in NED
+	imuData.col(1) = -imuData.col(1);
+	imuData.col(2) = -imuData.col(2);
+	imuData.col(4) = -imuData.col(4);
+	imuData.col(5) = -imuData.col(5);
+
 	// Change mocap data units to m from mm
 	mocapPos = mocapPos/1000.0f;
 
+	// Figure out index for start of mocap
+	int startIndex = find(mocapTime, imuTime(0));
+	std::cout << "Start index = " << startIndex << std::endl;
+
 	// Set the initial position to be (0, 0, 0);
 	Matrix<float, Dynamic, Dynamic> coordinateShift(mocapPos.rows(), mocapPos.cols());
-	coordinateShift.col(0).setConstant(mocapPos(0, 0));
-	coordinateShift.col(1).setConstant(mocapPos(0, 1));
-	coordinateShift.col(2).setConstant(mocapPos(0, 2));
+	coordinateShift.col(0).setConstant(mocapPos(startIndex, 0));
+	coordinateShift.col(1).setConstant(mocapPos(startIndex, 1));
+	coordinateShift.col(2).setConstant(mocapPos(startIndex, 2));
 	mocapPos = mocapPos - coordinateShift;
+	// Flip y and z to make it the standard body frame directions
+	mocapPos.col(1) = -mocapPos.col(1);
+	mocapPos.col(2) = -mocapPos.col(2);
+
+	// Export data after preprocessing for debug
+	write_csv("/home/james/Documents/dRehmFlight/Versions/kalmanTest/csv/imuData_debug.csv", imuData);
+	write_csv("/home/james/Documents/dRehmFlight/Versions/kalmanTest/csv/mocapPos_debug.csv", mocapPos);
 
 	ins.Configure();
 	ins.Initialize(imuData(0, seq(3, 5)), imuData(0, seq(0, 2)), Vector3d::Zero());
