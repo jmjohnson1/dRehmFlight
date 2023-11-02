@@ -105,7 +105,7 @@ MPU9250 mpu9250(SPI2, 36);
 #define LOG_INTERVAL_USEC 10000
 
 // Size to log 256 byte lines at 100 Hz for more than ten minutes.
-#define LOG_FILE_SIZE 256 * 100 * 600 // 150,000,000 bytes.
+#define LOG_FILE_SIZE 256 * 100 * 600 * 10 // ~1,500,000,000 bytes.
 
 // Space to hold more than 1 second of 256-byte lines at 100 Hz in the buffer
 #define RING_BUF_CAPACITY 50 * 512
@@ -467,12 +467,18 @@ void setup() {
   // forever.
 
   // calculate_IMU_error(&quadIMU_info, &quadIMU);
-  quadIMU_info.AccErrorX = 0.01;
-  quadIMU_info.AccErrorY = 0.01;
-  quadIMU_info.AccErrorZ = 0.08;
-  quadIMU_info.GyroErrorX = -4.72;
-  quadIMU_info.GyroErrorY = -2.18;
-  quadIMU_info.GyroErrorZ = -0.7;
+  // quadIMU_info.AccErrorX = 0.01;
+  // quadIMU_info.AccErrorY = 0.01;
+  // quadIMU_info.AccErrorZ = 0.08;
+  // quadIMU_info.GyroErrorX = -4.72;
+  // quadIMU_info.GyroErrorY = -2.18;
+  // quadIMU_info.GyroErrorZ = -0.7;
+  quadIMU_info.AccErrorX = 0.0;
+  quadIMU_info.AccErrorY = 0.0;
+  quadIMU_info.AccErrorZ = 0.0;
+  quadIMU_info.GyroErrorX = 0.0;
+  quadIMU_info.GyroErrorY = 0.0;
+  quadIMU_info.GyroErrorZ = 0.0;
 
   // Arm servo channels
 	#ifndef USE_ONESHOT
@@ -542,7 +548,7 @@ void loop() {
   // printRIPAngles();
 
   //  Prints desired and imu roll state for serial plotter
-   displayRoll();
+   //displayRoll();
   //  Prints desired and imu pitch state for serial plotter
   // displayPitch();
 
@@ -565,6 +571,7 @@ void loop() {
   if (SD_is_present && (current_time - print_counterSD) > LOG_INTERVAL_USEC) {
     print_counterSD = micros();
     logData_writeBuffer();
+    Serial.println("logged");
   }
 
   if (loopCount > 2000) {

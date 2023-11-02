@@ -61,7 +61,7 @@ void Telemetry::SendScaledIMU(uint64_t timeSinceBoot, attInfo *imuInfo) {
 	int16_t xgyro = imuInfo->GyroX*1000 * deg2rad; // mrad/s
 	int16_t ygyro = imuInfo->GyroY*1000 * deg2rad;
 	int16_t zgyro = imuInfo->GyroZ*1000 * deg2rad;
-	mavlink_msg_scale
+	//mavlink_msg_scale
 
 }
 

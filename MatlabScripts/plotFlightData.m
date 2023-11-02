@@ -1,27 +1,73 @@
 %function plotFlightData(filename)
+%% Imports
 clear
 close all
-filename = "/Users/james/Documents/MotionCaptureTransmitter/flight_data0.csv";
+filename = "for_noise_characteristics.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    [roll_imu, pitch_imu, yaw_imu, alpha1, beta1, roll_des, pitch_des, yaw_des, throttle_des, roll_pid, pitch_pid, yaw_pid, radio_ch1, radio_ch2, radio_ch3, radio_ch4, radio_ch5, radio_ch6, radio_ch7, radio_ch8, radio_ch9, radio_ch10, radio_ch11, radio_ch12, radio_ch13, GyroX, GyroY, GyroZ, AccX, AccY, AccZ, s1_command, s2_command, s3_command, s4_command, kp_roll, ki_roll, kd_roll, kp_pitch, ki_pitch, kd_pitch, kp_yaw, ki_yaw, kd_yaw, failsafeTriggered, kp_alphaRoll, ki_alphaRoll, kd_alphaRoll, kp_betaPitch, ki_betaPitch, kd_betaPitch, ripIMU_roll, ripIMU_pitch, ripRoll_des, ripPitch_des, error_alphaRoll, integral_alphaRoll, derivative_alphaRoll, error_betaPitch, integral_betaPitch, derivative_betaPitch] = importfile(filename);
+    %[roll_imu, pitch_imu, yaw_imu, alpha1, beta1, roll_des, pitch_des, yaw_des, throttle_des, roll_pid, pitch_pid, yaw_pid, radio_ch1, radio_ch2, radio_ch3, radio_ch4, radio_ch5, radio_ch6, radio_ch7, radio_ch8, radio_ch9, radio_ch10, radio_ch11, radio_ch12, radio_ch13, GyroX, GyroY, GyroZ, AccX, AccY, AccZ, s1_command, s2_command, s3_command, s4_command, kp_roll, ki_roll, kd_roll, kp_pitch, ki_pitch, kd_pitch, kp_yaw, ki_yaw, kd_yaw, failsafeTriggered, kp_alphaRoll, ki_alphaRoll, kd_alphaRoll, kp_betaPitch, ki_betaPitch, kd_betaPitch, ripIMU_roll, ripIMU_pitch, ripRoll_des, ripPitch_des, error_alphaRoll, integral_alphaRoll, derivative_alphaRoll, error_betaPitch, integral_betaPitch, derivative_betaPitch] = importfile(filename);
+    tbl = readtable(filename);
+    roll_imu = table2array(tbl(:, 1)); 
+    pitch_imu = table2array(tbl(:, 2)); 
+    yaw_imu = table2array(tbl(:, 3));
+    roll_des = table2array(tbl(:, 4));
+    pitch_des = table2array(tbl(:, 5));
+    yaw_des = table2array(tbl(:, 6));
+    throttle_des = table2array(tbl(:, 7));
+    roll_pid = table2array(tbl(:, 8));
+    pitch_pid = table2array(tbl(:, 9));
+    yaw_pid = table2array(tbl(:, 10));
+    radio_ch1 = table2array(tbl(:, 11));
+    radio_ch2 = table2array(tbl(:, 12));
+    radio_ch3 = table2array(tbl(:, 13));
+    radio_ch4 = table2array(tbl(:, 14));
+    radio_ch5 = table2array(tbl(:, 15));
+    radio_ch6 = table2array(tbl(:, 16));
+    radio_ch7 = table2array(tbl(:, 17));
+    radio_ch8 = table2array(tbl(:, 18));
+    radio_ch9 = table2array(tbl(:, 19));
+    radio_ch10 = table2array(tbl(:, 20));
+    radio_ch11 = table2array(tbl(:, 21));
+    radio_ch12 = table2array(tbl(:, 22));
+    radio_ch13 = table2array(tbl(:, 23));
+    GyroX = table2array(tbl(:, 24));
+    GyroY = table2array(tbl(:, 25));
+    GyroZ = table2array(tbl(:, 26));
+    AccX = table2array(tbl(:, 27));
+    AccY = table2array(tbl(:, 28));
+    AccZ = table2array(tbl(:, 29));
+    s1_command = table2array(tbl(:, 30));
+    s2_command = table2array(tbl(:, 31));
+    s3_command = table2array(tbl(:, 32));
+    s4_command = table2array(tbl(:, 33));
+    kp_roll = table2array(tbl(:, 34));
+    ki_roll = table2array(tbl(:, 35));
+    kd_roll = table2array(tbl(:, 36));
+    kp_pitch = table2array(tbl(:, 37));
+    ki_pitch = table2array(tbl(:, 38));
+    kd_pitch = table2array(tbl(:, 39));
+    kp_yaw = table2array(tbl(:, 40));
+    ki_yaw = table2array(tbl(:, 41));
+    kd_yaw = table2array(tbl(:, 42));
+    failsafeTriggered = table2array(tbl(:, 43));
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%% END IMPORT %%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    t0 = 59;
+%% Main
+    %t0 = 59;
+    t0 = 0;
 
     lw = 1;
-    %rng = 1:length(radio_ch1);
-    rng = 5900:36000;
+    rng = 1:length(radio_ch1);
+    %rng = 5900:36000;
     time_imu = rng/100 - t0;
     %
 
     imu_data = [AccX, AccY, AccZ, GyroX, GyroY, GyroZ];
     imu_data = imu_data(rng, :);
 
-    save("processedIMU.mat", "imu_data", "time_imu");
+    %save("processedIMU.mat", "imu_data", "time_imu");
     
 
 %     %%% Plot Desired and Measured States %%%
@@ -117,25 +163,36 @@ filename = "/Users/james/Documents/MotionCaptureTransmitter/flight_data0.csv";
 % 
 % %end
 
-figure()
-ax_roll = subplot(2, 1, 1);
-plot(time_imu, roll_imu(rng), 'r-', DisplayName="Measured Roll")
-hold on
-plot(time_imu, roll_des(rng), 'b-', DisplayName="Desired Roll")
-hold off
-grid on
-ylim([-7, 7])
-legend();
+% figure()
+% ax_roll = subplot(2, 1, 1);
+% plot(time_imu, roll_imu(rng), 'r-', DisplayName="Measured Roll")
+% hold on
+% plot(time_imu, roll_des(rng), 'b-', DisplayName="Desired Roll")
+% hold off
+% grid on
+% ylim([-7, 7])
+% legend();
+% 
+% ax_gains = subplot(2, 1, 2);
+% plot(time_imu, kp_roll(rng), 'r-', DisplayName = "Kp")
+% hold on
+% plot(time_imu, ki_roll(rng), '-', Color=[0 0.5 0], DisplayName = "Ki")
+% plot(time_imu, kd_roll(rng), 'b-', DisplayName = "Kd")
+% hold off
+% grid on
+% legend()
+% linkaxes([ax_roll, ax_gains], 'x')
 
-ax_gains = subplot(2, 1, 2);
-plot(time_imu, kp_roll(rng), 'r-', DisplayName = "Kp")
-hold on
-plot(time_imu, ki_roll(rng), '-', Color=[0 0.5 0], DisplayName = "Ki")
-plot(time_imu, kd_roll(rng), 'b-', DisplayName = "Kd")
-hold off
-grid on
-legend()
-linkaxes([ax_roll, ax_gains], 'x')
+% figure()
+% ax_roll = subplot(311);
+% plot(time_imu, roll_imu(rng), 'r-')
+% grid on;
+% ax_pitch = subplot(312);
+% plot(time_imu, pitch_imu(rng), 'r-')
+% grid on;
+% ax_yaw = subplot(313);
+% plot(time_imu, yaw_imu(rng), 'r-')
+% grid on;
 
 
 
@@ -179,6 +236,26 @@ linkaxes([ax_roll, ax_gains], 'x')
 % ylabel("Kd");
 % grid on;
 % linkaxes([ax1, ax2, ax3], 'x');
+
+figure()
+subplot(231)
+plot(time_imu, imu_data(:, 1));
+ylabel("AccX");
+subplot(232)
+plot(time_imu, imu_data(:, 2));
+ylabel("AccY");
+subplot(233)
+plot(time_imu, imu_data(:, 3));
+ylabel("AccZ");
+subplot(234)
+plot(time_imu, imu_data(:, 4));
+ylabel("GyroX");
+subplot(235)
+plot(time_imu, imu_data(:, 5));
+ylabel("GyroY");
+subplot(236)
+plot(time_imu, imu_data(:, 6));
+ylabel("GyroZ");
 
 
 

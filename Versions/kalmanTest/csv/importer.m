@@ -41,14 +41,29 @@ xlabel("time (s)");
 figure()
 subplot(311)
 plot(time, outputState(7, :)*180/pi, Color=estColor, LineWidth=lw);
+hold on
+if exist('roll_imu','var') == 1
+    plot(time, roll_imu(rng), 'k.');
+end
+hold off
 ylabel("\Phi (deg)")
 
 subplot(312)
-plot(time, outputState(8, :)*180/pi, Color=estColor, LineWidth=lw);
+plot(time, -outputState(8, :)*180/pi, Color=estColor, LineWidth=lw);
+hold on
+if exist('pitch_imu','var') == 1
+    plot(time, pitch_imu(rng), 'k.');
+end
+hold off
 ylabel("\Theta (deg)")
 
 subplot(313)
-plot(time, outputState(9, :)*180/pi, Color=estColor, LineWidth=lw);
+plot(time, -outputState(9, :)*180/pi, Color=estColor, LineWidth=lw);
+hold on
+if exist('yaw_imu','var') == 1
+    plot(time, yaw_imu(rng), 'k.-');
+end
+hold off
 ylabel("\Psi (deg)")
 
 xlabel("time (s)");
@@ -67,3 +82,30 @@ plot(time, outputState(6, :), Color=estColor, LineWidth=lw);
 ylabel("Vz (m/s)")
 
 xlabel("time (s)");
+
+
+
+figure()
+subplot(231)
+plot(time, outputState(10, :), Color=estColor, LineWidth=lw);
+ylabel("")
+
+subplot(232)
+plot(time, outputState(11, :), Color=estColor, LineWidth=lw);
+ylabel("")
+
+subplot(233)
+plot(time, outputState(12, :), Color=estColor, LineWidth=lw);
+ylabel("")
+
+subplot(234)
+plot(time, outputState(13, :), Color=estColor, LineWidth=lw);
+ylabel("")
+
+subplot(235)
+plot(time, outputState(14, :), Color=estColor, LineWidth=lw);
+ylabel("")
+
+subplot(236)
+plot(time, outputState(15, :), Color=estColor, LineWidth=lw);
+ylabel("")

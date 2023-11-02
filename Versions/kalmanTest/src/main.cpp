@@ -7,6 +7,9 @@
 #include "csvParser.h"
 #include "uNavINS.h"
 
+//std::string absPathToFolder = "/home/james/Documents/dRehmFlight/Versions/kalmanTest/";
+std::string absPathToFolder = "/Users/james/Documents/dRehmFlight/Versions/kalmanTest/";
+
 template <typename Derived>
 int find(const MatrixBase<Derived> &A, float val) {
 	
@@ -28,10 +31,10 @@ int main() {
 
 	std::cout << "Loading csv data..." << std::endl;
 
-	std::string imuData_path = "/home/james/Documents/dRehmFlight/Versions/kalmanTest/csv/imu_data.csv";
-	std::string imuTime_path = "/home/james/Documents/dRehmFlight/Versions/kalmanTest/csv/imu_time.csv";
-	std::string mocapPos_path = "/home/james/Documents/dRehmFlight/Versions/kalmanTest/csv/mocap_pos.csv";
-	std::string mocapTime_path = "/home/james/Documents/dRehmFlight/Versions/kalmanTest/csv/mocap_time.csv";
+	std::string imuData_path = absPathToFolder + "csv/imu_data.csv";
+	std::string imuTime_path = absPathToFolder + "csv/imu_time.csv";
+	std::string mocapPos_path = absPathToFolder + "csv/mocap_pos.csv";
+	std::string mocapTime_path = absPathToFolder + "csv/mocap_time.csv";
 	MatrixXf imuData = load_csv<MatrixXf>(imuData_path);
 	MatrixXf imuTime = load_csv<MatrixXf>(imuTime_path);
 	MatrixXf mocapPos = load_csv<MatrixXf>(mocapPos_path);
@@ -73,8 +76,8 @@ int main() {
 	mocapPos.col(2) = -mocapPos.col(2);
 
 	// Export data after preprocessing for debug
-	write_csv("/home/james/Documents/dRehmFlight/Versions/kalmanTest/csv/imuData_debug.csv", imuData);
-	write_csv("/home/james/Documents/dRehmFlight/Versions/kalmanTest/csv/mocapPos_debug.csv", mocapPos);
+	write_csv(absPathToFolder + "csv/imuData_debug.csv", imuData);
+	write_csv(absPathToFolder + "csv/mocapPos_debug.csv", mocapPos);
 
 	ins.Configure();
 	ins.Initialize(imuData(0, seq(3, 5)), imuData(0, seq(0, 2)), Vector3d::Zero());
@@ -102,7 +105,7 @@ int main() {
 		outputState.conservativeResize(outputState.rows(), outputState.cols() + 1);
 		outputState.col(outputState.cols() - 1) = currentState;
 	}
-	write_csv("/home/james/Documents/dRehmFlight/Versions/kalmanTest/csv/outputState.csv", outputState);
+	write_csv(absPathToFolder + "csv/outputState.csv", outputState);
 
 	return 0;
 }

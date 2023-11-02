@@ -20,6 +20,7 @@ All units meters and radians
 */
 
 #include "uNavINS.h"
+#include "iostream"
 
 void uNavINS::Configure() {
   // Observation matrix (H)
@@ -129,6 +130,14 @@ void uNavINS::TimeUpdate() {
   Quaternionf dQuat_BL = Quaternionf(1.0, 0.5f*wEst_B_rps_(0)*dt_s_, 0.5f*wEst_B_rps_(1)*dt_s_, 0.5f*wEst_B_rps_(2)*dt_s_);
   quat_BL_ = (quat_BL_ * dQuat_BL).normalized();
 
+  //Cancel out the yaw component
+  //Vector3f clampingEuler = Quat2Euler(quat_BL_);
+  //clampingEuler = -clampingEuler;
+  //clampingEuler(0) = 0;
+  //clampingEuler(1) = 0;
+  //Quaternionf clampingQuat = Euler2Quat(clampingEuler);
+  //quat_BL_ = (quat_BL_ * clampingQuat).normalized();
+
   // Avoid quaternion flips sign
   if (quat_BL_.w() < 0) {
     quat_BL_ = Quaternionf(-quat_BL_.w(), -quat_BL_.x(), -quat_BL_.y(), -quat_BL_.z());
@@ -197,7 +206,6 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   K = P_ * H_.transpose() * S_.inverse();
 
   // Covariance update, P = (I + K * H) * P * (I + K * H)' + K * R * K'
-  // WHY DOES THIS ONE LOOK DIFFERENT?
   Matrix<float,15,15> I_KH = I15 - K * H_; // temp
   P_ = I_KH * P_ * I_KH.transpose() + K * R_ * K.transpose();
 
@@ -220,7 +228,14 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   // Attitude correction
   Quaternionf dQuat_BL = Quaternionf(1.0, quatDelta(0), quatDelta(1), quatDelta(2));
   quat_BL_ = (quat_BL_ * dQuat_BL).normalized();
-  euler_BL_rad_ = Quat2Euler(quat_BL_);
+
+ // //Cancel out the yaw component
+ // Vector3f clampingEuler = Quat2Euler(quat_BL_);
+ // clampingEuler = -clampingEuler;
+ // clampingEuler(0) = 0;
+ // clampingEuler(1) = 0;
+ // Quaternionf clampingQuat = Euler2Quat(clampingEuler);
+ // quat_BL_ = (quat_BL_ * clampingQuat).normalized();
 
   // Update biases from states
   aBias_mps2_ += aBiasDelta;
