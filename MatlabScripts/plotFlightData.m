@@ -2,7 +2,7 @@
 %% Imports
 clear
 close all
-filename = "for_noise_characteristics.csv";
+filename = "flight_data0.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -55,12 +55,12 @@ filename = "for_noise_characteristics.csv";
     %%%%%%%% END IMPORT %%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Main
-    %t0 = 59;
+    t0 = 59;
     t0 = 0;
 
     lw = 1;
-    rng = 1:length(radio_ch1);
-    %rng = 5900:36000;
+    %rng = 1:length(radio_ch1);
+    rng = 5900:36000;
     time_imu = rng/100 - t0;
     %
 

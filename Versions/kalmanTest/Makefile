@@ -1,4 +1,4 @@
-CC := clang++ # This is the main compiler
+CC := g++ # This is the main compiler
 # CC := clang --analyze
 SRCDIR := src
 BUILDDIR := build
@@ -7,7 +7,8 @@ TARGET := bin/runner
 SRCEXT := cpp
 SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
-CFLAGS := -g -std=c++11 -stdlib=libc++ # -Wall
+#CFLAGS := -g -std=c++11 -stdlib=libc++ # -Wall
+CFLAGS := -g # -Wall
 LIB := -L lib
 INC := -I include
 

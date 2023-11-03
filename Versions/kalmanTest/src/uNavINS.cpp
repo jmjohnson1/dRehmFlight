@@ -230,12 +230,12 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   quat_BL_ = (quat_BL_ * dQuat_BL).normalized();
 
  // //Cancel out the yaw component
- // Vector3f clampingEuler = Quat2Euler(quat_BL_);
- // clampingEuler = -clampingEuler;
- // clampingEuler(0) = 0;
- // clampingEuler(1) = 0;
- // Quaternionf clampingQuat = Euler2Quat(clampingEuler);
- // quat_BL_ = (quat_BL_ * clampingQuat).normalized();
+ //Vector3f clampingEuler = Quat2Euler(quat_BL_);
+ //clampingEuler = -clampingEuler;
+ //clampingEuler(0) = 0;
+ //clampingEuler(1) = 0;
+ //Quaternionf clampingQuat = Euler2Quat(clampingEuler);
+ //quat_BL_ = (quat_BL_ * clampingQuat).normalized();
 
   // Update biases from states
   aBias_mps2_ += aBiasDelta;

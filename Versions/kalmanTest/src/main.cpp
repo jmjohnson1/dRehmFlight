@@ -7,9 +7,6 @@
 #include "csvParser.h"
 #include "uNavINS.h"
 
-//std::string absPathToFolder = "/home/james/Documents/dRehmFlight/Versions/kalmanTest/";
-std::string absPathToFolder = "/Users/james/Documents/dRehmFlight/Versions/kalmanTest/";
-
 template <typename Derived>
 int find(const MatrixBase<Derived> &A, float val) {
 	
@@ -31,10 +28,10 @@ int main() {
 
 	std::cout << "Loading csv data..." << std::endl;
 
-	std::string imuData_path = absPathToFolder + "csv/imu_data.csv";
-	std::string imuTime_path = absPathToFolder + "csv/imu_time.csv";
-	std::string mocapPos_path = absPathToFolder + "csv/mocap_pos.csv";
-	std::string mocapTime_path = absPathToFolder + "csv/mocap_time.csv";
+	std::string imuData_path = "./csv/imu_data.csv";
+	std::string imuTime_path = "./csv/imu_time.csv";
+	std::string mocapPos_path = "./csv/mocap_pos.csv";
+	std::string mocapTime_path = "./csv/mocap_time.csv";
 	MatrixXf imuData = load_csv<MatrixXf>(imuData_path);
 	MatrixXf imuTime = load_csv<MatrixXf>(imuTime_path);
 	MatrixXf mocapPos = load_csv<MatrixXf>(mocapPos_path);
@@ -48,6 +45,7 @@ int main() {
 
 	// Convert imu gyro to rad/s
 	imuData.block(0, 3, imuData.rows(), 3) = imuData.block(0, 3, imuData.rows(), 3)*M_PI/180.0f;
+	imuData.col(5).setConstant(0);
 
 	// Convert accelerometer data to m/s/s
 	imuData.block(0, 0, imuData.rows(), 3) = imuData.block(0, 0, imuData.rows(), 3)*9.807f;
@@ -76,8 +74,8 @@ int main() {
 	mocapPos.col(2) = -mocapPos.col(2);
 
 	// Export data after preprocessing for debug
-	write_csv(absPathToFolder + "csv/imuData_debug.csv", imuData);
-	write_csv(absPathToFolder + "csv/mocapPos_debug.csv", mocapPos);
+	write_csv("./csv/imuData_debug.csv", imuData);
+	write_csv("./csv/mocapPos_debug.csv", mocapPos);
 
 	ins.Configure();
 	ins.Initialize(imuData(0, seq(3, 5)), imuData(0, seq(0, 2)), Vector3d::Zero());
@@ -91,7 +89,7 @@ int main() {
 	for (int imu_index = 0; imu_index < imuTime.size(); imu_index++) {
 		uint64_t currentTime_us = imuTime(imu_index)*1e06;
 		// Find out if it's time for a measurement update
-		if ((currentTime_us - previousMeasUpdateTime_us) > 1e06) {
+		if ((currentTime_us - previousMeasUpdateTime_us) > 1e05) {
 			int mocap_index = find(mocapTime, imuTime(imu_index));
 			posMeas = mocapPos.row(mocap_index).cast <double> ();
 			previousMeasUpdateTime_us = currentTime_us;
@@ -105,7 +103,7 @@ int main() {
 		outputState.conservativeResize(outputState.rows(), outputState.cols() + 1);
 		outputState.col(outputState.cols() - 1) = currentState;
 	}
-	write_csv(absPathToFolder + "csv/outputState.csv", outputState);
+	write_csv("./csv/outputState.csv", outputState);
 
 	return 0;
 }
