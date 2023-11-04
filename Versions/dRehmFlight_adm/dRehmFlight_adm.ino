@@ -62,9 +62,9 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
 //================================================================================================//
 
 // REQUIRED LIBRARIES (included with download in main sketch folder)
-#include "RingBuf.h" // Ring buffer used to store values for SD card
-#include "SdFat.h"   // Library used for SD card
-#include "TeensyTimerTool.h"
+#include <RingBuf.h> // Ring buffer used to store values for SD card
+#include <SdFat.h>   // Library used for SD card
+#include <TeensyTimerTool.h>
 #include "filter.h" // For data filtering
 #include "telemetry.h"
 #include <PWMServo.h> //Commanding any extra actuators, installed with teensyduino installer
