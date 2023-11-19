@@ -37,6 +37,7 @@ class uNavINS {
     void Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d pMeas_NED_m);
     bool Initialized() { return initialized_; } // returns whether the INS has been initialized
     void Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d pMeas_NED_m);
+    void Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d pMeas_NED_m, Vector3f vMeas_NED_mps);
 
     // Set Configuration
     inline void Set_AccelSigma(float val) { aNoiseSigma_mps2 = val; }
@@ -94,7 +95,7 @@ class uNavINS {
     unsigned long timeWeekPrev_;
 
     // Sensor variances (as standard deviation) and models (tau)
-    float aNoiseSigma_mps2 = 0.05f; // Std dev of Accelerometer Wide Band Noise (m/s^2)
+    float aNoiseSigma_mps2 = 0.01962f; // Std dev of Accelerometer Wide Band Noise (m/s^2)
     float aMarkovSigma_mps2 = 0.0002942f; // Std dev of Accelerometer Markov Bias
     float aMarkovTau_s = 100.0f; // Correlation time or time constant
 
@@ -104,6 +105,9 @@ class uNavINS {
 
     float pNoiseSigma_NE_m = 0.03f; // GPS measurement noise std dev (m)
     float pNoiseSigma_D_m = 0.03f; // GPS measurement noise std dev (m)
+	
+    float vNoiseSigma_NE_mps = 0.01f; // GPS measurement noise std dev (m/s)
+    float vNoiseSigma_D_mps = 0.01f; // GPS measurement noise std dev (m/s)
 
     // Initial set of covariance
     float pErrSigma_Init_m = 1.0f; // Std dev of initial position error (m)
@@ -126,6 +130,10 @@ class uNavINS {
     Matrix<float,3,3> S_; // Innovation covariance
     Matrix<float,15,15> P_; // Covariance estimate
 
+    Matrix<float,6,15> H2_; // Observation matrix for meas update with velocity
+    Matrix<float,6,6> R2_;// Covariance of the Observation Noise (associated with MeasUpdate())
+    Matrix<float,6,6> S2_; // Innovation covariance
+	
     // Global variables
     Vector3f aBias_mps2_; // acceleration bias
     Vector3f wBias_rps_; // rotation rate bias
@@ -142,5 +150,6 @@ class uNavINS {
     // Methods
     void TimeUpdate();
     void MeasUpdate(Vector3d pMeas_D_rrm);
+		void MeasUpdate(Vector3d pMeas_NED_m, Vector3f vMeas_NED_mps);
     void UpdateStateVector();
 };

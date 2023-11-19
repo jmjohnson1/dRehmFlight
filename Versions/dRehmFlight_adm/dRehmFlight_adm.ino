@@ -467,18 +467,18 @@ void setup() {
   // forever.
 
   // calculate_IMU_error(&quadIMU_info, &quadIMU);
-  // quadIMU_info.AccErrorX = 0.01;
-  // quadIMU_info.AccErrorY = 0.01;
-  // quadIMU_info.AccErrorZ = 0.08;
-  // quadIMU_info.GyroErrorX = -4.72;
-  // quadIMU_info.GyroErrorY = -2.18;
-  // quadIMU_info.GyroErrorZ = -0.7;
-  quadIMU_info.AccErrorX = 0.0;
-  quadIMU_info.AccErrorY = 0.0;
-  quadIMU_info.AccErrorZ = 0.0;
-  quadIMU_info.GyroErrorX = 0.0;
-  quadIMU_info.GyroErrorY = 0.0;
-  quadIMU_info.GyroErrorZ = 0.0;
+  quadIMU_info.AccErrorX = 0.01;
+  quadIMU_info.AccErrorY = 0.01;
+  quadIMU_info.AccErrorZ = 0.08;
+  quadIMU_info.GyroErrorX = -4.72;
+  quadIMU_info.GyroErrorY = -2.18;
+  quadIMU_info.GyroErrorZ = -0.7;
+  // quadIMU_info.AccErrorX = 0.0;
+  // quadIMU_info.AccErrorY = 0.0;
+  // quadIMU_info.AccErrorZ = 0.0;
+  // quadIMU_info.GyroErrorX = 0.0;
+  // quadIMU_info.GyroErrorY = 0.0;
+  // quadIMU_info.GyroErrorZ = 0.0;
 
   // Arm servo channels
 	#ifndef USE_ONESHOT

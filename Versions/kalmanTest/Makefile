@@ -1,5 +1,14 @@
-CC := g++ # This is the main compiler
-# CC := clang --analyze
+# Configured specifically for my situation. Should work for all Linux and OSX, I think.
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+	CC := g++
+	CFLAGS := -g
+endif
+ifeq ($(UNAME_S),Darwin)
+	CC := clang++
+	CFLAGS := -g -std=c++11 -stdlib=libc++
+endif
+
 SRCDIR := src
 BUILDDIR := build
 TARGET := bin/runner
@@ -7,8 +16,6 @@ TARGET := bin/runner
 SRCEXT := cpp
 SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
-#CFLAGS := -g -std=c++11 -stdlib=libc++ # -Wall
-CFLAGS := -g # -Wall
 LIB := -L lib
 INC := -I include
 

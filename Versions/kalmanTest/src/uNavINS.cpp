@@ -22,6 +22,8 @@ All units meters and radians
 #include "uNavINS.h"
 #include "iostream"
 
+//#define ZERO_YAW
+
 void uNavINS::Configure() {
   // Observation matrix (H)
   H_.setZero();
@@ -50,6 +52,17 @@ void uNavINS::Configure() {
   P_(8,8) = (hdgErrSigma_Init_rad * hdgErrSigma_Init_rad);
   P_.block(9,9,3,3) = (aBiasSigma_Init_mps2 * aBiasSigma_Init_mps2) * I3;
   P_.block(12,12,3,3) = (wBiasSigma_Init_rps * wBiasSigma_Init_rps) * I3;
+
+
+
+  H2_.setZero();
+  H2_.block(0,0,5,5) = I5;
+  R2_.setZero();
+  R2_.block(0,0,2,2) = (pNoiseSigma_NE_m * pNoiseSigma_NE_m) * I2;
+  R2_(2,2) = (pNoiseSigma_D_m * pNoiseSigma_D_m);
+  R2_.block(3,3,2,2) = (vNoiseSigma_NE_mps * vNoiseSigma_NE_mps) * I2;
+  R2_(5,5) = (vNoiseSigma_D_mps * vNoiseSigma_D_mps);
+  S2_.setZero();
 }
 
 void uNavINS::Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d pMeas_NED_m) {
@@ -71,7 +84,7 @@ void uNavINS::Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d p
   euler_BL_rad_(0) = -asinf(aEst_B_nd(1) / cosf(euler_BL_rad_(1)));
 
   // Estimate initial heading
-  euler_BL_rad_(2) = 0.0f;
+  euler_BL_rad_(2) = M_PI;
 
   // Euler to quaternion
   quat_BL_ = Euler2Quat(euler_BL_rad_);
@@ -125,18 +138,53 @@ void uNavINS::Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_B_rps
   UpdateStateVector();
 }
 
+void uNavINS::Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d pMeas_NED_m, Vector3f vMeas_NED_mps) {
+  // change in time
+  dt_s_ = ((float)(t_us - tPrev_us_)) / 1e6;
+  tPrev_us_ = t_us;
+
+  // Catch large dt
+  if (dt_s_ > 0.1) {dt_s_ = 0.1;}
+
+  // A-priori accel and rotation rate estimate
+  aEst_B_mps2_ = aMeas_B_mps2 - aBias_mps2_;
+  wEst_B_rps_ = wMeas_B_rps - wBias_rps_;
+
+  // Kalman Time Update (Prediction)
+  TimeUpdate();
+
+  // Gps measurement update, if TOW increased
+  if ((timeWeek - timeWeekPrev_) > 0) {
+    timeWeekPrev_ = timeWeek;
+
+    // Kalman Measurement Update
+    MeasUpdate(pMeas_NED_m, vMeas_NED_mps);
+
+    // Post-priori accel and rotation rate estimate, biases updated in MeasUpdate()
+    aEst_B_mps2_ = aMeas_B_mps2 - aBias_mps2_;
+    wEst_B_rps_ = wMeas_B_rps - wBias_rps_;
+  }
+
+  // Euler angles from quaternion
+  euler_BL_rad_ = Quat2Euler(quat_BL_);
+
+  UpdateStateVector();
+}
+
 void uNavINS::TimeUpdate() {
   // Attitude Update
   Quaternionf dQuat_BL = Quaternionf(1.0, 0.5f*wEst_B_rps_(0)*dt_s_, 0.5f*wEst_B_rps_(1)*dt_s_, 0.5f*wEst_B_rps_(2)*dt_s_);
   quat_BL_ = (quat_BL_ * dQuat_BL).normalized();
 
+#ifdef ZERO_YAW
   //Cancel out the yaw component
-  //Vector3f clampingEuler = Quat2Euler(quat_BL_);
-  //clampingEuler = -clampingEuler;
-  //clampingEuler(0) = 0;
-  //clampingEuler(1) = 0;
-  //Quaternionf clampingQuat = Euler2Quat(clampingEuler);
-  //quat_BL_ = (quat_BL_ * clampingQuat).normalized();
+  Vector3f clampingEuler = Quat2Euler(quat_BL_);
+  clampingEuler = -clampingEuler;
+  clampingEuler(0) = 0;
+  clampingEuler(1) = 0;
+  Quaternionf clampingQuat = Euler2Quat(clampingEuler);
+  quat_BL_ = (quat_BL_ * clampingQuat).normalized();
+#endif
 
   // Avoid quaternion flips sign
   if (quat_BL_.w() < 0) {
@@ -192,7 +240,7 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   // Position Error, converted to NED
   //Matrix3f T_E2NED = TransE2NED(pEst_NED_m_).cast <float> (); // Compute ECEF to NED with double precision, cast to float
   //Vector3f pErr_NED_m = T_E2NED * (D2E(pMeas_D_rrm) - D2E(pEst_D_rrm_)).cast <float> ();// Compute position error double precision, cast to float, apply transformation
-  Vector3f pErr_NED_m = (pMeas_NED_m - pEst_NED_m_).cast <float> ();
+  Vector3f pErr_NED_m = (pMeas_NED_m - pEst_NED_m_).cast<float>();
 
   // Create measurement Y, as Error between Measures and Outputs
   Matrix<float,3,1> y; y.setZero();
@@ -229,13 +277,70 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   Quaternionf dQuat_BL = Quaternionf(1.0, quatDelta(0), quatDelta(1), quatDelta(2));
   quat_BL_ = (quat_BL_ * dQuat_BL).normalized();
 
- // //Cancel out the yaw component
- //Vector3f clampingEuler = Quat2Euler(quat_BL_);
- //clampingEuler = -clampingEuler;
- //clampingEuler(0) = 0;
- //clampingEuler(1) = 0;
- //Quaternionf clampingQuat = Euler2Quat(clampingEuler);
- //quat_BL_ = (quat_BL_ * clampingQuat).normalized();
+#ifdef ZERO_YAW
+  //Cancel out the yaw component
+  Vector3f clampingEuler = Quat2Euler(quat_BL_);
+  clampingEuler = -clampingEuler;
+  clampingEuler(0) = 0;
+  clampingEuler(1) = 0;
+  Quaternionf clampingQuat = Euler2Quat(clampingEuler);
+  quat_BL_ = (quat_BL_ * clampingQuat).normalized();
+#endif
+
+  // Update biases from states
+  aBias_mps2_ += aBiasDelta;
+  wBias_rps_ += wBiasDelta;
+}
+
+void uNavINS::MeasUpdate(Vector3d pMeas_NED_m, Vector3f vMeas_NED_mps) {
+  Vector3f pErr_NED_m = (pMeas_NED_m - pEst_NED_m_).cast<float>();
+	Vector3f vErr_NED_mps = vMeas_NED_mps - vEst_NED_mps_;
+
+  // Create measurement Y, as Error between Measures and Outputs
+  Matrix<float,6,1> y; y.setZero();
+  y.segment(0,3) = pErr_NED_m;
+	y.segment(3,3) = vErr_NED_mps;
+
+  // Innovation covariance
+  S2_ = H2_ * P_ * H2_.transpose() + R2_;
+
+  // Kalman gain
+  Matrix<float,15,6> K; K.setZero();
+  K = P_ * H2_.transpose() * S2_.inverse();
+
+  // Covariance update, P = (I + K * H) * P * (I + K * H)' + K * R * K'
+  Matrix<float,15,15> I_KH = I15 - K * H2_; // temp
+  P_ = I_KH * P_ * I_KH.transpose() + K * R2_ * K.transpose();
+
+  // State update, x = K * y
+  Matrix<float,15,1> x = K * y;
+
+  // Pull apart x terms to update the Position, velocity, orientation, and sensor biases
+  Vector3f pDeltaEst_D = x.segment(0,3); // Position Deltas in NED
+  Vector3f vDeltaEst_L = x.segment(3,3); // Velocity Deltas in NED
+  Vector3f quatDelta = x.segment(6,3); // Quaternion Delta
+  Vector3f aBiasDelta = x.segment(9,3); // Accel Bias Deltas
+  Vector3f wBiasDelta = x.segment(12,3); // Rotation Rate Bias Deltas
+
+  // Position update
+  pEst_NED_m_ += x.segment(0,3).cast <double> ();
+
+  // Velocity update
+  vEst_NED_mps_ += vDeltaEst_L;
+
+  // Attitude correction
+  Quaternionf dQuat_BL = Quaternionf(1.0, quatDelta(0), quatDelta(1), quatDelta(2));
+  quat_BL_ = (quat_BL_ * dQuat_BL).normalized();
+
+#ifdef ZERO_YAW
+  //Cancel out the yaw component
+  Vector3f clampingEuler = Quat2Euler(quat_BL_);
+  clampingEuler = -clampingEuler;
+  clampingEuler(0) = 0;
+  clampingEuler(1) = 0;
+  Quaternionf clampingQuat = Euler2Quat(clampingEuler);
+  quat_BL_ = (quat_BL_ * clampingQuat).normalized();
+#endif
 
   // Update biases from states
   aBias_mps2_ += aBiasDelta;

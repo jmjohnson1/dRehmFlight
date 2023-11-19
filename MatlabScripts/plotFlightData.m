@@ -2,7 +2,7 @@
 %% Imports
 clear
 close all
-filename = "flight_data0.csv";
+filename = "adm11-14_flight.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -55,19 +55,25 @@ filename = "flight_data0.csv";
     %%%%%%%% END IMPORT %%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Main
-    t0 = 59;
+    %t0 = 59;
     t0 = 0;
 
     lw = 1;
-    %rng = 1:length(radio_ch1);
-    rng = 5900:36000;
+    rng = 1:length(radio_ch1);
+    %rng = 5900:36000;
     time_imu = rng/100 - t0;
     %
 
     imu_data = [AccX, AccY, AccZ, GyroX, GyroY, GyroZ];
     imu_data = imu_data(rng, :);
 
-    %save("processedIMU.mat", "imu_data", "time_imu");
+    C1 = angle2dcm(0, 0, pi);
+    for i = 1:length(imu_data)
+        imu_data(i, 1:3) = C1*imu_data(i, 1:3)';
+        imu_data(i, 4:6) = C1*imu_data(i, 4:6)';
+    end
+
+    save("processedIMU.mat", "imu_data", "time_imu");
     
 
 %     %%% Plot Desired and Measured States %%%

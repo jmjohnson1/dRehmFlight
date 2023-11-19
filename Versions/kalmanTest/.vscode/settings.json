@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "geometry": "cpp",
+        "openglsupport": "cpp"
+    },
+    "cmake.configureOnOpen": false
+}

@@ -4,6 +4,17 @@
 
 
 #define USE_MPU6050_I2C
+// Uncomment only one full scale gyro range (deg/sec)
+#define GYRO_250DPS // Default
+// #define GYRO_500DPS
+// #define GYRO_1000DPS
+// #define GYRO_2000DPS
+
+// Uncomment only one full scale accelerometer range (G's)
+#define ACCEL_2G // Default
+                 // #define ACCEL_4G
+                 // #define ACCEL_8G
+                 // #define ACCEL_16G
 
 #if defined USE_MPU6050_I2C
 #include "src/MPU6050/MPU6050.h"
@@ -94,6 +105,11 @@ unsigned long current_time, prev_time, print_counterSD;
 // Ring buffer for filetype FsFile (The filemanager that will handle the data stream)
 RingBuf<FsFile, RING_BUF_CAPACITY> buffer;
 
+// SD Card settings
+String filePrefix = "rcCarData";
+String fileExtension = ".csv";
+String fileName;
+
 int logData_setup() {
 	// Initialize the SD
 	if (!sd.begin(SD_CONFIG)) {
@@ -122,16 +138,24 @@ int logData_setup() {
 
 void logData_printCSVHeader() {
     buffer.print("AccX");
-    buffer.print(",");
+    buffer.write(",");
     buffer.print("AccY");
-    buffer.print(",");
+    buffer.write(",");
     buffer.print("AccZ");
-    buffer.print(",");
+    buffer.write(",");
     buffer.print("GyroX");
-    buffer.print(",");
+    buffer.write(",");
     buffer.print("GyroY");
-    buffer.print(",");
+    buffer.write(",");
     buffer.print("GyroZ");
+    buffer.write(",");
+    buffer.print("roll");
+    buffer.write(",");
+    buffer.print("pitch");
+    buffer.write(",");
+    buffer.print("yaw");
+    buffer.write(",");
+    buffer.print("time");
 	buffer.println();
 }
 
@@ -150,8 +174,26 @@ int logData_writeBuffer() {
 		}
 	}
 
-    buffer.print()
-	buffer.println();
+    buffer.print(imu_info.AccX, 4);
+    buffer.write(",");
+    buffer.print(imu_info.AccY, 4);
+    buffer.write(",");
+    buffer.print(imu_info.AccZ, 4);
+    buffer.write(",");
+    buffer.print(imu_info.GyroX, 4);
+    buffer.write(",");
+    buffer.print(imu_info.GyroY, 4);
+    buffer.write(",");
+    buffer.print(imu_info.GyroZ, 4);
+    buffer.write(",");
+    buffer.print(imu_info.roll_IMU, 4);
+    buffer.write(",");
+    buffer.print(imu_info.pitch_IMU, 4);
+    buffer.write(",");
+    buffer.print(imu_info.yaw_IMU, 4);
+    buffer.write(",");
+    buffer.print(current_time);
+	  buffer.println();
 
 	if (buffer.getWriteError()) {
 		Serial.println("WriteError");
@@ -389,6 +431,10 @@ void Madgwick6DOF(attInfo *imu, float invSampleFreq) {
                  57.29577951; // degrees
 }
 
+float invSqrt(float x) {
+  return 1.0 / sqrtf(x);
+}
+
 void setup() {
     sd_is_present = !logData_setup();
     IMUinit(&imu);
@@ -398,6 +444,10 @@ void setup() {
     imu_info.GyroErrorX = 0.0;
     imu_info.GyroErrorY = 0.0;
     imu_info.GyroErrorZ = 0.0;
+    Serial.println("setup done.");
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, HIGH);
+    pinMode(5, INPUT);
 }
 
 void loop() {
@@ -409,10 +459,15 @@ void loop() {
     Madgwick6DOF(&imu_info, dt); // Updates roll_IMU, pitch_IMU, and yaw_IMU angle estimates (degrees)
     
     if (sd_is_present && (current_time - print_counterSD) > LOG_INTERVAL_USEC) {
-        print_counterSD = micros();
-        logData_writeBuffer();
-        Serial.println("logged");
+      //Serial.println(micros() - print_counterSD);
+      print_counterSD = micros();
+      logData_writeBuffer();
+      //Serial.println("logged");
     }
 
-    delay(500);
+    if (!digitalRead(5)) {
+      digitalWrite(LED_BUILTIN, LOW);
+      logData_endProcess();
+      while(1){};
+    }
 }
