@@ -89,6 +89,14 @@ int main() {
 	for (int imu_index = 0; imu_index < imuTime.size(); imu_index++) {
 	//for (int imu_index = 1600; imu_index < 7600; imu_index++) {
 		uint64_t currentTime_us = imuTime(imu_index)*1e06;
+
+
+		// SKIP 185 TO 195
+		if (currentTime_us > 185*1e06 && currentTime_us < 195e06) {
+			
+		}
+
+
 		// Find out if it's time for a measurement update
 		if ((currentTime_us - previousMeasUpdateTime_us) > 1e06) {
 			int mocap_index = find(mocapTime, imuTime(imu_index));
