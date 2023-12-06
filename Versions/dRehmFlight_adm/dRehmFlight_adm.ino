@@ -213,12 +213,12 @@ float dScaleRoll = 1.0f;
 float dScalePitch = 1.0f;
 float dScaleYaw = 1.0f;
 
-float Kp_roll_angle = 0.3;
-float Ki_roll_angle = 0.05;
-float Kd_roll_angle = 0.05;
-float Kp_pitch_angle = 0.3;
-float Ki_pitch_angle = 0.05;
-float Kd_pitch_angle = 0.05;
+float Kp_roll_angle = 0.56;
+float Ki_roll_angle = 0.176;
+float Kd_roll_angle = 0.063;
+float Kp_pitch_angle = 0.56;
+float Ki_pitch_angle = 0.176;
+float Kd_pitch_angle = 0.063;
 
 // Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 float B_loop_roll = 0.9;

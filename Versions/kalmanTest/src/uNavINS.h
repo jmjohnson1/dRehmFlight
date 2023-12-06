@@ -40,12 +40,12 @@ class uNavINS {
     void Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d pMeas_NED_m, Vector3f vMeas_NED_mps);
 
     // Set Configuration
-    inline void Set_AccelSigma(float val) { aNoiseSigma_mps2 = val; }
-    inline void Set_AccelMarkov(float val) { aMarkovSigma_mps2 = val; }
-    inline void Set_AccelTau(float val) { aMarkovTau_s = val; }
-    inline void Set_RotRateSigma(float val) { wNoiseSigma_rps = val; }
-    inline void Set_RotRateMarkov(float val) { wMarkovSigma_rps = val; }
-    inline void Set_RotRateTau(float val) { wMarkovTau_s = val; }
+    inline void Set_AccelSigma(Vector3f val) { aNoiseSigma_mps2 = val; }
+    inline void Set_AccelMarkov(Vector3f val) { aMarkovSigma_mps2 = val; }
+    inline void Set_AccelTau(Vector3f val) { aMarkovTau_s = val; }
+    inline void Set_RotRateSigma(Vector3f val) { wNoiseSigma_rps = val; }
+    inline void Set_RotRateMarkov(Vector3f val) { wMarkovSigma_rps = val; }
+    inline void Set_RotRateTau(Vector3f val) { wMarkovTau_s = val; }
     inline void Set_PosSigmaNE(float val) { pNoiseSigma_NE_m = val; }
     inline void Set_PosSigmaD(float val) { pNoiseSigma_D_m = val; }
 
@@ -95,19 +95,23 @@ class uNavINS {
     unsigned long timeWeekPrev_;
 
     // Sensor variances (as standard deviation) and models (tau)
-    float aNoiseSigma_mps2 = 0.01962f; // Std dev of Accelerometer Wide Band Noise (m/s^2)
-    float aMarkovSigma_mps2 = 0.0002942f; // Std dev of Accelerometer Markov Bias
-    float aMarkovTau_s = 100.0f; // Correlation time or time constant
+    //Vector3f aNoiseSigma_mps2 = {0.02f, 0.02f, 0.03f}; // Std dev of accelerometer wide band noise (m/s^2)
+    Vector3f aNoiseSigma_mps2 = {0.5f, 0.5f, 0.5f}; // Std dev of accelerometer wide band noise (m/s^2)
+    //Vector3f aMarkovSigma_mps2 = {0.00122f, 0.0025f, 0.00374f}; // Std dev of accelerometer Markov bias
+    Vector3f aMarkovSigma_mps2 = {0.000122f, 0.00025f, 0.000374f}; // Std dev of accelerometer Markov bias
+    Vector3f aMarkovTau_s = {150.0f, 250.0f, 40.0f}; // Correlation time or time constant
 
-    float wNoiseSigma_rps = 0.00087266f; // Std dev of rotation rate output noise (rad/s)
-    float wMarkovSigma_rps = 0.000048481; // Std dev of correlated rotation rate bias
-    float wMarkovTau_s = 300.0f; // Correlation time or time constant
+    //Vector3f wNoiseSigma_rps {0.0002f, 0.0002f, 0.0002f}; // Std dev of rotation rate output noise (rad/s)
+    Vector3f wNoiseSigma_rps {0.002f, 0.002f, 0.002f}; // Std dev of rotation rate output noise (rad/s)
+    //Vector3f wMarkovSigma_rps = {0.000283f, 0.000316f, 0.0000283f}; // Std dev of correlated rotation rate bias
+    Vector3f wMarkovSigma_rps = {0.000283f, 0.000316f, 0.0000283f}; // Std dev of correlated rotation rate bias
+    Vector3f wMarkovTau_s = {20.0f, 20.0f, 200.0f}; // Correlation time or time constant
 
     float pNoiseSigma_NE_m = 0.03f; // GPS measurement noise std dev (m)
     float pNoiseSigma_D_m = 0.03f; // GPS measurement noise std dev (m)
 	
-    float vNoiseSigma_NE_mps = 0.01f; // GPS measurement noise std dev (m/s)
-    float vNoiseSigma_D_mps = 0.01f; // GPS measurement noise std dev (m/s)
+    float vNoiseSigma_NE_mps = 0.1f; // GPS measurement noise std dev (m/s)  PLACEHOLDER!
+    float vNoiseSigma_D_mps = 0.1f; // GPS measurement noise std dev (m/s)
 
     // Initial set of covariance
     float pErrSigma_Init_m = 1.0f; // Std dev of initial position error (m)

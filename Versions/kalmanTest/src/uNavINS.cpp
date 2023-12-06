@@ -21,6 +21,7 @@ All units meters and radians
 
 #include "uNavINS.h"
 #include "iostream"
+#include <fstream>
 
 //#define ZERO_YAW
 
@@ -31,10 +32,10 @@ void uNavINS::Configure() {
 
   // Covariance of the Process Noise (associated with TimeUpdate())
   Rw_.setZero();
-  Rw_.block(0,0,3,3) = (aNoiseSigma_mps2 * aNoiseSigma_mps2) * I3;
-  Rw_.block(3,3,3,3) = (wNoiseSigma_rps * wNoiseSigma_rps) * I3;
-  Rw_.block(6,6,3,3) = 2.0f * (aMarkovSigma_mps2 * aMarkovSigma_mps2) / aMarkovTau_s * I3;
-  Rw_.block(9,9,3,3) = 2.0f * (wMarkovSigma_rps * wMarkovSigma_rps) / wMarkovTau_s * I3;
+  Rw_.block(0,0,3,3) = (aNoiseSigma_mps2.cwiseProduct(aNoiseSigma_mps2)).asDiagonal();
+  Rw_.block(3,3,3,3) = (wNoiseSigma_rps.cwiseProduct(wNoiseSigma_rps)).asDiagonal();
+  Rw_.block(6,6,3,3) = 2.0f * (aMarkovSigma_mps2.cwiseProduct(aMarkovSigma_mps2)).cwiseQuotient(aMarkovTau_s).asDiagonal();
+  Rw_.block(9,9,3,3) = 2.0f * (wMarkovSigma_rps.cwiseProduct(wMarkovSigma_rps)).cwiseQuotient(wMarkovTau_s).asDiagonal();
 
   // Covariance of the Observation Noise (associated with MeasUpdate())
   R_.setZero();
@@ -71,7 +72,8 @@ void uNavINS::Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d p
   vEst_NED_mps_.setZero(); // Velocity in NED
 
   // Initialize sensor biases
-  wBias_rps_ = wMeas_B_rps;
+  //wBias_rps_ = wMeas_B_rps;
+  wBias_rps_.setZero();
   aBias_mps2_.setZero();
 
   // New Specific forces and Rotation Rate
@@ -83,8 +85,12 @@ void uNavINS::Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d p
   euler_BL_rad_(1) = asinf(aEst_B_nd(0));
   euler_BL_rad_(0) = -asinf(aEst_B_nd(1) / cosf(euler_BL_rad_(1)));
 
+  euler_BL_rad_(0) = -0.16635*M_PI/180.0f;
+  euler_BL_rad_(1) = -0.27743*M_PI/180.0f; 
+  euler_BL_rad_(2) = -3.2*M_PI/180.0f;
+
   // Estimate initial heading
-  euler_BL_rad_(2) = M_PI;
+  // euler_BL_rad_(2) = M_PI;
 
   // Euler to quaternion
   quat_BL_ = Euler2Quat(euler_BL_rad_);
@@ -110,12 +116,29 @@ void uNavINS::Update(uint64_t t_us, unsigned long timeWeek, Vector3f wMeas_B_rps
   dt_s_ = ((float)(t_us - tPrev_us_)) / 1e6;
   tPrev_us_ = t_us;
 
+  // record dt
+  std::ofstream dt_debug;
+  std::ofstream aEst_debug;
+  std::ofstream wEst_debug;
+  dt_debug.open("./csv/debug/dt_debug.dat", std::ios::app | std::ios::out);
+  aEst_debug.open("./csv/debug/aEst_debug.dat", std::ios::app);
+  wEst_debug.open("./csv/debug/wEst_debug.dat", std::ios::app);
+
   // Catch large dt
   if (dt_s_ > 0.1) {dt_s_ = 0.1;}
+
+  dt_debug << dt_s_ << std::endl;
+  dt_debug.close();
 
   // A-priori accel and rotation rate estimate
   aEst_B_mps2_ = aMeas_B_mps2 - aBias_mps2_;
   wEst_B_rps_ = wMeas_B_rps - wBias_rps_;
+
+  aEst_debug << aEst_B_mps2_ << std::endl;
+  wEst_debug << wEst_B_rps_ << std::endl;
+
+  aEst_debug.close();
+  wEst_debug.close();
 
   // Kalman Time Update (Prediction)
   TimeUpdate();
@@ -176,6 +199,11 @@ void uNavINS::TimeUpdate() {
   Quaternionf dQuat_BL = Quaternionf(1.0, 0.5f*wEst_B_rps_(0)*dt_s_, 0.5f*wEst_B_rps_(1)*dt_s_, 0.5f*wEst_B_rps_(2)*dt_s_);
   quat_BL_ = (quat_BL_ * dQuat_BL).normalized();
 
+  std::ofstream dQuat_debug;
+  dQuat_debug.open("./csv/debug/dQuat_debug.dat", std::ios::app);
+  dQuat_debug << dQuat_BL << std::endl;
+  dQuat_debug.close();
+
 #ifdef ZERO_YAW
   //Cancel out the yaw component
   Vector3f clampingEuler = Quat2Euler(quat_BL_);
@@ -212,8 +240,8 @@ void uNavINS::TimeUpdate() {
   Fs.block(3,9,3,3) = -T_B2NED;
   Fs.block(6,6,3,3) = -Skew(wEst_B_rps_);
   Fs.block(6,12,3,3) = -0.5f * I3;
-  Fs.block(9,9,3,3) = -1.0f / aMarkovTau_s * I3; // ... Accel Markov Bias
-  Fs.block(12,12,3,3) = -1.0f / wMarkovTau_s * I3; // ... Rotation Rate Markov Bias
+  Fs.block(9,9,3,3) = -1*aMarkovTau_s.cwiseInverse().asDiagonal(); // ... Accel Markov Bias
+  Fs.block(12,12,3,3) = -1*wMarkovTau_s.cwiseInverse().asDiagonal(); // ... Rotation Rate Markov Bias
 
   // State Transition Matrix
   Matrix<float,15,15> PHI = I15 + Fs * dt_s_;

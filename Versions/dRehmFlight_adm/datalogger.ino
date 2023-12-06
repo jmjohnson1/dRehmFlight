@@ -40,6 +40,12 @@ void logData_printCSVHeader() {
 	buffer.write(",");
 	buffer.print("throttle_des");
 	buffer.write(",");
+  buffer.print("roll_PID");
+  buffer.write(",");
+  buffer.print("pitch_PID");
+  buffer.write(",");
+  buffer.print("yaw_PID");
+  buffer.write(",");
 	buffer.print("radio_ch1");
 	buffer.write(",");
 	buffer.print("radio_ch2");

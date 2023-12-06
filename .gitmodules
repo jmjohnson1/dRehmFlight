@@ -1,8 +1,11 @@
 [submodule "Versions/oneshotTest/src/TeensyTimerTool"]
 	path = Versions/oneshotTest/src/TeensyTimerTool
 	url = https://github.com/luni64/TeensyTimerTool.git
-[submodule "Versions/Versions/dRehmFlight_rip/src/mavlink"]
-	path = Versions/Versions/dRehmFlight_rip/src/mavlink
+[submodule "Versions/dRehmFlight_rip/src/mavlink"]
+	path = Versions/dRehmFlight_rip/src/mavlink
+	url = https://github.com/mavlink/mavlink.git
+[submodule "Versions/dRehmFlight_adm/src/mavlink"]
+	path = Versions/dRehmFlight_adm/src/mavlink
 	url = https://github.com/mavlink/mavlink.git
 [submodule "Versions/kalmanTest/src/eigen"]
 	path = Versions/kalmanTest/src/eigen

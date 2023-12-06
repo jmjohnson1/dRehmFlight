@@ -7,7 +7,7 @@
 #include "csvParser.h"
 #include "uNavINS.h"
 
-#define USE_VELOCITY
+//#define USE_VELOCITY
 
 template <typename Derived>
 int find(const MatrixBase<Derived> &A, float val) {
@@ -87,6 +87,7 @@ int main() {
 
 	// Main loop
 	for (int imu_index = 0; imu_index < imuTime.size(); imu_index++) {
+	//for (int imu_index = 1600; imu_index < 7600; imu_index++) {
 		uint64_t currentTime_us = imuTime(imu_index)*1e06;
 		// Find out if it's time for a measurement update
 		if ((currentTime_us - previousMeasUpdateTime_us) > 1e06) {
@@ -102,6 +103,7 @@ int main() {
 		ins.Update(currentTime_us, tow, imuData(imu_index, seq(3, 5)), imuData(imu_index, seq(0, 2)), posMeas, velMeas);
 #else
 		ins.Update(currentTime_us, tow, imuData(imu_index, seq(3, 5)), imuData(imu_index, seq(0, 2)), posMeas);
+		std::cout << imuData(imu_index, seq(3,5)) << std::endl;
 #endif
 		
 
