@@ -1,31 +1,6 @@
-// Arduino/Teensy Flight Controller - dRehmFlight
-// Author: Nicholas Rehm
-// Project Start: 1/6/2020
-// Last Updated: 7/29/2022
-
 //================================================================================================//
-
-// CREDITS + SPECIAL THANKS
-/*
-Some elements inspired by:
-http://www.brokking.net/ymfc-32_main.html
-
-Madgwick filter function adapted from:
-https://github.com/arduino-libraries/MadgwickAHRS
-
-MPU9250 implementation based on MPU9250 library by:
-brian.taylor@bolderflight.com
-http://www.bolderflight.com
-
-Thank you to:
-RcGroups 'jihlein' - IMU implementation overhaul + SBUS implementation.
-Everyone that sends me pictures and videos of your flying creations! -Nick
-
-*/
-
-//================================================================================================//
-//                                    USER-SPECIFIED DEFINES
-//                                    //
+//                                    USER-SPECIFIED DEFINES  																		//
+//                                    																														//
 //================================================================================================//
 
 // Uncomment only one receiver type
@@ -54,25 +29,23 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
 
 // Define whether tuning RIP gains or core PID gains
 // #define TUNE_RIP
- #define TUNE_CORE
+#define TUNE_CORE
 
 // Use OneShot125 or PWM
 #define USE_ONESHOT
  
 //================================================================================================//
 
-// REQUIRED LIBRARIES (included with download in main sketch folder)
-#include <RingBuf.h> // Ring buffer used to store values for SD card
-#include <SdFat.h>   // Library used for SD card
-#include <TeensyTimerTool.h>
-#include "filter.h" // For data filtering
-#include "telemetry.h"
-#include <PWMServo.h> //Commanding any extra actuators, installed with teensyduino installer
-#include <SPI.h>      //SPI communication
-#include <Wire.h>     //I2c communication
-#include "parameters.h"
+#include <RingBuf.h>  // Ring buffer used to store values for SD card
+#include <SdFat.h>    // Library used for SD card
+#include <TeensyTimerTool.h>  // Oneshot timer
+#include <PWMServo.h> // Commanding any extra actuators, installed with teensyduino installer
+#include <SPI.h>      // SPI communication
+#include <Wire.h>     // I2c communication
+#include <eigen.h>  	// Linear algebra
+
 #include "commonDefinitions.h"
-#include <eigen.h>
+#include "telemetry.h"
 
 #if defined USE_SBUS_RX
 #include "src/SBUS/SBUS.h" //sBus interface
@@ -105,7 +78,7 @@ MPU9250 mpu9250(SPI2, 36);
 // Interval between points (usec) for 100 samples/sec
 #define LOG_INTERVAL_USEC 10000
 
-// Size to log 256 byte lines at 100 Hz for more than ten minutes.
+// Size to log 256 byte lines at 100 Hz for a while
 #define LOG_FILE_SIZE 256 * 100 * 600 * 10 // ~1,500,000,000 bytes.
 
 // Space to hold more than 1 second of 256-byte lines at 100 Hz in the buffer
@@ -263,15 +236,13 @@ float minFreq = 0.5f;  // Minimum frequency of the sine sweep in Hz
 float sweepTime = 120; // How long to run the sweep for in seconds
 
 //================================================================================================//
-//                                      DECLARE PINS //
+//                                      DECLARE PINS 																							//
 //================================================================================================//
 
 // NOTE: Pin 13 is reserved for onboard LED, pins 18 and 19 are reserved for the
-// MPU6050 IMU for
-//  			default setup
+// 			 MPU6050 IMU for default setup
 // Radio note:
-//  			If using SBUS, connect to pin 21 (RX5), if using DSM,
-//  connect to pin 15 (RX3)
+//  		If using SBUS, connect to pin 21 (RX5), if using DSM, connect to pin 15 (RX3)
 const int ch1Pin = 15; // throttle
 const int ch2Pin = 16; // ail
 const int ch3Pin = 17; // ele
@@ -279,8 +250,8 @@ const int ch4Pin = 20; // rudd
 const int ch5Pin = 21; // gear (throttle cut)
 const int ch6Pin = 22; // aux1 (free aux channel)
 const int PPM_Pin = 23;
-// TODO: Make the switch between oneshot and PWM servo happen with a precompile definition
-// OneShot125 ESC pin outputs:
+
+// Motor pin outputs:
 const int m1Pin = 0;
 const int m2Pin = 1;
 const int m3Pin = 2;
@@ -346,7 +317,7 @@ TeensyTimerTool::OneShotTimer m2_timer(TeensyTimerTool::TMR1);
 TeensyTimerTool::OneShotTimer m3_timer(TeensyTimerTool::TMR1);
 TeensyTimerTool::OneShotTimer m4_timer(TeensyTimerTool::TMR1);
 
-// Flag for whether or not the motors are busy writing
+// Flag for whether the motors are busy writing
 bool m1_writing = false;
 bool m2_writing = false;
 bool m3_writing = false;
@@ -404,7 +375,7 @@ Eigen::Vector3f mocapPosition(0, 0, 0);
 bool newPositionReceived;
 
 //========================================================================================================================//
-//                                                      VOID SETUP //
+//                                                      VOID SETUP 																												//
 //========================================================================================================================//
 
 void setup() {
@@ -472,18 +443,13 @@ void setup() {
   // forever.
 
   // calculate_IMU_error(&quadIMU_info, &quadIMU);
+
   quadIMU_info.AccErrorX = -0.0121f;
   quadIMU_info.AccErrorY = 0.0126f;
   quadIMU_info.AccErrorZ = 0.0770f;
   quadIMU_info.GyroErrorX = -4.7787f;
   quadIMU_info.GyroErrorY = -2.1795f;
   quadIMU_info.GyroErrorZ = -0.6910f;
-  // quadIMU_info.AccErrorX = 0.0;
-  // quadIMU_info.AccErrorY = 0.0;
-  // quadIMU_info.AccErrorZ = 0.0;
-  // quadIMU_info.GyroErrorX = 0.0;
-  // quadIMU_info.GyroErrorY = 0.0;
-  // quadIMU_info.GyroErrorZ = 0.0;
 
   // Arm servo channels
 	#ifndef USE_ONESHOT
@@ -501,14 +467,14 @@ void setup() {
   //  calibrateESCs();
   // Code will not proceed past here if this function is uncommented!
 
-	#ifdef USE_ONESHOT
+#ifdef USE_ONESHOT
   // Arm OneShot125 motors
   m1_command_PWM = 125; // Command OneShot125 ESC from 125 to 250us pulse length
   m2_command_PWM = 125;
   m3_command_PWM = 125;
   m4_command_PWM = 125;
   armMotors(); // Loop over commandMotors() until ESCs happily arm
-	#endif
+#endif
 
   // Indicate entering main loop with 3 quick blinks
   setupBlink(3, 160, 70); // numBlinks, upTime (ms), downTime (ms)
@@ -529,7 +495,7 @@ void loop() {
 
   //  Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE:
   //  Prints radio pwm values (expected: 1000 to 2000)
-   //printRadioData();
+  // printRadioData();
   //  Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0
   //  to 1 for throttle)
   // printDesiredState();
@@ -544,7 +510,7 @@ void loop() {
   //  Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1 to 1)
   // printPIDoutput();
   //  Prints the values being written to the motors (expected: 120 to 250)
-  //printMotorCommands();
+  // printMotorCommands();
   //  Prints the values being written to the servos (expected: 0 to 180)
   // printServoCommands();
   //  Prints the time between loops in microseconds (expected: microseconds between loop iterations)
@@ -553,7 +519,7 @@ void loop() {
   // printRIPAngles();
 
   //  Prints desired and imu roll state for serial plotter
-   //displayRoll();
+  // displayRoll();
   //  Prints desired and imu pitch state for serial plotter
   // displayPitch();
 
@@ -684,15 +650,6 @@ void loop() {
   } else {
     throttleCutCount = 0;
   }
-
-  // unsigned long time = micros() - current_time;
-  // if (time > max_loopTime) {
-  //  max_loopTime = time;
-  // }
-  // Serial.print("Time = ");
-  // Serial.print(time);
-  // Serial.print(" Max = ");
-  // Serial.println(max_loopTime);
 
   // Regulate loop rate
   loopRate(2000); // Do not exceed 2000Hz, all filter parameters tuned to 2000Hz by default
