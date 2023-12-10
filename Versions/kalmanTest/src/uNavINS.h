@@ -95,19 +95,15 @@ class uNavINS {
     unsigned long timeWeekPrev_;
 
     // Sensor variances (as standard deviation) and models (tau)
-    //Vector3f aNoiseSigma_mps2 = {0.02f, 0.02f, 0.03f}; // Std dev of accelerometer wide band noise (m/s^2)
-    Vector3f aNoiseSigma_mps2 = {0.5f, 0.5f, 0.5f}; // Std dev of accelerometer wide band noise (m/s^2)
-    //Vector3f aMarkovSigma_mps2 = {0.00122f, 0.0025f, 0.00374f}; // Std dev of accelerometer Markov bias
-    Vector3f aMarkovSigma_mps2 = {0.000122f, 0.00025f, 0.000374f}; // Std dev of accelerometer Markov bias
+    Vector3f aNoiseSigma_mps2 = {0.0167f, 0.0167f, 0.0245f}; // Std dev of accelerometer wide band noise (m/s^2)
+    Vector3f aMarkovSigma_mps2 = {0.103f, 0.167f, 0.129f}; // Std dev of accelerometer Markov bias
     Vector3f aMarkovTau_s = {150.0f, 250.0f, 40.0f}; // Correlation time or time constant
 
-    //Vector3f wNoiseSigma_rps {0.0002f, 0.0002f, 0.0002f}; // Std dev of rotation rate output noise (rad/s)
-    Vector3f wNoiseSigma_rps {0.002f, 0.002f, 0.002f}; // Std dev of rotation rate output noise (rad/s)
-    //Vector3f wMarkovSigma_rps = {0.000283f, 0.000316f, 0.0000283f}; // Std dev of correlated rotation rate bias
-    Vector3f wMarkovSigma_rps = {0.000283f, 0.000316f, 0.0000283f}; // Std dev of correlated rotation rate bias
+    Vector3f wNoiseSigma_rps {0.0008727f, 0.0008727f, 0.0008727f}; // Std dev of rotation rate output noise (rad/s)
+    Vector3f wMarkovSigma_rps = {0.0299f, 0.0316f, 0.0168f}; // Std dev of correlated rotation rate bias
     Vector3f wMarkovTau_s = {20.0f, 20.0f, 200.0f}; // Correlation time or time constant
 
-    float pNoiseSigma_NE_m = 0.03f; // GPS measurement noise std dev (m)
+    float pNoiseSigma_NE_m = 0.03f; // GPS measurement noise std dev (m)    PLACEHOLDER!
     float pNoiseSigma_D_m = 0.03f; // GPS measurement noise std dev (m)
 	
     float vNoiseSigma_NE_mps = 0.1f; // GPS measurement noise std dev (m/s)  PLACEHOLDER!
