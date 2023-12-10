@@ -111,6 +111,16 @@ void logData_printCSVHeader() {
 	buffer.print("kd_yaw");
 	buffer.write(",");
 	buffer.print("failsafeTriggered");
+	buffer.write(",");
+	buffer.print("timeSinceBoot");
+	buffer.write(",");
+	buffer.print("newPositionReceived");
+	buffer.write(",");
+	buffer.print("PositionX");
+	buffer.write(",");
+	buffer.print("PositionY");
+	buffer.write(",");
+	buffer.print("PositionZ");
 	buffer.println();
 }
 
@@ -218,6 +228,15 @@ int logData_writeBuffer() {
 	buffer.write(",");
 	buffer.print(failureFlag);
 	buffer.write(",");
+	buffer.print(micros());
+	buffer.write(",");
+	buffer.print(newPositionReceived);
+	buffer.write(",");
+	buffer.print(mocapPosition[0]);
+	buffer.write(",");
+	buffer.print(mocapPosition[1]);
+	buffer.write(",");
+	buffer.print(mocapPosition[2]);
 	buffer.println();
 	if (buffer.getWriteError()) {
 		Serial.println("WriteError");

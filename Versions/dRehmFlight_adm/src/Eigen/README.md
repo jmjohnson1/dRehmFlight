@@ -1,95 +1,35 @@
-# ArduinoEigen
 
-Eigen (a C++ template library for linear algebra) for Arduino
+![Bolder Flight Systems Logo](img/logo-words_75.png) &nbsp; &nbsp; ![Arduino Logo](img/arduino_logo_75.png)
 
-## Eigen Version
+# Eigen
+Eigen matrix math library, see their [website](http://eigen.tuxfamily.org) for function and API descriptions. This library is compatible with Arduino ARM and CMake build systems.
+   * [License](LICENSE.md)
+   * [Changelog](CHANGELOG.md)
+   * [Contributing guide](CONTRIBUTING.md)
 
-- Eigen v3.4.0
+# Installation
 
-## Usage
-
-By using this library, Eigen can be used directly with Arduino. Please refer following official documents for the details of Eigen.
-
-- [Getting Started](https://eigen.tuxfamily.org/dox/GettingStarted.html)
-- [Quick reference guide](https://eigen.tuxfamily.org/dox/group__QuickRefPage.html)
-- [Sparse matrix manipulations](https://eigen.tuxfamily.org/dox/group__TutorialSparse.html)
-
-### A simple first program
+## Arduino
+Use the Arduino Library Manager to install this library or clone to your Arduino/libraries folder. This library is added as:
 
 ```C++
-#include <ArduinoEigen.h>
-
-using Eigen::MatrixXd;
-
-void setup() {
-    MatrixXd m(2, 2);
-    m(0, 0) = 3;
-    m(1, 0) = 2.5;
-    m(0, 1) = -1;
-    m(1, 1) = m(1, 0) + m(0, 1);
-}
+#include "eigen.h"
 ```
 
-### Matrices and vectors (dynamic)
+An example Arduino executable is located at *examples/arduino/eigen_example/eigen_example.ino*. Teensy 3.x, 4.x, and LC devices are used for testing under Arduino and this library should be compatible with other ARM devices. This library is *not* expected to work on AVR devices.
+
+## CMake
+CMake is used to build this library, which is exported as a library target called *eigen*. The header is added as:
 
 ```C++
-#include <ArduinoEigenDense.h>
-
-using namespace Eigen;
-
-void setup() {
-    MatrixXd m = MatrixXd::Random(3, 3);
-    m = (m + MatrixXd::Constant(3, 3, 1.2)) * 50;
-
-    VectorXd v(3);
-    v << 1, 2, 3;
-
-    VectorXd vo = m * v;
-}
+#include "eigen.h"
 ```
 
-### Matrices and vectors (static)
+The library can be also be compiled stand-alone using the CMake idiom of creating a *build* directory and then, from within that directory issuing:
 
-```C++
-#include <ArduinoEigenDense.h>
-
-using namespace Eigen;
-
-void setup() {
-    Matrix3d m = Matrix3d::Random();
-    m = (m + Matrix3d::Constant(1.2)) * 50;
-
-    Vector3d v(1, 2, 3);
-    Vector3d vo = m * v;
-}
+```
+cmake ..
+make
 ```
 
-## Additional Features
-
-### Pseudo Inverse by SVD decomposition
-
-```C++
-MatrixXd Jacobi {3, 4};
-MatrixXd Jacobi_pinv {4, 3};
-
-Jacobi <<
-    1, 2, 3, 4,
-    5, 6, 7, 8,
-    9, 10, 11, 12;
-
-Jacobi_pinv = Eigen::pseudoInverse(Jacobi);
-```
-
-## Note
-
-This library does NOT support following boards because they don't have standard libraries.
-
-- AVR (Uno, Nano, Mega, etc.)
-- MEGAAVR (Uno WiFi, Nano Every, etc.)
-- SAM (Due)
-
-For such boards, consider using [EigenArduino](https://github.com/vancegroup/EigenArduino).
-
-## License
-
-MPL-2.0
+This will build the library, and an example executable called *eigen_example*. The example executable source file is located at *examples/cmake/eigen_example.cc*.

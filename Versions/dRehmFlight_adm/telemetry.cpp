@@ -1,4 +1,6 @@
 #include "telemetry.h"
+#include "src/mavlink/common/mavlink_msg_local_position_ned.h"
+#include "src/mavlink/ardupilotmega/mavlink_msg_pid_tuning.h"
 
 Telemetry::Telemetry() {
 }
@@ -98,6 +100,9 @@ void Telemetry::HandleMessage(mavlink_message_t *msg) {
 		case MAVLINK_MSG_ID_COMMAND_LONG:
 			HandleCommandLong(msg);
 			break;
+		case MAVLINK_MSG_ID_LOCAL_POSITION_NED:
+			HandleLocalPosNED(msg);
+			break;
 		default:
 			break;
 	}
@@ -111,4 +116,28 @@ void Telemetry::HandleCommandLong(mavlink_message_t *msg) {
 	mavlink_command_long_t packet;
 	mavlink_msg_command_long_decode(msg, &packet);
 
+}
+
+void Telemetry::HandleLocalPosNED(mavlink_message_t *msg) {
+	mavlink_msg_local_position_ned_decode(msg, &localPos);
+  mostRecentPosRead = false;
+}
+
+/**
+* Checks for a whether a new position has ben received over mavlink. If so, it modifies the
+* referenced position vector and returns true. Else, it returns false.
+*
+* @param: pos The current position being used by the caller
+*
+* @returns: true if pos has been modified, false otherwise.
+*/
+bool Telemetry::CheckForNewPosition(Eigen::Vector3f& pos) {
+	if (!mostRecentPosRead) {
+		pos[0] = localPos.x;
+		pos[1] = localPos.y;
+		pos[2] = localPos.z;
+		mostRecentPosRead = true;
+		return true;
+	}
+	return false;
 }

@@ -1,20 +1,16 @@
 {
-    "name": "ArduinoEigen",
-    "keywords": "eigen,linear algebra",
-    "description": "Eigen (a C++ template library for linear algebra) for Arduino",
-    "repository":
-    {
+    "name": "Bolder Flight Systems Eigen",
+    "version": "3.0.2",
+    "description": "Eigen Matrix Math Library.",
+    "keywords": "data, processing",
+    "repository": {
         "type": "git",
-        "url": "https://github.com/hideakitai/ArduinoEigen.git"
+        "url": "https://github.com/bolderflight/eigen"
     },
-    "authors":
-    {
-        "name": "Hideaki Tai",
-        "url": "https://github.com/hideakitai",
-        "maintainer": true
-    },
-    "version": "0.2.3",
-    "license": "MIT",
-    "frameworks": "arduino",
-    "platforms": "*"
+    "authors": [
+        {
+            "name": "Brian Taylor",
+            "maintainer": true
+        }
+    ]
 }

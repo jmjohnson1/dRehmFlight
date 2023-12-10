@@ -6,7 +6,7 @@
 #define HWSERIAL Serial2
 
 #include "src/mavlink/common/mavlink.h"
-#include "src/mavlink/ardupilotmega/mavlink_msg_pid_tuning.h"
+#include <eigen.h>
 #include <cstdint>
 #include "commonDefinitions.h"
 
@@ -29,11 +29,18 @@ public:
 	// Getters
 	uint8_t GetSystemMode() {return systemMode;}
 	uint8_t GetSystemState() {return systemState;}
+
+	bool CheckForNewPosition(Eigen::Vector3f& pos);
 	
 private:
 	void HandleMessage(mavlink_message_t *msg);
 	void HandleCommandLong(mavlink_message_t *msg);
 	void HandleParamRequest(mavlink_message_t *msg);
+	void HandleLocalPosNED(mavlink_message_t *msg);
+
+
+	mavlink_local_position_ned_t localPos;
+	bool mostRecentPosRead = true;
 
 	uint8_t systemID = 1;
 	uint8_t componentID_core = 1;

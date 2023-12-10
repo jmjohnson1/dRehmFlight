@@ -72,6 +72,7 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
 #include <Wire.h>     //I2c communication
 #include "parameters.h"
 #include "commonDefinitions.h"
+#include <eigen.h>
 
 #if defined USE_SBUS_RX
 #include "src/SBUS/SBUS.h" //sBus interface
@@ -398,6 +399,10 @@ int loopCount = 0;
 // Telemetry
 Telemetry telem;
 
+// Position vector taken from mocap
+Eigen::Vector3f mocapPosition(0, 0, 0);
+bool newPositionReceived;
+
 //========================================================================================================================//
 //                                                      VOID SETUP //
 //========================================================================================================================//
@@ -493,7 +498,7 @@ void setup() {
 
   // PROPS OFF. Uncomment this to calibrate your ESCs by setting throttle stick
   // to max, powering on, and lowering throttle to zero after the beeps
-  // calibrateESCs();
+  //  calibrateESCs();
   // Code will not proceed past here if this function is uncommented!
 
 	#ifdef USE_ONESHOT
@@ -580,13 +585,18 @@ void loop() {
   }
   if ((loopCount % 250) == 0) {
 		telem.UpdateReceived();
-    // SendAttitude(quadIMU_info.roll_IMU, quadIMU_info.pitch_IMU, quadIMU_info.yaw_IMU,
-    //							quadIMU_info.GyroX, quadIMU_info.GyroY, quadIMU_info.GyroZ);
     telem.SendAttitude(quadIMU_info.roll_IMU, quadIMU_info.pitch_IMU, 0.0f, quadIMU_info.GyroX, quadIMU_info.GyroY,
                        0.0f);
     telem.SendPIDGains_core(Kp_roll_angle * pScaleRoll, Ki_roll_angle * iScaleRoll, Kd_roll_angle * dScaleRoll);
   }
   loopCount++;
+
+	// Check for a new position value
+	if (telem.CheckForNewPosition(mocapPosition)) {
+		newPositionReceived = true;
+	} else {
+		newPositionReceived = false;
+	}
 
   // Get vehicle state
   getIMUData(&quadIMU_info, &quadIMU); // Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise

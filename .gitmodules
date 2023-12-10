@@ -10,3 +10,6 @@
 [submodule "Versions/kalmanTest/src/eigen"]
 	path = Versions/kalmanTest/src/eigen
 	url = https://github.com/bolderflight/eigen.git
+[submodule "Versions/dRehmFlight_adm/src/eigen"]
+	path = Versions/dRehmFlight_adm/src/eigen
+	url = https://github.com/bolderflight/eigen.git
