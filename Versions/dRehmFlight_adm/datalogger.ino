@@ -121,6 +121,26 @@ void logData_printCSVHeader() {
 	buffer.print("PositionY");
 	buffer.write(",");
 	buffer.print("PositionZ");
+
+	buffer.write(",");
+	buffer.print("roll_imu2");
+	buffer.write(",");
+	buffer.print("pitch_imu2");
+	buffer.write(",");
+	buffer.print("yaw_imu2");
+	buffer.write(",");
+	buffer.print("GyroX_imu2");
+	buffer.write(",");
+	buffer.print("GyroY_imu2");
+	buffer.write(",");
+	buffer.print("GyroZ_imu2");
+	buffer.write(",");
+	buffer.print("AccX_imu2");
+	buffer.write(",");
+	buffer.print("AccY_imu2");
+	buffer.write(",");
+	buffer.print("AccZ_imu2");
+
 	buffer.println();
 }
 
@@ -232,11 +252,31 @@ int logData_writeBuffer() {
 	buffer.write(",");
 	buffer.print(newPositionReceived);
 	buffer.write(",");
-	buffer.print(mocapPosition[0]);
+	buffer.print(mocapPosition[0], 6);
 	buffer.write(",");
-	buffer.print(mocapPosition[1]);
+	buffer.print(mocapPosition[1], 6);
 	buffer.write(",");
-	buffer.print(mocapPosition[2]);
+	buffer.print(mocapPosition[2], 6);
+
+	buffer.write(",");
+	buffer.print(imu2_info.roll_IMU, 4);
+	buffer.write(",");
+	buffer.print(imu2_info.pitch_IMU, 4);
+	buffer.write(",");
+	buffer.print(imu2_info.yaw_IMU, 4);
+	buffer.write(",");
+	buffer.print(imu2_info.GyroX, 4);
+	buffer.write(",");
+	buffer.print(imu2_info.GyroY, 4);
+	buffer.write(",");
+	buffer.print(imu2_info.GyroZ, 4);
+	buffer.write(",");
+	buffer.print(imu2_info.AccX, 4);
+	buffer.write(",");
+	buffer.print(imu2_info.AccY, 4);
+	buffer.write(",");
+	buffer.print(imu2_info.AccZ, 4);
+
 	buffer.println();
 	if (buffer.getWriteError()) {
 		Serial.println("WriteError");

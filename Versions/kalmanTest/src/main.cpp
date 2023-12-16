@@ -90,13 +90,6 @@ int main() {
 	//for (int imu_index = 1600; imu_index < 7600; imu_index++) {
 		uint64_t currentTime_us = imuTime(imu_index)*1e06;
 
-
-		// SKIP 185 TO 195
-		if (currentTime_us > 185*1e06 && currentTime_us < 195e06) {
-			
-		}
-
-
 		// Find out if it's time for a measurement update
 		if ((currentTime_us - previousMeasUpdateTime_us) > 1e06) {
 			int mocap_index = find(mocapTime, imuTime(imu_index));
@@ -111,7 +104,6 @@ int main() {
 		ins.Update(currentTime_us, tow, imuData(imu_index, seq(3, 5)), imuData(imu_index, seq(0, 2)), posMeas, velMeas);
 #else
 		ins.Update(currentTime_us, tow, imuData(imu_index, seq(3, 5)), imuData(imu_index, seq(0, 2)), posMeas);
-		std::cout << imuData(imu_index, seq(3,5)) << std::endl;
 #endif
 		
 

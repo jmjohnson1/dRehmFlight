@@ -438,12 +438,13 @@ float invSqrt(float x) {
 void setup() {
     sd_is_present = !logData_setup();
     IMUinit(&imu);
-    imu_info.AccErrorX = 0.0;
-    imu_info.AccErrorY = 0.0;
-    imu_info.AccErrorZ = 0.0;
-    imu_info.GyroErrorX = 0.0;
-    imu_info.GyroErrorY = 0.0;
-    imu_info.GyroErrorZ = 0.0;
+    imu_info.AccErrorX = 0.02;
+    imu_info.AccErrorY = -0.01;
+    imu_info.AccErrorZ = 0.08;
+    imu_info.GyroErrorX = -5.13;
+    imu_info.GyroErrorY = -2.34;
+    imu_info.GyroErrorZ = -0.65;
+    // calculate_IMU_error(&imu_info, &imu);
     Serial.println("setup done.");
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
@@ -464,6 +465,26 @@ void loop() {
       logData_writeBuffer();
       //Serial.println("logged");
     }
+
+    // Serial.print(imu_info.AccX*9.81f, 4);
+    // Serial.print(" ");
+    // Serial.print(imu_info.AccY*9.81f, 4);
+    // Serial.print(" ");
+    // Serial.print(imu_info.AccZ*9.81f, 4);
+    // Serial.print(" ");
+    // Serial.print(imu_info.GyroX, 4);
+    // Serial.print(" ");
+    // Serial.print(imu_info.GyroY, 4);
+    // Serial.print(" ");
+    // Serial.print(imu_info.GyroZ, 4);
+    // Serial.println();
+
+    Serial.print(imu_info.roll_IMU, 4);
+    Serial.print(" ");
+    Serial.print(imu_info.pitch_IMU, 4);
+    Serial.print(" ");
+    Serial.print(imu_info.yaw_IMU, 4);
+    Serial.println();
 
     if (!digitalRead(5)) {
       digitalWrite(LED_BUILTIN, LOW);

@@ -58,7 +58,7 @@ static const uint8_t num_DSM_channels = 6; // If using DSM RX, change this to ma
 #if defined USE_MPU6050_I2C
 #include "src/MPU6050/MPU6050.h"
 MPU6050 quadIMU;
-MPU6050 ripIMU(MPU6050_ADDRESS_AD0_HIGH);
+MPU6050 imu2(MPU6050_ADDRESS_AD0_HIGH);
 #elif defined USE_MPU9250_SPI
 #include "src/MPU9250/MPU9250.h"
 MPU9250 mpu9250(SPI2, 36);
@@ -295,6 +295,7 @@ DSM1024 DSM;
 #endif
 
 attInfo quadIMU_info;
+attInfo imu2_info;
 
 // Normalized desired state:
 float thro_des, roll_des, pitch_des, yaw_des;
@@ -432,6 +433,9 @@ void setup() {
 
   IMUinit(&quadIMU);
 
+
+	// IMUinit(&imu2);
+
   // Initialize the SD card, returns 1 if no sd card is detected or it can't be
   // initialized
   SD_is_present = !logData_setup();
@@ -567,6 +571,9 @@ void loop() {
   // Get vehicle state
   getIMUData(&quadIMU_info, &quadIMU); // Pulls raw gyro, accelerometer, and magnetometer data from IMU and LP filters to remove noise
   Madgwick6DOF(&quadIMU_info, dt); // Updates roll_IMU, pitch_IMU, and yaw_IMU angle estimates (degrees)
+
+	// getIMUData(&imu2_info, &imu2);
+	// Madgwick6DOF(&imu2_info, dt);
 
   // Compute desired state based on radio inputs
   getDesState(); // Convert raw commands to normalized values based on saturated control limits
