@@ -19,9 +19,9 @@ All units meters and radians
 "Acceleration" is actually "specific gravity", ie. gravity is removed.
 */
 
-#include "uNavINS.h"
-#include "iostream"
+#include <iostream>
 #include <fstream>
+#include "uNavINS.h"
 
 //#define ZERO_YAW
 
@@ -85,12 +85,8 @@ void uNavINS::Initialize(Vector3f wMeas_B_rps, Vector3f aMeas_B_mps2, Vector3d p
   euler_BL_rad_(1) = asinf(aEst_B_nd(0));
   euler_BL_rad_(0) = -asinf(aEst_B_nd(1) / cosf(euler_BL_rad_(1)));
 
-  euler_BL_rad_(0) = -0.16635*M_PI/180.0f;
-  euler_BL_rad_(1) = -0.27743*M_PI/180.0f; 
-  euler_BL_rad_(2) = -3.2*M_PI/180.0f;
-
   // Estimate initial heading
-  // euler_BL_rad_(2) = M_PI;
+  euler_BL_rad_(2) = M_PI;
 
   // Euler to quaternion
   quat_BL_ = Euler2Quat(euler_BL_rad_);

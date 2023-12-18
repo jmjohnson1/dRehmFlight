@@ -23,9 +23,7 @@ All units meters and radians
 
 #include <stdint.h>
 #include <math.h>
-#include "eigen3/Eigen/Core"
-#include "eigen3/Eigen/Dense"
-#include "eigen3/Eigen/Geometry"
+#include "Eigen/Dense"
 using namespace Eigen;
 
 #include "nav-functions.h"
@@ -103,8 +101,8 @@ class uNavINS {
     Vector3f wMarkovSigma_rps = {0.0299f, 0.0316f, 0.0168f}; // Std dev of correlated rotation rate bias
     Vector3f wMarkovTau_s = {20.0f, 20.0f, 200.0f}; // Correlation time or time constant
 
-    float pNoiseSigma_NE_m = 0.05f; // GPS measurement noise std dev (m)    PLACEHOLDER!
-    float pNoiseSigma_D_m = 0.05f; // GPS measurement noise std dev (m)
+    float pNoiseSigma_NE_m = 0.0095f; // GPS measurement noise std dev (m)
+    float pNoiseSigma_D_m = 0.0095f; // GPS measurement noise std dev (m)
 	
     float vNoiseSigma_NE_mps = 1.0f; // GPS measurement noise std dev (m/s)  PLACEHOLDER!
     float vNoiseSigma_D_mps = 1.0f; // GPS measurement noise std dev (m/s)

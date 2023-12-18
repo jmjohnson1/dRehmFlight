@@ -17,7 +17,7 @@ SRCEXT := cpp
 SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
 LIB := -L lib
-INC := -I include
+INC := -I include 
 
 $(TARGET): $(OBJECTS)
 	@echo " Linking..."
@@ -32,7 +32,7 @@ clean:
 	@echo " $(RM) -r $(BUILDDIR) $(TARGET)"; $(RM) -r $(BUILDDIR) $(TARGET)
 
 # Tests
-tester:
-	$(CC) $(CFLAGS) test/tester.cpp $(INC) $(LIB) -o bin/tester
+tuning: 
+	$(CC) $(CFLAGS) test/tuning.cpp $(INC) -I src $(LIB) -o bin/tuning
 
 .PHONY: clean

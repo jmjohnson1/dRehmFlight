@@ -23,9 +23,8 @@ All units meters and radians
 #pragma once
 
 #include <math.h>
-#include "eigen3/Eigen/Core"
-#include "eigen3/Eigen/Dense"
-#include "eigen3/Eigen/Geometry"
+#include "Eigen/Dense"
+
 using namespace Eigen;
 
 // Constants

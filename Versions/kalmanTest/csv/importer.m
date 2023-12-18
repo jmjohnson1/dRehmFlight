@@ -1,3 +1,6 @@
+clear;
+close all;
+
 outputState = readtable("outputState.csv");
 outputState = table2array(outputState);
 time = readtable("imu_time.csv");
@@ -6,13 +9,16 @@ mocap_pos = readtable("mocapPos_debug.csv");
 mocap_pos = table2array(mocap_pos);
 mocap_time = readtable("mocap_time.csv");
 mocap_time = table2array(mocap_time);
-mocap_range_min = find(abs(mocap_time - time(1)) == min(abs(mocap_time - time(1))));
-mocap_range_max = find(abs(mocap_time - time(end)) == min(abs(mocap_time - time(end))));
-mocap_range = mocap_range_min:mocap_range_max;
 
-% rng = 1601:7600;
-rng = 1:length(time);
-time = time(rng);
+% Fix any non-unique points in the mocap times
+[mocap_time, iu] = unique(mocap_time);
+mocap_pos = mocap_pos(iu, :);
+
+minTime = 0;
+maxTime = 350;
+mocap_idx = find(mocap_time >= minTime & mocap_time <= maxTime);
+est_idx = find(time >= minTime & time <= maxTime);
+
 estColor = 'b';
 measColor = 'r';
 lw = 1;
@@ -21,51 +27,63 @@ plot_position = true;
 plot_attitude = true;
 plot_velocity = false;
 plot_biases = true;
+plot_posError = true;
 
-% gt = [roll_imu(rng), -pitch_imu(rng), -yaw_imu(rng)];
-% initIndex = find(time>20 & time<30);
-% initBias = (mean(outputState(7:9,initIndex)))' - mean(gt(initIndex,:));
+time_trunc = time(est_idx);
+output_trunc = outputState(:, est_idx);
+mocap_time_trunc = mocap_time(mocap_idx);
+mocap_pos_trunc = mocap_pos(mocap_idx, :);
+
+% Interpolate mocap_pos to align it with estimates
+mocap_pos_trunc_xi = interp1(mocap_time_trunc, mocap_pos_trunc(:,1), time_trunc);
+mocap_pos_trunc_yi = interp1(mocap_time_trunc, mocap_pos_trunc(:,2), time_trunc);
+mocap_pos_trunc_zi = interp1(mocap_time_trunc, mocap_pos_trunc(:,3), time_trunc);
+
+errorX = mocap_pos_trunc_xi - output_trunc(1, :)';
+errorY = mocap_pos_trunc_yi - output_trunc(2, :)';
+errorZ = mocap_pos_trunc_zi - output_trunc(3, :)';
+
+rmseX = rms(errorX, "omitnan");
+rmseY = rms(errorY, "omitnan");
+rmseZ = rms(errorZ, "omitnan");
 
 
 if plot_position
     figure()
     s1 = subplot(311);
-    plot(time, outputState(1, :), Color=estColor, LineWidth=lw);
+    plot(time_trunc, output_trunc(1, :), Color=estColor, LineWidth=lw);
     hold on
-    plot(mocap_time(mocap_range), mocap_pos(mocap_range, 1), Color=measColor, LineWidth=lw);
+    plot(mocap_time_trunc, mocap_pos_trunc(:, 1), Color=measColor, LineWidth=lw);
     hold off
     ylabel("X (m)")
     grid on;
     
     
     s2 = subplot(312);
-    plot(time, outputState(2, :), Color=estColor, LineWidth=lw);
+    plot(time_trunc, output_trunc(2, :), Color=estColor, LineWidth=lw);
     hold on
-    plot(mocap_time(mocap_range), mocap_pos(mocap_range, 2), Color=measColor, LineWidth=lw);
+    plot(mocap_time_trunc, mocap_pos_trunc(:, 2), Color=measColor, LineWidth=lw);
     hold off
     ylabel("Y (m)")
     grid on;
     
     s3 = subplot(313);
-    plot(time, outputState(3, :), Color=estColor, LineWidth=lw);
+    plot(time_trunc, output_trunc(3, :), Color=estColor, LineWidth=lw);
     hold on
-    plot(mocap_time(mocap_range), mocap_pos(mocap_range, 3), Color=measColor, LineWidth=lw);
+    plot(mocap_time_trunc, mocap_pos_trunc(:, 3), Color=measColor, LineWidth=lw);
     hold off
     ylabel("Z (m)")
     grid on;
     legend("Estimated position", "Measured position", Location="southeast")
     
     xlabel("time (s)");
-    linkaxes([s1, s2, s3], 'xy')
+    linkaxes([s1, s2, s3], 'x')
 end
-
-% [t, x, y, z, q] = processMocapRigid("rc_circuits_mocap.csv", 30, -108.93);
-% eul = quat2eul(q)*180/pi;
 
 if plot_attitude
     figure()
     s1 = subplot(311);
-    plot(time, outputState(7, :)*180/pi, Color=estColor, LineWidth=lw);
+    plot(time_trunc, output_trunc(7, :)*180/pi, Color=estColor, LineWidth=lw);
     hold on
     if exist('roll_imu','var') == 1
         plot(time_imu(rng), roll_imu(rng), 'k.');
@@ -76,7 +94,7 @@ if plot_attitude
     grid on;
     
     s2 = subplot(312);
-    plot(time, outputState(8, :)*180/pi, Color=estColor, LineWidth=lw);
+    plot(time_trunc, output_trunc(8, :)*180/pi, Color=estColor, LineWidth=lw);
     hold on
     if exist('pitch_imu','var') == 1
         plot(time_imu(rng), -pitch_imu(rng), 'k.');
@@ -87,7 +105,7 @@ if plot_attitude
     grid on;
     
     s3 = subplot(313);
-    plot(time, outputState(9, :)*180/pi, Color=estColor, LineWidth=lw);
+    plot(time_trunc, output_trunc(9, :)*180/pi, Color=estColor, LineWidth=lw);
     hold on
     if exist('yaw_imu','var') == 1
         plot(time_imu(rng), -yaw_imu(rng), 'k.-');
@@ -106,17 +124,17 @@ end
 if plot_velocity
     figure()
     subplot(311)
-    plot(time, outputState(4, :), Color=estColor, LineWidth=lw);
+    plot(time_trunc, output_trunc(4, :), Color=estColor, LineWidth=lw);
     ylabel("Vx (m/s)")
     grid on;
     
     subplot(312)
-    plot(time, outputState(5, :), Color=estColor, LineWidth=lw);
+    plot(time_trunc, output_trunc(5, :), Color=estColor, LineWidth=lw);
     ylabel("Vy (m/s)")
     grid on;
     
     subplot(313)
-    plot(time, outputState(6, :), Color=estColor, LineWidth=lw);
+    plot(time_trunc, output_trunc(6, :), Color=estColor, LineWidth=lw);
     ylabel("Vz (m/s)")
     grid on;
     
@@ -125,33 +143,57 @@ end
 
 if plot_biases
     figure()
-    subplot(231)
-    plot(time, outputState(10, :), Color=estColor, LineWidth=lw);
+    subplot(311)
+    plot(time_trunc, output_trunc(10, :), Color=estColor, LineWidth=lw);
+    title("Acc Biases")
     ylabel("")
     grid on;
     
-    subplot(232)
-    plot(time, outputState(11, :), Color=estColor, LineWidth=lw);
+    subplot(312)
+    plot(time_trunc, output_trunc(11, :), Color=estColor, LineWidth=lw);
     ylabel("")
     grid on;
     
-    subplot(233)
-    plot(time, outputState(12, :), Color=estColor, LineWidth=lw);
+    subplot(313)
+    plot(time_trunc, output_trunc(12, :), Color=estColor, LineWidth=lw);
     ylabel("")
     grid on;
     
-    subplot(234)
-    plot(time, outputState(13, :), Color=estColor, LineWidth=lw);
+    figure()
+    subplot(311)
+    plot(time_trunc, output_trunc(13, :), Color=estColor, LineWidth=lw);
+    title("Gyro Biases")
     ylabel("")
     grid on;
     
-    subplot(235)
-    plot(time, outputState(14, :), Color=estColor, LineWidth=lw);
+    subplot(312)
+    plot(time_trunc, output_trunc(14, :), Color=estColor, LineWidth=lw);
     ylabel("")
     grid on;
     
-    subplot(236)
-    plot(time, outputState(15, :), Color=estColor, LineWidth=lw);
+    subplot(313)
+    plot(time_trunc, output_trunc(15, :), Color=estColor, LineWidth=lw);
     ylabel("")
     grid on;
+end
+
+if plot_posError
+    figure()
+    s1 = subplot(311);
+    plot(time_trunc, errorX, Color=estColor, LineWidth=lw);
+    ylabel("X Error (m)")
+    grid on;
+    
+    s2 = subplot(312);
+    plot(time_trunc, errorY, Color=estColor, LineWidth=lw);
+    ylabel("Y Error (m)")
+    grid on;
+    
+    s3 = subplot(313);
+    plot(time_trunc, errorZ, Color=estColor, LineWidth=lw);
+    ylabel("Z Error (m)")
+    grid on;
+    
+    xlabel("time (s)");
+    linkaxes([s1, s2, s3], 'x')
 end
