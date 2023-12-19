@@ -77,9 +77,20 @@ int main() {
 	coordinateShift.col(2).setConstant(mocapPos(startIndex, 2));
 	mocapPos = mocapPos - coordinateShift;
 
+	// Initial values
+	Vector3f accSigma0 = {0.0167f, 0.0167f, 0.0245f}; // Std dev of accelerometer wide band noise (m/s^2)
+	Vector3f accMarkov0 = {0.103f, 0.167f, 0.129f}; // Std dev of accelerometer Markov bias
+	Vector3f gyroSigma0 = {0.0008727f, 0.0008727f, 0.0008727f}; // Std dev of rotation rate output noise (rad/s)
+	Vector3f gyroMarkov0 = {0.0299f, 0.0316f, 0.0168f}; // Std dev of correlated rotation rate bias
+
 	double progress = 0.0;
 	printProgress(progress);
 	for (float scaleQ = minQ; scaleQ < maxQ; scaleQ += stepQ) {
+
+		ins.Set_AccelSigma(accSigma0*sqrt(scaleQ));
+		ins.Set_AccelMarkov(accMarkov0*sqrt(scaleQ));
+		ins.Set_RotRateSigma(gyroSigma0*sqrt(scaleQ));
+		ins.Set_RotRateMarkov(gyroMarkov0*sqrt(scaleQ));
 
 		ins.Configure();
 		ins.Initialize(imuData(0, seq(3, 5)), imuData(0, seq(0, 2)), Vector3d::Zero());

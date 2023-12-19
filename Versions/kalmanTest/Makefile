@@ -39,5 +39,8 @@ clean:
 tuning: $(OBJECTS_TEST)
 	$(CC) $(CFLAGS) test/tuning.cpp $^ $(INC) -I src $(LIB) -o bin/tuning
 
+interp: $(OBJECTS_TEST)
+	$(CC) $(CFLAGS) test/test_interpolate.cpp $^ $(INC) -I src $(LIB) -o bin/test_interpolate
+
 .PHONY: clean
 

@@ -19,7 +19,7 @@ void LinearInterp(const Ref<const VectorXf> x, const Ref<const VectorXf> y, cons
 			float xMax = x[xMin_index + 1];
 			float yMin = y[xMin_index];
 			float yMax = y[xMin_index + 1];
-			yq[i] = xMin + (xq[i] - xMin)/(xMax - xMin) * (yMax - yMin);
+			yq[i] = yMin + (xq[i] - xMin)/(xMax - xMin) * (yMax - yMin);
 		}
 	}
 }

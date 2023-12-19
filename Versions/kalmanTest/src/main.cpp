@@ -8,7 +8,6 @@
 
 #include "csvParser.h"
 #include "uNavINS.h"
-#include "statFun.h"
 
 template <typename Derived>
 int find(const MatrixBase<Derived> &A, float val) {
@@ -64,8 +63,8 @@ int main() {
 	mocapPos = mocapPos - coordinateShift;
 
 	// Export data after preprocessing for debug
-	// write_csv("./csv/imuData_debug.csv", imuData);
-	// write_csv("./csv/mocapPos_debug.csv", mocapPos);
+	write_csv("./csv/imuData_debug.csv", imuData);
+	write_csv("./csv/mocapPos_debug.csv", mocapPos);
 
 	ins.Configure();
 	ins.Initialize(imuData(0, seq(3, 5)), imuData(0, seq(0, 2)), Vector3d::Zero());
