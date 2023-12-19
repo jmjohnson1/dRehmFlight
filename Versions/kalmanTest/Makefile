@@ -16,8 +16,10 @@ TARGET := bin/runner
 SRCEXT := cpp
 SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
+OBJECTS_TEST := $(filter-out %/main.o, $(OBJECTS))
 LIB := -L lib
 INC := -I include 
+DEP = $(OBJECTS:%.o=%.d)
 
 $(TARGET): $(OBJECTS)
 	@echo " Linking..."
@@ -25,14 +27,17 @@ $(TARGET): $(OBJECTS)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
 	@mkdir -p $(BUILDDIR)
-	@echo " $(CC) $(CFLAGS) $(INC) -c -o $@ $<"; $(CC) $(CFLAGS) $(INC) -c -o $@ $<
+	@echo " $(CC) $(CFLAGS) -MMD $(INC) -c -o $@ $<"; $(CC) $(CFLAGS) -MMD $(INC) -c -o $@ $<
+
+-include $(DEP)
 
 clean:
 	@echo " Cleaning..."; 
-	@echo " $(RM) -r $(BUILDDIR) $(TARGET)"; $(RM) -r $(BUILDDIR) $(TARGET)
+	@echo " $(RM) -r $(BUILDDIR) $(TARGET) bin/tuning"; $(RM) -r $(BUILDDIR) $(TARGET) bin/tuning
 
 # Tests
-tuning: 
-	$(CC) $(CFLAGS) test/tuning.cpp $(INC) -I src $(LIB) -o bin/tuning
+tuning: $(OBJECTS_TEST)
+	$(CC) $(CFLAGS) test/tuning.cpp $^ $(INC) -I src $(LIB) -o bin/tuning
 
 .PHONY: clean
+

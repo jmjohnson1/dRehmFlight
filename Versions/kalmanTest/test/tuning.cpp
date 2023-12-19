@@ -10,6 +10,17 @@
 #include "uNavINS.h"
 #include "statFun.h"
 
+#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+#define PBWIDTH 60
+
+void printProgress(double percentage) {
+    int val = (int) (percentage * 100);
+    int lpad = (int) (percentage * PBWIDTH);
+    int rpad = PBWIDTH - lpad;
+    printf("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
+    fflush(stdout);
+}
+
 template <typename Derived>
 int find(const MatrixBase<Derived> &A, float val) {
 	int idx = 0;
@@ -25,6 +36,9 @@ int find(const MatrixBase<Derived> &A, float val) {
 
 int main() {
 	uNavINS ins;
+	float minQ = 0.01f;
+	float maxQ = 2.0f;
+	float stepQ = 0.01f;
 
 	std::cout << "Loading csv data..." << std::endl;
 
@@ -63,35 +77,39 @@ int main() {
 	coordinateShift.col(2).setConstant(mocapPos(startIndex, 2));
 	mocapPos = mocapPos - coordinateShift;
 
-	// Export data after preprocessing for debug
-	// write_csv("./csv/imuData_debug.csv", imuData);
-	// write_csv("./csv/mocapPos_debug.csv", mocapPos);
+	double progress = 0.0;
+	printProgress(progress);
+	for (float scaleQ = minQ; scaleQ < maxQ; scaleQ += stepQ) {
 
-	ins.Configure();
-	ins.Initialize(imuData(0, seq(3, 5)), imuData(0, seq(0, 2)), Vector3d::Zero());
+		ins.Configure();
+		ins.Initialize(imuData(0, seq(3, 5)), imuData(0, seq(0, 2)), Vector3d::Zero());
 
-	uint64_t previousMeasUpdateTime_us = 0;
-	Vector3d posMeas = {0, 0, 0};
-	unsigned long tow = 0;
-	Matrix<float, 15, Dynamic> outputState;
+		uint64_t previousMeasUpdateTime_us = 0;
+		Vector3d posMeas = {0, 0, 0};
+		unsigned long tow = 0;
+		Matrix<float, 15, Dynamic> outputState;
 
-	// Main loop
-	for (int imu_index = 0; imu_index < imuTime.size(); imu_index++) {
-		uint64_t currentTime_us = imuTime(imu_index)*1e06;
+		// Main loop
+		for (int imu_index = 0; imu_index < imuTime.size(); imu_index++) {
+			uint64_t currentTime_us = imuTime(imu_index)*1e06;
 
-		// Find out if it's time for a measurement update
-		if ((currentTime_us - previousMeasUpdateTime_us) > 1e06) {
-			int mocap_index = find(mocapTime, imuTime(imu_index));
-			posMeas = mocapPos.row(mocap_index).cast <double> ();
-			previousMeasUpdateTime_us = currentTime_us;
-			tow += 1;
+			// Find out if it's time for a measurement update
+			if ((currentTime_us - previousMeasUpdateTime_us) > 1e06) {
+				int mocap_index = find(mocapTime, imuTime(imu_index));
+				posMeas = mocapPos.row(mocap_index).cast <double> ();
+				previousMeasUpdateTime_us = currentTime_us;
+				tow += 1;
+			}
+			ins.Update(currentTime_us, tow, imuData(imu_index, seq(3, 5)), imuData(imu_index, seq(0, 2)), posMeas);
+			Vector<float, 15> currentState = ins.Get_State();
+			outputState.conservativeResize(outputState.rows(), outputState.cols() + 1);
+			outputState.col(outputState.cols() - 1) = currentState;
 		}
-		ins.Update(currentTime_us, tow, imuData(imu_index, seq(3, 5)), imuData(imu_index, seq(0, 2)), posMeas);
-		Vector<float, 15> currentState = ins.Get_State();
-		outputState.conservativeResize(outputState.rows(), outputState.cols() + 1);
-		outputState.col(outputState.cols() - 1) = currentState;
+
+		progress = (scaleQ - minQ)/(maxQ - minQ);
+		printProgress(progress);
+
 	}
-	write_csv("./csv/outputState.csv", outputState);
 
 	return 0;
 }
