@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <fstream>
 
 #include "csvParser.h"
 #include "uNavINS.h"
@@ -35,10 +36,18 @@ int find(const MatrixBase<Derived> &A, float val) {
 }
 
 int main() {
+	std::ofstream outputFile;
 	uNavINS ins;
-	float minQ = 0.01f;
+	float minQ = 0.1f;
 	float maxQ = 2.0f;
-	float stepQ = 0.01f;
+	float stepQ = 0.1f;
+
+	outputFile.open("rmse.csv");
+
+	if (outputFile.is_open()) {
+		std::cout << "output file open" << std::endl;
+		outputFile << "scaleQ,rmse_x,rmse_y,rmse_z" << std::endl;
+ 	}
 
 	std::cout << "Loading csv data..." << std::endl;
 
@@ -83,14 +92,28 @@ int main() {
 	Vector3f gyroSigma0 = {0.0008727f, 0.0008727f, 0.0008727f}; // Std dev of rotation rate output noise (rad/s)
 	Vector3f gyroMarkov0 = {0.0299f, 0.0316f, 0.0168f}; // Std dev of correlated rotation rate bias
 
+	VectorXf x_interp;
+	x_interp.resizeLike(imuTime);
+	LinearInterp(mocapTime, mocapPos.col(0), imuTime, x_interp);
+	VectorXf y_interp;
+	y_interp.resizeLike(imuTime);
+	LinearInterp(mocapTime, mocapPos.col(1), imuTime, y_interp);
+	VectorXf z_interp;
+	z_interp.resizeLike(imuTime);
+	LinearInterp(mocapTime, mocapPos.col(2), imuTime, z_interp);
+
+	write_csv("./csv/debug/interpPos_x.csv", x_interp);
+	write_csv("./csv/debug/interpPos_y.csv", y_interp);
+	write_csv("./csv/debug/interpPos_z.csv", z_interp);
+
 	double progress = 0.0;
 	printProgress(progress);
 	for (float scaleQ = minQ; scaleQ < maxQ; scaleQ += stepQ) {
 
 		ins.Set_AccelSigma(accSigma0*sqrt(scaleQ));
-		ins.Set_AccelMarkov(accMarkov0*sqrt(scaleQ));
-		ins.Set_RotRateSigma(gyroSigma0*sqrt(scaleQ));
-		ins.Set_RotRateMarkov(gyroMarkov0*sqrt(scaleQ));
+		ins.Set_AccelMarkov(accMarkov0);
+		ins.Set_RotRateSigma(gyroSigma0);
+		ins.Set_RotRateMarkov(gyroMarkov0);
 
 		ins.Configure();
 		ins.Initialize(imuData(0, seq(3, 5)), imuData(0, seq(0, 2)), Vector3d::Zero());
@@ -115,12 +138,23 @@ int main() {
 			Vector<float, 15> currentState = ins.Get_State();
 			outputState.conservativeResize(outputState.rows(), outputState.cols() + 1);
 			outputState.col(outputState.cols() - 1) = currentState;
+
+		}
+
+		float rmse_x = RMSE(x_interp, outputState.row(0));
+		float rmse_y = RMSE(y_interp, outputState.row(1));
+		float rmse_z = RMSE(z_interp, outputState.row(2));
+
+		if (outputFile.is_open()) {
+			outputFile << scaleQ << "," << rmse_x << "," << rmse_y << "," << rmse_z << std::endl;
 		}
 
 		progress = (scaleQ - minQ)/(maxQ - minQ);
 		printProgress(progress);
 
 	}
+
+	outputFile.close();
 
 	return 0;
 }
