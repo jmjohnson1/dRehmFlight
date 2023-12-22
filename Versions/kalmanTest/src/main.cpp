@@ -48,24 +48,6 @@ int main() {
 	// Convert accelerometer data to m/s/s
 	imuData.block(0, 0, imuData.rows(), 3) = imuData.block(0, 0, imuData.rows(), 3)*9.807f;
 
-	// Change mocap data units to m from mm
-	//mocapPos = mocapPos/1000.0f;
-
-	// Figure out index for start of mocap
-	int startIndex = find(mocapTime, imuTime(0));
-	std::cout << "Start index = " << startIndex << std::endl;
-
-	// Set the initial position to be (0, 0, 0);
-	Matrix<float, Dynamic, Dynamic> coordinateShift(mocapPos.rows(), mocapPos.cols());
-	coordinateShift.col(0).setConstant(mocapPos(startIndex, 0));
-	coordinateShift.col(1).setConstant(mocapPos(startIndex, 1));
-	coordinateShift.col(2).setConstant(mocapPos(startIndex, 2));
-	mocapPos = mocapPos - coordinateShift;
-
-	// Export data after preprocessing for debug
-	write_csv("./csv/imuData_debug.csv", imuData);
-	write_csv("./csv/mocapPos_debug.csv", mocapPos);
-
 	ins.Configure();
 	ins.Initialize(imuData(0, seq(3, 5)), imuData(0, seq(0, 2)), Vector3d::Zero());
 

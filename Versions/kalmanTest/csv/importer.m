@@ -88,6 +88,7 @@ if plot_attitude
     if exist('roll_imu','var') == 1
         plot(time_imu(rng), roll_imu(rng), 'k.');
     end
+
     % plot(t, eul(:, 3), Color=measColor, LineStyle='-')
     hold off
     ylabel("\Phi (deg)")
