@@ -5,14 +5,10 @@ outputState = readtable("outputState.csv");
 outputState = table2array(outputState);
 time = readtable("imu_time.csv");
 time = table2array(time);
-mocap_pos = readtable("mocapPos_debug.csv");
+mocap_pos = readtable("mocap_pos_i.csv");
 mocap_pos = table2array(mocap_pos);
 mocap_time = readtable("mocap_time.csv");
 mocap_time = table2array(mocap_time);
-
-% Fix any non-unique points in the mocap times
-[mocap_time, iu] = unique(mocap_time);
-mocap_pos = mocap_pos(iu, :);
 
 minTime = 0;
 maxTime = 350;
@@ -32,16 +28,12 @@ plot_posError = true;
 time_trunc = time(est_idx);
 output_trunc = outputState(:, est_idx);
 mocap_time_trunc = mocap_time(mocap_idx);
-mocap_pos_trunc = mocap_pos(mocap_idx, :);
+mocap_pos_trunc = mocap_pos(est_idx, :);
 
-% Interpolate mocap_pos to align it with estimates
-mocap_pos_trunc_xi = interp1(mocap_time_trunc, mocap_pos_trunc(:,1), time_trunc);
-mocap_pos_trunc_yi = interp1(mocap_time_trunc, mocap_pos_trunc(:,2), time_trunc);
-mocap_pos_trunc_zi = interp1(mocap_time_trunc, mocap_pos_trunc(:,3), time_trunc);
 
-errorX = mocap_pos_trunc_xi - output_trunc(1, :)';
-errorY = mocap_pos_trunc_yi - output_trunc(2, :)';
-errorZ = mocap_pos_trunc_zi - output_trunc(3, :)';
+errorX = mocap_pos_trunc(:, 1) - output_trunc(1, :)';
+errorY = mocap_pos_trunc(:, 2) - output_trunc(2, :)';
+errorZ = mocap_pos_trunc(:, 3) - output_trunc(3, :)';
 
 rmseX = rms(errorX, "omitnan");
 rmseY = rms(errorY, "omitnan");
@@ -53,7 +45,7 @@ if plot_position
     s1 = subplot(311);
     plot(time_trunc, output_trunc(1, :), Color=estColor, LineWidth=lw);
     hold on
-    plot(mocap_time_trunc, mocap_pos_trunc(:, 1), Color=measColor, LineWidth=lw);
+    plot(time_trunc, mocap_pos_trunc(:, 1), Color=measColor, LineWidth=lw);
     hold off
     ylabel("X (m)")
     grid on;
@@ -62,7 +54,7 @@ if plot_position
     s2 = subplot(312);
     plot(time_trunc, output_trunc(2, :), Color=estColor, LineWidth=lw);
     hold on
-    plot(mocap_time_trunc, mocap_pos_trunc(:, 2), Color=measColor, LineWidth=lw);
+    plot(time_trunc, mocap_pos_trunc(:, 2), Color=measColor, LineWidth=lw);
     hold off
     ylabel("Y (m)")
     grid on;
@@ -70,7 +62,7 @@ if plot_position
     s3 = subplot(313);
     plot(time_trunc, output_trunc(3, :), Color=estColor, LineWidth=lw);
     hold on
-    plot(mocap_time_trunc, mocap_pos_trunc(:, 3), Color=measColor, LineWidth=lw);
+    plot(time_trunc, mocap_pos_trunc(:, 3), Color=measColor, LineWidth=lw);
     hold off
     ylabel("Z (m)")
     grid on;
