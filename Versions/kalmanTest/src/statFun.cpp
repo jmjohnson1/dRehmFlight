@@ -1,4 +1,5 @@
 #include "statFun.h"
+#include <cmath>
 
 void LinearInterp(const Ref<const VectorXf> x, const Ref<const VectorXf> y, const Ref<const VectorXf> xq, Ref<VectorXf> yq) {
 	/**
@@ -27,6 +28,9 @@ void LinearInterp(const Ref<const VectorXf> x, const Ref<const VectorXf> y, cons
 float RMSE(const Ref<const VectorXf> x, const Ref<const VectorXf> y) {
 	float runningSum = 0.0f;
 	for (int i = 0; i < x.size() ; i++) {
+		if (std::isnan(x(i))) {
+			continue;
+		}
 		float diff = y(i) - x(i);
 		runningSum += diff*diff;
 	}

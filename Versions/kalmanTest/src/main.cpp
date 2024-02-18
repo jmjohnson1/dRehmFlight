@@ -30,15 +30,14 @@ int main() {
 	std::string imuData_path = "./csv/imu_data.csv";
 	std::string imuTime_path = "./csv/imu_time.csv";
 	std::string mocapPos_path = "./csv/mocap_pos.csv";
+	std::string mocapPos_i_path = "./csv/mocap_pos_i.csv";
 	std::string mocapTime_path = "./csv/mocap_time.csv";
 	MatrixXf imuData = load_csv<MatrixXf>(imuData_path);
 	MatrixXf imuTime = load_csv<MatrixXf>(imuTime_path);
-	MatrixXf mocapPos = load_csv<MatrixXf>(mocapPos_path);
-	MatrixXf mocapTime = load_csv<MatrixXf>(mocapTime_path);
+	MatrixXf mocapPos = load_csv<MatrixXf>(mocapPos_i_path);
 	std::cout << "imuData - rows: " << imuData.rows() << " cols: " << imuData.cols() << std::endl;
 	std::cout << "imuTime - rows: " << imuTime.rows() << " cols: " << imuTime.cols() << std::endl;
 	std::cout << "mocapPos - rows: " << mocapPos.rows() << " cols: " << mocapPos.cols() << std::endl;
-	std::cout << "mocapTime - rows: " << mocapTime.rows() << " cols: " << mocapTime.cols() << std::endl;
 
 	std::cout << "... csv data loaded." << std::endl;
 
@@ -47,6 +46,18 @@ int main() {
 
 	// Convert accelerometer data to m/s/s
 	imuData.block(0, 0, imuData.rows(), 3) = imuData.block(0, 0, imuData.rows(), 3)*9.807f;
+
+	// Initial values
+	Vector3f accSigma0 = {0.0167f, 0.0167f, 0.0245f*sqrt(50.0f)}; // Std dev of accelerometer wide band noise (m/s^2)
+	Vector3f accMarkov0 = {0.103f, 0.167f, 0.129f*sqrt(10.0f)}; // Std dev of accelerometer Markov bias
+	Vector3f gyroSigma0 = {0.0008727f, 0.0008727f, 0.0008727f}; // Std dev of rotation rate output noise (rad/s)
+	Vector3f gyroMarkov0 = {0.0299f, 0.0316f, 0.0168f*sqrt(10.0f)}; // Std dev of correlated rotation rate bias
+	
+	ins.Set_AccelSigma(accSigma0);
+	ins.Set_AccelMarkov(accMarkov0);
+	ins.Set_RotRateMarkov(gyroMarkov0);
+	ins.Set_PosSigmaD(0.01f);
+	ins.Set_PosSigmaNE(0.01f);
 
 	ins.Configure();
 	ins.Initialize(imuData(0, seq(3, 5)), imuData(0, seq(0, 2)), Vector3d::Zero());
@@ -61,9 +72,8 @@ int main() {
 		uint64_t currentTime_us = imuTime(imu_index)*1e06;
 
 		// Find out if it's time for a measurement update
-		if ((currentTime_us - previousMeasUpdateTime_us) > 1e06) {
-			int mocap_index = find(mocapTime, imuTime(imu_index));
-			posMeas = mocapPos.row(mocap_index).cast <double> ();
+		if ((currentTime_us - previousMeasUpdateTime_us) > 1e05) {
+			posMeas = mocapPos.row(imu_index).cast <double> ();
 			previousMeasUpdateTime_us = currentTime_us;
 			tow += 1;
 		}
