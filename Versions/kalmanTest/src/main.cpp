@@ -8,6 +8,9 @@
 
 #include "csvParser.h"
 #include "uNavINS.h"
+#include "Eigen/Dense"
+
+using namespace Eigen;
 
 template <typename Derived>
 int find(const MatrixBase<Derived> &A, float val) {
@@ -27,57 +30,24 @@ int main() {
 
 	std::cout << "Loading csv data..." << std::endl;
 
-	std::string imuData_path = "./csv/imu_data.csv";
-	std::string imuTime_path = "./csv/imu_time.csv";
-	std::string mocapPos_path = "./csv/mocap_pos.csv";
-	std::string mocapPos_i_path = "./csv/mocap_pos_i.csv";
-	std::string mocapTime_path = "./csv/mocap_time.csv";
-	MatrixXf imuData = load_csv<MatrixXf>(imuData_path);
-	MatrixXf imuTime = load_csv<MatrixXf>(imuTime_path);
-	MatrixXf mocapPos = load_csv<MatrixXf>(mocapPos_i_path);
-	std::cout << "imuData - rows: " << imuData.rows() << " cols: " << imuData.cols() << std::endl;
-	std::cout << "imuTime - rows: " << imuTime.rows() << " cols: " << imuTime.cols() << std::endl;
-	std::cout << "mocapPos - rows: " << mocapPos.rows() << " cols: " << mocapPos.cols() << std::endl;
+	// Using new flight data which includes all fields above in a single csv file
+	std::string flightDataPath = "./csv/flightData.csv";
+	MatrixXf flightData = load_csv<MatrixXf>(flightDataPath);
+	std::cout << "Flight data - rows: " << flightData.rows() << " cols: " << flightData.cols() << std::endl;
 
 	std::cout << "... csv data loaded." << std::endl;
 
-	// Convert imu gyro to rad/s
-	imuData.block(0, 3, imuData.rows(), 3) = imuData.block(0, 3, imuData.rows(), 3)*M_PI/180.0f;
-
-	// Convert accelerometer data to m/s/s
-	imuData.block(0, 0, imuData.rows(), 3) = imuData.block(0, 0, imuData.rows(), 3)*9.807f;
-
-	// Initial values
-	Vector3f accSigma0 = {0.0167f, 0.0167f, 0.0245f*sqrt(50.0f)}; // Std dev of accelerometer wide band noise (m/s^2)
-	Vector3f accMarkov0 = {0.103f, 0.167f, 0.129f*sqrt(10.0f)}; // Std dev of accelerometer Markov bias
-	Vector3f gyroSigma0 = {0.0008727f, 0.0008727f, 0.0008727f}; // Std dev of rotation rate output noise (rad/s)
-	Vector3f gyroMarkov0 = {0.0299f, 0.0316f, 0.0168f*sqrt(10.0f)}; // Std dev of correlated rotation rate bias
-	
-	ins.Set_AccelSigma(accSigma0);
-	ins.Set_AccelMarkov(accMarkov0);
-	ins.Set_RotRateMarkov(gyroMarkov0);
-	ins.Set_PosSigmaD(0.01f);
-	ins.Set_PosSigmaNE(0.01f);
 
 	ins.Configure();
-	ins.Initialize(imuData(0, seq(3, 5)), imuData(0, seq(0, 2)), Vector3d::Zero());
+	ins.Initialize(flightData(0, seq(4, 6)), flightData(0, seq(1, 3)), flightData(0, seq(7, 9)).cast<double>());
 
-	uint64_t previousMeasUpdateTime_us = 0;
-	Vector3d posMeas = {0, 0, 0};
-	unsigned long tow = 0;
 	Matrix<float, 15, Dynamic> outputState;
 
 	// Main loop
-	for (int imu_index = 0; imu_index < imuTime.size(); imu_index++) {
-		uint64_t currentTime_us = imuTime(imu_index)*1e06;
-
-		// Find out if it's time for a measurement update
-		if ((currentTime_us - previousMeasUpdateTime_us) > 1e05) {
-			posMeas = mocapPos.row(imu_index).cast <double> ();
-			previousMeasUpdateTime_us = currentTime_us;
-			tow += 1;
-		}
-		ins.Update(currentTime_us, tow, imuData(imu_index, seq(3, 5)), imuData(imu_index, seq(0, 2)), posMeas);
+	for (int LV1 = 0; LV1 < flightData.rows(); LV1++) {
+		uint64_t currentTime_us = flightData(LV1, 0)*1E06;
+		uint64_t tow = flightData(LV1, 10);
+		ins.Update(currentTime_us, tow, flightData(LV1, seq(4,6)), flightData(LV1, seq(1, 3)), flightData(LV1, seq(7, 9)).cast<double>());
 		Vector<float, 15> currentState = ins.Get_State();
 		outputState.conservativeResize(outputState.rows(), outputState.cols() + 1);
 		outputState.col(outputState.cols() - 1) = currentState;

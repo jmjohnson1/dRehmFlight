@@ -3,16 +3,13 @@ close all;
 
 outputState = readtable("outputState.csv");
 outputState = table2array(outputState);
-time = readtable("imu_time.csv");
-time = table2array(time);
-mocap_pos = readtable("mocap_pos_i.csv");
-mocap_pos = table2array(mocap_pos);
-mocap_time = readtable("mocap_time.csv");
-mocap_time = table2array(mocap_time);
+
+load("mocapData.mat");
+
+
 
 minTime = 0;
 maxTime = 350;
-mocap_idx = find(mocap_time >= minTime & mocap_time <= maxTime);
 est_idx = find(time >= minTime & time <= maxTime);
 
 estColor = 'b';
@@ -27,7 +24,6 @@ plot_posError = true;
 
 time_trunc = time(est_idx);
 output_trunc = outputState(:, est_idx);
-mocap_time_trunc = mocap_time(mocap_idx);
 mocap_pos_trunc = mocap_pos(est_idx, :);
 
 
@@ -73,6 +69,7 @@ if plot_position
 end
 
 if plot_attitude
+    eul = quat2eul(q_i(est_idx, :))*180/pi;
     figure()
     s1 = subplot(311);
     plot(time_trunc, output_trunc(7, :)*180/pi, Color=estColor, LineWidth=lw);
@@ -80,8 +77,7 @@ if plot_attitude
     if exist('roll_imu','var') == 1
         plot(time_imu(rng), roll_imu(rng), 'k.');
     end
-
-    % plot(t, eul(:, 3), Color=measColor, LineStyle='-')
+    plot(time_trunc, eul(:, 3), Color=measColor, LineStyle='-')
     hold off
     ylabel("\Phi (deg)")
     grid on;
@@ -92,7 +88,7 @@ if plot_attitude
     if exist('pitch_imu','var') == 1
         plot(time_imu(rng), -pitch_imu(rng), 'k.');
     end
-    % plot(t, eul(:, 2), Color=measColor, LineStyle='-')
+    plot(time_trunc, eul(:, 2), Color=measColor, LineStyle='-')
     hold off
     ylabel("\Theta (deg)")
     grid on;
@@ -103,7 +99,7 @@ if plot_attitude
     if exist('yaw_imu','var') == 1
         plot(time_imu(rng), -yaw_imu(rng), 'k.-');
     end
-    % plot(t, eul(:, 1), Color=measColor, LineStyle='-')
+    plot(time_trunc, eul(:, 1), Color=measColor, LineStyle='-')
     hold off
     ylabel("\Psi (deg)")
     grid on;
