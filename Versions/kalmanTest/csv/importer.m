@@ -9,7 +9,7 @@ load("mocapData.mat");
 
 
 minTime = 0;
-maxTime = 350;
+maxTime = 1000;
 est_idx = find(time >= minTime & time <= maxTime);
 
 estColor = 'b';

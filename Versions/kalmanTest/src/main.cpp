@@ -39,7 +39,7 @@ int main() {
 
 
 	ins.Configure();
-	ins.Initialize(flightData(0, seq(4, 6)), flightData(0, seq(1, 3)), flightData(0, seq(7, 9)).cast<double>());
+	ins.Initialize(flightData(5, seq(4, 6)), flightData(5, seq(1, 3)), flightData(5, seq(7, 9)).cast<double>());
 
 	Matrix<float, 15, Dynamic> outputState;
 
