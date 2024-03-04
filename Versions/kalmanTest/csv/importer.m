@@ -5,7 +5,7 @@ outputState = readtable("outputState.csv");
 outputState = table2array(outputState);
 
 load("mocapData.mat");
-
+mocap_pos = mocapPosition_i;
 
 
 minTime = 0;

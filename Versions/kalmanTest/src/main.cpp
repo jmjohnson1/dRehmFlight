@@ -45,7 +45,7 @@ int main() {
 
 	// Main loop
 	for (int LV1 = 0; LV1 < flightData.rows(); LV1++) {
-		uint64_t currentTime_us = flightData(LV1, 0)*1E06;
+		uint64_t currentTime_us = flightData(LV1, 0);
 		uint64_t tow = flightData(LV1, 10);
 		ins.Update(currentTime_us, tow, flightData(LV1, seq(4,6)), flightData(LV1, seq(1, 3)), flightData(LV1, seq(7, 9)).cast<double>());
 		Vector<float, 15> currentState = ins.Get_State();
