@@ -29,10 +29,11 @@
             ]
         },
         {
-            "name": "(gdb) Attach",
+            "name": "(gdb) Launch",
             "type": "cppdbg",
-            "request": "attach",
+            "request": "launch",
             "program": "${workspaceFolder}/bin/runner",
+            "cwd": "${workspaceFolder}",
             "MIMode": "gdb",
             "setupCommands": [
                 {

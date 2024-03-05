@@ -42,6 +42,11 @@ int main() {
 	ins.Initialize(flightData(5, seq(4, 6)), flightData(5, seq(1, 3)), flightData(5, seq(7, 9)).cast<double>());
 
 	Matrix<float, 15, Dynamic> outputState;
+	outputState.resize(15, flightData.rows());
+	Matrix<float, 3, Dynamic> innovations;
+	innovations.resize(3, flightData.rows());
+	Matrix<float, 3, Dynamic> residual;
+	residual.resize(3, flightData.rows());
 
 	// Main loop
 	for (int LV1 = 0; LV1 < flightData.rows(); LV1++) {
@@ -49,10 +54,14 @@ int main() {
 		uint64_t tow = flightData(LV1, 10);
 		ins.Update(currentTime_us, tow, flightData(LV1, seq(4,6)), flightData(LV1, seq(1, 3)), flightData(LV1, seq(7, 9)).cast<double>());
 		Vector<float, 15> currentState = ins.Get_State();
-		outputState.conservativeResize(outputState.rows(), outputState.cols() + 1);
-		outputState.col(outputState.cols() - 1) = currentState;
+		outputState.col(LV1) = currentState;
+		Vector3f innovation = ins.Get_InnovationPos();
+		innovations.col(LV1) = innovation;
+		residual.col(LV1) = ins.Get_Residual();
 	}
 	write_csv("./csv/outputState.csv", outputState);
+	write_csv("./csv/innovations.csv", innovations);
+	write_csv("./csv/residual.csv", residual);
 
 	return 0;
 }

@@ -205,13 +205,24 @@ void uNavINS::TimeUpdate() {
   Fs.block(9,9,3,3) = -1*aMarkovTau_s.cwiseInverse().asDiagonal(); // ... Accel Markov Bias
   Fs.block(12,12,3,3) = -1*wMarkovTau_s.cwiseInverse().asDiagonal(); // ... Rotation Rate Markov Bias
 
+  Vector3f aEst_N_mps2 = T_B2NED*aEst_B_mps2_;
+
+  //Fs.block(0,3,3,3) = I3;
+  //Fs.block(3,6,3,3) = -Skew(aEst_N_mps2);
+  //Fs.block(3,9,3,3) = T_B2NED;
+  //Fs.block(6,12,3,3) = -T_B2NED;
+  //Fs.block(9,9,3,3) = 1*aMarkovTau_s.cwiseInverse().asDiagonal(); // ... Accel Markov Bias
+  //Fs.block(12,12,3,3) = 1*wMarkovTau_s.cwiseInverse().asDiagonal(); // ... Rotation Rate Markov Bias
+
   // State Transition Matrix
   Matrix<float,15,15> PHI = I15 + Fs * dt_s_;
 
   // Process Noise Covariance (Discrete approximation)
   Matrix<float,15,12> Gs; Gs.setZero();
   Gs.block(3,0,3,3) = -T_B2NED;
+  //Gs.block(3,0,3,3) = T_B2NED;
   Gs.block(6,3,3,3) = -0.5f * I3;
+  //Gs.block(6,3,3,3) = -T_B2NED;
   Gs.block(9,6,3,3) = I3;
   Gs.block(12,9,3,3) = I3;
 
@@ -233,8 +244,8 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   Vector3f pErr_NED_m = (pMeas_NED_m - pEst_NED_m_).cast<float>();
 
   // Create measurement Y, as Error between Measures and Outputs
-  Matrix<float,3,1> y; y.setZero();
-  y.segment(0,3) = pErr_NED_m;
+  y_.setZero();
+  y_ = pErr_NED_m;
 
   // Innovation covariance
   S_ = H_ * P_ * H_.transpose() + R_;
@@ -248,7 +259,7 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   P_ = I_KH * P_ * I_KH.transpose() + K * R_ * K.transpose();
 
   // State update, x = K * y
-  Matrix<float,15,1> x = K * y;
+  Matrix<float,15,1> x = K * y_;
 
   // Pull apart x terms to update the Position, velocity, orientation, and sensor biases
   Vector3f pDeltaEst_D = x.segment(0,3); // Position Deltas in NED
@@ -266,6 +277,12 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   // Attitude correction
   Quaternionf dQuat_BL = Quaternionf(1.0, quatDelta(0), quatDelta(1), quatDelta(2));
   quat_BL_ = (quat_BL_ * dQuat_BL).normalized();
+  //Quaternionf dQuat_BL = Quaternionf(1.0, -0.5f*quatDelta(0), -0.5f*quatDelta(1), -0.5f*quatDelta(2));
+  //// Avoid quaternion flips sign
+  //if (quat_BL_.w() < 0) {
+    //quat_BL_ = Quaternionf(-quat_BL_.w(), -quat_BL_.x(), -quat_BL_.y(), -quat_BL_.z());
+  //}
+  //quat_BL_ = ( dQuat_BL * quat_BL_).normalized();
 
   // Update biases from states
   aBias_mps2_ += aBiasDelta;
