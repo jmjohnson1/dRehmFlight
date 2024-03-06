@@ -102,15 +102,11 @@ if plot_position
 end
 
 if plot_attitude
-    eul = quat2eul(q_i(est_idx, :))*180/pi;
     figure()
     s1 = subplot(311);
     plot(time, outputState(7, :)*180/pi, Color=estColor, LineWidth=lw);
     hold on
-    if exist('roll_imu','var') == 1
-        plot(time_imu(rng), roll_imu(rng), 'k.');
-    end
-    plot(time, eul(:, 3), Color=measColor, LineStyle='-')
+    plot(time, flightData(:, 15), Color=measColor, LineStyle='-')
     hold off
     ylabel("\Phi (deg)")
     grid on;
@@ -118,10 +114,7 @@ if plot_attitude
     s2 = subplot(312);
     plot(time, outputState(8, :)*180/pi, Color=estColor, LineWidth=lw);
     hold on
-    if exist('pitch_imu','var') == 1plot_posError
-        plot(time_imu(rng), -pitch_imu(rng), 'k.');
-    end
-    plot(time, eul(:, 2), Color=measColor, LineStyle='-')
+    plot(time, flightData(:, 16), Color=measColor, LineStyle='-')
     hold off
     ylabel("\Theta (deg)")
     grid on;
@@ -129,10 +122,7 @@ if plot_attitude
     s3 = subplot(313);
     plot(time, outputState(9, :)*180/pi, Color=estColor, LineWidth=lw);
     hold on
-    if exist('yaw_imu','var') == 1
-        plot(time_imu(rng), -yaw_imu(rng), 'k.-');
-    end
-    plot(time, -eul(:, 1), Color=measColor, LineStyle='-')
+    plot(time, -flightData(:, 17)*180/pi, Color=measColor, LineStyle='-')
     hold off
     ylabel("\Psi (deg)")
     grid on;
