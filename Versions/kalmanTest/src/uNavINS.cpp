@@ -211,7 +211,7 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   Vector3f pErr_NED_m = (pMeas_NED_m - pEst_NED_m_).cast<float>();
 
   // Use cached covariance
-  P_ = covCache.block(0, 0, 15, 15);
+  //P_ = covCache.block(0, 0, 15, 15);
 
   // Create measurement Y, as Error between Measures and Outputs
   Matrix<float,3,1> y; y.setZero();
