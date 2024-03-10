@@ -203,19 +203,14 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   // Position Error, converted to NED
   //Matrix3f T_E2NED = TransE2NED(pEst_NED_m_).cast <float> (); // Compute ECEF to NED with double precision, cast to float
   //Vector3f pErr_NED_m = T_E2NED * (D2E(pMeas_D_rrm) - D2E(pEst_D_rrm_)).cast <float> ();// Compute position error double precision, cast to float, apply transformation
-
-
-  // use chached position
-  pEst_NED_m_ = posCache.col(0);
-
   Vector3f pErr_NED_m = (pMeas_NED_m - pEst_NED_m_).cast<float>();
 
-  // Use cached covariance
-  P_ = covCache.block(0, 0, 15, 15);
+
+  Vector3d pos = posCache.col(0);
+  pErr_NED_m = (pMeas_NED_m - pos).cast<float>();
 
   // Create measurement Y, as Error between Measures and Outputs
-  Matrix<float,3,1> y; y.setZero();
-  y.segment(0,3) = pErr_NED_m;
+  y_.segment(0,3) = pErr_NED_m;
 
   // Innovation covariance
   S_ = H_ * P_ * H_.transpose() + R_;
@@ -229,7 +224,7 @@ void uNavINS::MeasUpdate(Vector3d pMeas_NED_m) {
   P_ = I_KH * P_ * I_KH.transpose() + K * R_ * K.transpose();
 
   // State update, x = K * y
-  Matrix<float,15,1> x = K * y;
+  Matrix<float,15,1> x = K * y_;
 
   // Pull apart x terms to update the Position, velocity, orientation, and sensor biases
   Vector3f pDeltaEst_L = x.segment(0,3); // Position Deltas in NED
