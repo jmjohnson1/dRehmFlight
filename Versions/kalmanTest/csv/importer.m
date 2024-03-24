@@ -48,6 +48,13 @@ for LV1 = 1:N
   nis(LV1) = yk'*inv(Sk)*yk;
 end
 
+% chi_sqr = residual(1, :).^2 + residual(2, :).^2 + residual(3, :).^2;
+% figure()
+% histnorm(chi_sqr, 100, 'plot');
+% hold on
+% histnorm(0:0.001:max(chi_sqr), chi2pdf(0:0.001:max(chi_sqr), 3))
+% hold off
+
 
 
 % Number of samples within 2sigma bound
