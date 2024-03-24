@@ -86,8 +86,6 @@ class uNavINS {
     // TESTING: use chached values to account for mocap latency
     // We are off by ~50 ms. At 100 Hz, this is equivalent to 5 iterations
     #define MEAS_CACHE_SIZE 5
-
-    Matrix<float, 15, 15*MEAS_CACHE_SIZE> covCache;  // Cache of covariance estimates
     Matrix<double, 3, MEAS_CACHE_SIZE> posCache;  // Cache of position estimates
 
     // Model Constants
@@ -111,7 +109,7 @@ class uNavINS {
     Vector3f wMarkovSigma_rps = {2.56E-05*20, 3.76E-05*20, 1.40E-05*20}; // Std dev of correlated rotation rate bias
     Vector3f wMarkovTau_s = {19, 51, 201}; // Correlation time or time constant
 
-    float pNoiseSigma_NE_m = 0.0095; // GPS measurement noise std dev (m)
+    float pNoiseSigma_NE_m = 0.0095*2; // GPS measurement noise std dev (m)
     float pNoiseSigma_D_m = 0.0095; // GPS measurement noise std dev (m)
 	
     float vNoiseSigma_NE_mps = 1.0f; // GPS measurement noise std dev (m/s)  PLACEHOLDER!
@@ -138,10 +136,6 @@ class uNavINS {
     Matrix<float,3,3> S_; // Innovation covariance
     Matrix<float,15,15> P_; // Covariance estimate
 
-    Matrix<float,6,15> H2_; // Observation matrix for meas update with velocity
-    Matrix<float,6,6> R2_;// Covariance of the Observation Noise (associated with MeasUpdate())
-    Matrix<float,6,6> S2_; // Innovation covariance
-	
     // Global variables
     Vector3f aBias_mps2_; // acceleration bias
     Vector3f wBias_rps_; // rotation rate bias
