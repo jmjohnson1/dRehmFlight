@@ -71,9 +71,9 @@ errorX = mocap_pos(:, 1) - outputState(1, :)';
 errorY = mocap_pos(:, 2) - outputState(2, :)';
 errorZ = mocap_pos(:, 3) - outputState(3, :)';
 
-rmseX = rms(errorX, "omitnan");
-rmseY = rms(errorY, "omitnan");
-rmseZ = rms(errorZ, "omitnan");
+rmseX = rms(errorX, "omitnan")
+rmseY = rms(errorY, "omitnan")
+rmseZ = rms(errorZ, "omitnan")
 
 
 if plot_position
@@ -113,7 +113,7 @@ if plot_attitude
     s1 = subplot(311);
     plot(time, outputState(7, :)*180/pi, Color=estColor, LineWidth=lw);
     hold on
-    plot(time, flightData(:, 15), Color=measColor, LineStyle='-')
+    plot(time, flightData(:, 15)*180/pi, Color=measColor, LineStyle='-')
     hold off
     ylabel("\Phi (deg)")
     grid on;
@@ -121,7 +121,7 @@ if plot_attitude
     s2 = subplot(312);
     plot(time, outputState(8, :)*180/pi, Color=estColor, LineWidth=lw);
     hold on
-    plot(time, flightData(:, 16), Color=measColor, LineStyle='-')
+    plot(time, flightData(:, 16)*180/pi, Color=measColor, LineStyle='-')
     hold off
     ylabel("\Theta (deg)")
     grid on;
