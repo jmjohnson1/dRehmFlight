@@ -3,3 +3,6 @@ build/
 sketch.yaml
 compile_commands.json
 *.asv
+*.mat
+.DS_Store
+*.fig
