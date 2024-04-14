@@ -73,9 +73,9 @@ errorX = mocap_pos(:, 1) - outputState(1, :)';
 errorY = mocap_pos(:, 2) - outputState(2, :)';
 errorZ = mocap_pos(:, 3) - outputState(3, :)';
 
-rmseX = rms(errorX, "omitnan");
-rmseY = rms(errorY, "omitnan");
-rmseZ = rms(errorZ, "omitnan");
+rmseX = rms(errorX, "omitnan")
+rmseY = rms(errorY, "omitnan")
+rmseZ = rms(errorZ, "omitnan")
 
 
 if plot_position

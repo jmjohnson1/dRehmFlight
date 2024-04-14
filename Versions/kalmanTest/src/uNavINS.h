@@ -85,9 +85,13 @@ class uNavINS {
     
     // TESTING: use chached values to account for mocap latency
     // We are off by ~50 ms. At 100 Hz, this is equivalent to 5 iterations
+<<<<<<< HEAD
     #define MEAS_CACHE_SIZE 8
 
     Matrix<float, 15, 15*MEAS_CACHE_SIZE> covCache;  // Cache of covariance estimates
+=======
+    #define MEAS_CACHE_SIZE 5
+>>>>>>> caaa3569558c28e975a2019f66a4bd2554633c36
     Matrix<double, 3, MEAS_CACHE_SIZE> posCache;  // Cache of position estimates
 
     // Model Constants
@@ -120,9 +124,15 @@ class uNavINS {
     // Initial set of covariance
     float pErrSigma_Init_m = 1.0f; // Std dev of initial position error (m)
     float vErrSigma_Init_mps = 1.0f; // Std dev of initial velocity error (m/s)
+<<<<<<< HEAD
     float attErrSigma_Init_rad = 0.34906f; // Std dev of initial attitude (phi and theta) error (rad)
     float hdgErrSigma_Init_rad = 3.14159f; // Std dev of initial Heading (psi) error (rad)
     float aBiasSigma_Init_mps2 = 0.981f/5; // Std dev of initial acceleration bias (m/s^2)
+=======
+    float attErrSigma_Init_rad = 0.34906f/10; // Std dev of initial attitude (phi and theta) error (rad)
+    float hdgErrSigma_Init_rad = 3.14159f/10; // Std dev of initial Heading (psi) error (rad)
+    float aBiasSigma_Init_mps2 = 0.981f/2; // Std dev of initial acceleration bias (m/s^2)
+>>>>>>> caaa3569558c28e975a2019f66a4bd2554633c36
     float wBiasSigma_Init_rps = 0.01745f; // Std dev of initial rotation rate bias (rad/s)
 
     // Identity matrices
@@ -138,10 +148,6 @@ class uNavINS {
     Matrix<float,3,3> S_; // Innovation covariance
     Matrix<float,15,15> P_; // Covariance estimate
 
-    Matrix<float,6,15> H2_; // Observation matrix for meas update with velocity
-    Matrix<float,6,6> R2_;// Covariance of the Observation Noise (associated with MeasUpdate())
-    Matrix<float,6,6> S2_; // Innovation covariance
-	
     // Global variables
     Vector3f aBias_mps2_; // acceleration bias
     Vector3f wBias_rps_; // rotation rate bias
