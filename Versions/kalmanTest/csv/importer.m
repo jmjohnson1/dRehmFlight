@@ -48,12 +48,14 @@ for LV1 = 1:N
   nis(LV1) = yk'*inv(Sk)*yk;
 end
 
-% chi_sqr = residual(1, :).^2 + residual(2, :).^2 + residual(3, :).^2;
-% figure()
-% histnorm(chi_sqr, 100, 'plot');
-% hold on
-% histnorm(0:0.001:max(chi_sqr), chi2pdf(0:0.001:max(chi_sqr), 3))
-% hold off
+chi_sqr = residual(1, :).^2./innovationCov(1, :) ...
+					+ residual(2, :).^2./innovationCov(2, :) ...
+					+ residual(3, :).^2./innovationCov(3, :);
+figure()
+histnorm(chi_sqr, 105, 'plot', 'FaceColor', 'r');
+hold on
+plot(0:0.001:max(chi_sqr), chi2pdf(0:0.001:max(chi_sqr), 3), 'r', LineWidth=2)
+hold off
 
 
 
@@ -113,7 +115,7 @@ if plot_attitude
     s1 = subplot(311);
     plot(time, outputState(7, :)*180/pi, Color=estColor, LineWidth=lw);
     hold on
-    plot(time, flightData(:, 15), Color=measColor, LineStyle='-')
+    plot(time, flightData(:, 15)*180/pi, Color=measColor, LineStyle='-')
     hold off
     ylabel("\Phi (deg)")
     grid on;
@@ -121,7 +123,7 @@ if plot_attitude
     s2 = subplot(312);
     plot(time, outputState(8, :)*180/pi, Color=estColor, LineWidth=lw);
     hold on
-    plot(time, flightData(:, 16), Color=measColor, LineStyle='-')
+    plot(time, flightData(:, 16)*180/pi, Color=measColor, LineStyle='-')
     hold off
     ylabel("\Theta (deg)")
     grid on;
@@ -165,17 +167,17 @@ if plot_biases
     subplot(311)
     plot(time, outputState(10, :), Color=estColor, LineWidth=lw);
     title("Acc Biases")
-    ylabel("")
+    ylabel("f_x")
     grid on;
     
     subplot(312)
     plot(time, outputState(11, :), Color=estColor, LineWidth=lw);
-    ylabel("")
+    ylabel("f_y")
     grid on;
     
     subplot(313)
     plot(time, outputState(12, :), Color=estColor, LineWidth=lw);
-    ylabel("")
+    ylabel("f_z")
     grid on;
     
     figure()

@@ -1,10 +1,12 @@
 clear
 clc
 
-sp = serialport("/dev/tty.usbmodem147193601", 500000);
+sp = serialport("/dev/tty.usbmodem68057901", 500000);
 
-data1 = zeros(6000, 1);
-data2 = zeros(6000, 1);
+num = 500;
+
+data1 = zeros(num, 1);
+data2 = zeros(num, 1);
 
 
 %Set up Plot
@@ -17,7 +19,7 @@ hold off
 title("Serial Data",'FontSize',15);
 ylabel("",'FontSize',15);
 legend()
-axis([0 6000 -20 20]);
+axis([0 num -20 20]);
 grid("on");
 
 % plotGraph1.YDataSource = 'data1';

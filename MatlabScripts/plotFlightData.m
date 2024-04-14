@@ -2,7 +2,7 @@
 %% Imports
 clear
 close all
-filename = "adm11-19-1st-quad.csv";
+filename = "flight_data27.csv";
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% IMPORT DATA FROM FILE %%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -77,18 +77,18 @@ filename = "adm11-19-1st-quad.csv";
     
 
 %     %%% Plot Desired and Measured States %%%
-    % figure(1);
-    % hold on
-    % plot(time(rng), roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
-    % plot(time(rng), roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
-    % % plot(pitch_des(rng), DisplayName="Desired pitch", LineWidth=lw);
-    % % plot(pitch_imu(rng), DisplayName="Measured pitch", LineWidth=lw);
-    % % plot(time(rng), yaw_des(rng), DisplayName="Desired yaw", LineWidth=lw);
-    % % plot(time(rng), yaw_imu(rng), DisplayName="Measured yaw", LineWidth=lw);
-    % hold off
-    % legend();
-    % grid on
-    % title("Pitch/Yaw/Roll")
+    figure(1);
+    hold on
+    plot(time(rng), roll_des(rng), DisplayName="Desired roll", LineWidth=lw);
+    plot(time(rng), roll_imu(rng), DisplayName="Measured roll", LineWidth=lw);
+    % plot(pitch_des(rng), DisplayName="Desired pitch", LineWidth=lw);
+    % plot(pitch_imu(rng), DisplayName="Measured pitch", LineWidth=lw);
+    % plot(time(rng), yaw_des(rng), DisplayName="Desired yaw", LineWidth=lw);
+    % plot(time(rng), yaw_imu(rng), DisplayName="Measured yaw", LineWidth=lw);
+    hold off
+    legend();
+    grid on
+    title("Pitch/Yaw/Roll")
 % 
     % Plot motor commands
 %     figure(2);
