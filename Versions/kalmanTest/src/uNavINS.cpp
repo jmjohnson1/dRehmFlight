@@ -21,6 +21,7 @@ All units meters and radians
 
 #include <iostream>
 #include "uNavINS.h"
+#include <unsupported/Eigen/MatrixFunctions>
 
 
 void uNavINS::Configure() {
@@ -183,6 +184,17 @@ void uNavINS::TimeUpdate() {
 
   // Discrete Process Noise
   Matrix<float,15,15> Q; Q.setZero();
+
+  // Matrix<float,30,30> M; M.setZero();
+  // Matrix<float,30,30> L; L.setZero();
+  // M.block(0,0,15,15) = -Fs;
+  // M.block(0,15,15,15) = Gs*Rw_*Gs.transpose();
+  // M.block(15,15,15,15) = Fs.transpose();
+  // L = (M*dt_s_).exp();
+  // Q = (L.block(15,15,15,15)).transpose()*L.block(0,15,15,15);
+
+
+  // First order approximation
   Q = PHI * dt_s_ * Gs * Rw_ * Gs.transpose();
   Q = 0.5f * (Q + Q.transpose());
 
